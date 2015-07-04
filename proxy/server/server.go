@@ -30,6 +30,7 @@ type Server struct {
 	addr     string
 	user     string
 	password string
+	db       string
 
 	running bool
 
@@ -123,6 +124,10 @@ func (s *Server) parseNodes() error {
 func (s *Server) parseSchemas() error {
 	s.schemas = make(map[string]*Schema)
 
+	if len(s.cfg.Schemas) != 1 {
+		return fmt.Errorf("must have only one schema.")
+	}
+
 	for _, schemaCfg := range s.cfg.Schemas {
 		if _, ok := s.schemas[schemaCfg.DB]; ok {
 			return fmt.Errorf("duplicate schema [%s].", schemaCfg.DB)
@@ -154,6 +159,7 @@ func (s *Server) parseSchemas() error {
 			nodes: nodes,
 			rule:  rule,
 		}
+		s.db = schemaCfg.DB
 	}
 
 	return nil
@@ -203,6 +209,7 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 	c := new(ClientConn)
 
 	c.c = co
+	c.schema = s.GetSchema(s.db)
 
 	c.pkg = NewPacketIO(co)
 
@@ -248,12 +255,12 @@ func (s *Server) onConn(c net.Conn) {
 		conn.Close()
 	}()
 
-	//	if allowConnect := conn.IsAllowConnect(); allowConnect == false {
-	//		err := NewError(ER_UNKNOWN_ERROR, "ip address access denied by myshard.")
-	//		conn.writeError(err)
-	//		conn.Close()
-	//		return
-	//	}
+	if allowConnect := conn.IsAllowConnect(); allowConnect == false {
+		err := NewError(ER_UNKNOWN_ERROR, "ip address access denied by myshard.")
+		conn.writeError(err)
+		conn.Close()
+		return
+	}
 	if err := conn.Handshake(); err != nil {
 		golog.Error("server", "onConn", err.Error(), 0)
 		c.Close()

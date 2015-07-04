@@ -223,6 +223,7 @@ func (r *Router) GetStmtShardListIndex(stmt sqlparser.Statement, bindVars map[st
 func (r *Router) GetPlan(statement sqlparser.Statement) (plan *Plan) {
 	plan = &Plan{}
 	var where *sqlparser.Where
+	//因为实现Statement接口的方法都是指针类型，所以type对应类型也是指针类型
 	switch stmt := statement.(type) {
 	case *sqlparser.Insert:
 		if _, ok := stmt.Rows.(sqlparser.SelectStatement); ok {

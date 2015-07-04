@@ -24,11 +24,20 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 
 	sql = strings.TrimRight(sql, ";") //删除sql语句最后的分号
 
+	hasHandled, err := c.handleUnsupport(sql)
+	if err != nil {
+		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled)
+		return err
+	}
+	if hasHandled {
+		return nil
+	}
+
 	var stmt sqlparser.Statement
 	stmt, err = sqlparser.Parse(sql) //解析sql语句,得到的stmt是一个interface
 	if err != nil {
-		return c.handleUnsupport(sql)
-		//return fmt.Errorf(`parse sql "%s" error`, sql)
+		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled)
+		return err
 	}
 
 	switch v := stmt.(type) {
@@ -243,37 +252,65 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *ClientConn) handleUnsupport(sql string) error {
+//返回true表示已经处理，false表示未处理
+func (c *ClientConn) handleUnsupport(sql string) (bool, error) {
 	var rs []*Result
+	var TK_FROM string = "from"
+
+	sql = strings.ToLower(sql)
+	tokens := strings.Fields(sql)
+	tokensLen := len(tokens)
+	if 0 < tokensLen {
+		//token is in WHITE_TOKEN_MAP
+		if 0 < WHITE_TOKEN_MAP[tokens[0]] {
+			//select
+			if 1 < WHITE_TOKEN_MAP[tokens[0]] {
+				for i := 1; i < tokensLen; i++ {
+					if tokens[i] == TK_FROM {
+						return false, nil
+					}
+				}
+			} else {
+				return false, nil
+			}
+		}
+	}
 
 	defaultRule := c.schema.rule.DefaultRule
 	if len(defaultRule.Nodes) == 0 {
-		return ErrNoDefaultNode
+
+		return false, ErrNoDefaultNode
 	}
 	defaultNode := c.proxy.GetNode(defaultRule.Nodes[0])
 
 	//execute in Master DB
 	conn, err := c.getBackendConn(defaultNode, false)
 	if err != nil {
-		return err
+
+		return false, err
 	}
 
 	conns := []*backend.BackendConn{conn}
 	rs, err = c.executeInShard(conns, sql, nil)
 	if err != nil {
-		return err
+
+		return false, err
 	}
 
 	c.closeShardConns(conns, false)
 	if len(rs) == 0 {
 		msg := fmt.Sprintf("result is empty")
 		golog.Error("ClientConn", "handleUnsupport", msg, c.connectionId)
-		return NewError(ER_UNKNOWN_ERROR, msg)
+		return false, NewError(ER_UNKNOWN_ERROR, msg)
 	}
 
 	err = c.writeResultset(c.status, rs[0].Resultset)
+	if err != nil {
 
-	return err
+		return false, err
+	}
+
+	return true, nil
 }
 
 /*处理select语句*/
@@ -282,6 +319,7 @@ func (c *ClientConn) handleSelect(stmt *sqlparser.Select, sql string, args []int
 
 	conns, err := c.getShardConns(true, stmt, bindVars)
 	if err != nil {
+		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
 		return err
 	} else if conns == nil {
 		r := c.newEmptyResultset(stmt)
@@ -294,8 +332,14 @@ func (c *ClientConn) handleSelect(stmt *sqlparser.Select, sql string, args []int
 
 	c.closeShardConns(conns, false)
 
-	if err == nil {
-		err = c.mergeSelectResult(rs, stmt)
+	if err != nil {
+		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
+		return err
+	}
+
+	err = c.mergeSelectResult(rs, stmt)
+	if err != nil {
+		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
 	}
 
 	return err

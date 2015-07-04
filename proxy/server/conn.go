@@ -89,15 +89,15 @@ func (c *ClientConn) IsAllowConnect() bool {
 
 func (c *ClientConn) Handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
-		golog.Error("server", "Handshake", "send initial handshake error",
-			0, "error", err.Error())
+		golog.Error("server", "Handshake", err.Error(),
+			c.connectionId, "msg", "send initial handshake error")
 		return err
 	}
 
 	if err := c.readHandshakeResponse(); err != nil {
 		golog.Error("server", "readHandshakeResponse",
-			"read Handshake Response error",
-			0, "error", err.Error())
+			err.Error(), c.connectionId,
+			"msg", "read Handshake Response error")
 
 		c.writeError(err)
 
@@ -107,7 +107,7 @@ func (c *ClientConn) Handshake() error {
 	if err := c.writeOK(nil); err != nil {
 		golog.Error("server", "readHandshakeResponse",
 			"write ok fail",
-			0, "error", err.Error())
+			c.connectionId, "error", err.Error())
 		return err
 	}
 
@@ -270,8 +270,8 @@ func (c *ClientConn) Run() {
 
 		if err := c.dispatch(data); err != nil {
 			golog.Error("server", "Run",
-				"dispatch", 0,
-				"error", err.Error())
+				err.Error(), c.connectionId,
+			)
 			if err != ErrBadConn {
 				c.writeError(err)
 			}

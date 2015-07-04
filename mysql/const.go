@@ -4,7 +4,7 @@ const (
 	MinProtocolVersion byte   = 10
 	MaxPayloadLen      int    = 1<<24 - 1
 	TimeFormat         string = "2006-01-02 15:04:05"
-	ServerVersion      string = "5.5.31-mixer-0.1"
+	ServerVersion      string = "kingshard-1.0"
 )
 
 const (
@@ -142,4 +142,31 @@ const (
 
 const (
 	AUTH_NAME = "mysql_native_password"
+)
+
+var (
+	KS_TK_INSERT   = 1
+	KS_TK_UPDATE   = 1
+	KS_TK_DELETE   = 1
+	KS_TK_REPLACE  = 1
+	KS_TK_SET      = 1
+	KS_TK_BEGIN    = 1
+	KS_TK_COMMIT   = 1
+	KS_TK_ROLLBACK = 1
+	KS_TK_ADMIN    = 1
+
+	KS_TK_SELECT = 2
+
+	WHITE_TOKEN_MAP = map[string]int{
+		"insert":   KS_TK_INSERT,
+		"update":   KS_TK_UPDATE,
+		"delete":   KS_TK_DELETE,
+		"replace":  KS_TK_REPLACE,
+		"set":      KS_TK_SET,
+		"begin":    KS_TK_BEGIN,
+		"commit":   KS_TK_COMMIT,
+		"rollback": KS_TK_ROLLBACK,
+		"admin":    KS_TK_ADMIN,
+		"select":   KS_TK_SELECT,
+	}
 )
