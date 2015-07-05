@@ -236,6 +236,32 @@ func escape(s string, filterEqual bool) string {
 	return string(dest)
 }
 
+func OutputSql(state string, format string, v ...interface{}) {
+	l := GlobalLogger
+	buf := l.popBuf()
+
+	if l.flag&Ltime > 0 {
+		now := time.Now().Format(TimeFormat)
+		buf = append(buf, now...)
+		buf = append(buf, " - "...)
+	}
+
+	if l.flag&Llevel > 0 {
+		buf = append(buf, state...)
+		buf = append(buf, " - "...)
+	}
+
+	s := fmt.Sprintf(format, v...)
+
+	buf = append(buf, s...)
+
+	if s[len(s)-1] != '\n' {
+		buf = append(buf, '\n')
+	}
+
+	l.msg <- buf
+}
+
 func output(level int, module string, method string, msg string, reqId uint32, args ...interface{}) {
 	if level < GlobalLogger.Level() {
 		return
