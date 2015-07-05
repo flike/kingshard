@@ -18,8 +18,10 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("execute %s error %v", sql, e)
+			golog.OutputSql("Error", "%s", sql)
 			return
 		}
+		golog.OutputSql("INFO", "%s", sql)
 	}()
 
 	sql = strings.TrimRight(sql, ";") //删除sql语句最后的分号
