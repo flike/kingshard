@@ -1,9 +1,8 @@
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package router
 
 import (
+	. "github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/sqlparser"
 	"sort"
 	"strconv"
@@ -17,73 +16,60 @@ const (
 )
 
 type Plan struct {
-	rule *Rule
+	Rule *Rule
 
-	criteria sqlparser.SQLNode
+	Criteria sqlparser.SQLNode
 
-	fullList []int
-
-	bindVars map[string]interface{}
+	TableIndexs      []int //value is table index
+	RouteTableIndexs []int
+	RouteNodeIndexs  []int
+	RewrittenSqls    map[string][]string
 }
-
-/*
-	Limitation:
-
-	where, eg, key name is id:
-
-		where id = 1
-		where id in (1, 2, 3)
-		where id > 1
-		where id >= 1
-		where id < 1
-		where id <= 1
-		where id between 1 and 10
-		where id >= 1 and id < 10
-*/
 
 func (plan *Plan) notList(l []int) []int {
-	return differentList(plan.fullList, l)
+	return differentList(plan.TableIndexs, l)
 }
 
-/*根据条件表达式得到shard list*/
-func (plan *Plan) findConditionShard(expr sqlparser.BoolExpr) (shardList []int) {
+func (plan *Plan) getTableIndexs(expr sqlparser.BoolExpr) []int {
 	var index int
 	switch criteria := expr.(type) {
 	case *sqlparser.ComparisonExpr:
 		switch criteria.Operator {
 		case "=", "<=>": //=对应的分片
-			if plan.routingAnalyzeValue(criteria.Left) == EID_NODE {
-				index = plan.findShard(criteria.Right)
+			if plan.getValueType(criteria.Left) == EID_NODE {
+				index = plan.getTableIndexByValue(criteria.Right)
 			} else {
-				index = plan.findShard(criteria.Left)
-			}
-			return []int{index}
-		case "<", "<=":
-			if plan.rule.Type == HashRuleType {
-				return plan.fullList
+				index = plan.getTableIndexByValue(criteria.Left)
 			}
 
-			if plan.routingAnalyzeValue(criteria.Left) == EID_NODE {
-				index = plan.findShard(criteria.Right)
+			return []int{index}
+		case "<", "<=":
+			if plan.Rule.Type == HashRuleType {
+				return plan.TableIndexs
+			}
+
+			if plan.getValueType(criteria.Left) == EID_NODE {
+				index = plan.getTableIndexByValue(criteria.Right)
 				if criteria.Operator == "<" {
-					index = plan.adjustShardIndex(criteria.Right, index) //调整边界值，当shard[index].start等于criteria.Right 则index--
+					//调整边界值，当shard[index].start等于criteria.Right 则index--
+					index = plan.adjustShardIndex(criteria.Right, index)
 				}
 
 				return makeList(0, index+1)
 			} else {
-				index = plan.findShard(criteria.Left)
-				return makeList(index, len(plan.rule.Nodes))
+				index = plan.getTableIndexByValue(criteria.Left)
+				return makeList(index, len(plan.TableIndexs))
 			}
 		case ">", ">=":
-			if plan.rule.Type == HashRuleType {
-				return plan.fullList
+			if plan.Rule.Type == HashRuleType {
+				return plan.TableIndexs
 			}
 
-			if plan.routingAnalyzeValue(criteria.Left) == EID_NODE {
-				index = plan.findShard(criteria.Right)
-				return makeList(index, len(plan.rule.Nodes))
+			if plan.getValueType(criteria.Left) == EID_NODE {
+				index = plan.getTableIndexByValue(criteria.Right)
+				return makeList(index, len(plan.TableIndexs))
 			} else { // 10 > id，这种情况
-				index = plan.findShard(criteria.Left)
+				index = plan.getTableIndexByValue(criteria.Left)
 
 				if criteria.Operator == ">" {
 					index = plan.adjustShardIndex(criteria.Left, index)
@@ -91,29 +77,28 @@ func (plan *Plan) findConditionShard(expr sqlparser.BoolExpr) (shardList []int) 
 				return makeList(0, index+1)
 			}
 		case "in":
-			return plan.findShardList(criteria.Right)
+			return plan.getTableIndexsByTuple(criteria.Right)
 		case "not in":
-			if plan.rule.Type == RangeRuleType {
-				return plan.fullList
+			if plan.Rule.Type == RangeRuleType {
+				return plan.TableIndexs
 			}
 
-			l := plan.findShardList(criteria.Right)
+			l := plan.getTableIndexsByTuple(criteria.Right)
 			return plan.notList(l)
 		}
 	case *sqlparser.RangeCond:
-		if plan.rule.Type == HashRuleType {
-			return plan.fullList
+		if plan.Rule.Type == HashRuleType {
+			return plan.TableIndexs
 		}
 
-		start := plan.findShard(criteria.From)
-		last := plan.findShard(criteria.To)
+		start := plan.getTableIndexByValue(criteria.From)
+		last := plan.getTableIndexByValue(criteria.To)
 
 		if criteria.Operator == "between" { //对应between ...and ...
 			if last < start {
 				start, last = last, start
 			}
-			l := makeList(start, last+1)
-			return l
+			return makeList(start, last+1)
 		} else { //对应not between ....and
 			if last < start {
 				start, last = last, start
@@ -123,48 +108,58 @@ func (plan *Plan) findConditionShard(expr sqlparser.BoolExpr) (shardList []int) 
 			}
 
 			l1 := makeList(0, start+1)
-			l2 := makeList(last, len(plan.rule.Nodes))
+			l2 := makeList(last, len(plan.TableIndexs))
 			return unionList(l1, l2)
 		}
 	default:
-		return plan.fullList
+		return plan.TableIndexs
 	}
 
-	return plan.fullList
+	return plan.RouteTableIndexs
 }
 
-/*从plan中得到shard list*/
-func (plan *Plan) shardListFromPlan() (shardList []int) {
-	if plan.criteria == nil { //如果没有分表条件，则是全表扫描
-		return plan.fullList
-	}
+/*计算表下标和node下标 */
+func (plan *Plan) calRouteIndexs() error {
+	nodesCount := len(plan.Rule.Nodes)
 
-	//default rule will route all sql to one node
-	//if rule has one node, we also can route directly
-	if plan.rule.Type == DefaultRuleType || len(plan.rule.Nodes) == 1 {
-		if len(plan.fullList) != 1 {
-			panic(sqlparser.NewParserError("invalid rule nodes num %d, must 1", plan.fullList))
+	if plan.Rule.Type == DefaultRuleType {
+		plan.RouteNodeIndexs = []int{0}
+		return nil
+	}
+	if plan.Criteria == nil { //如果没有分表条件，则是全表扫描
+		if plan.Rule.Type != DefaultRuleType {
+			golog.Error("Plan", "calRouteIndexs", "plan have no criteria", 0,
+				"type", plan.Rule.Type)
+			return ErrNoCriteria
 		}
-		return plan.fullList
+
 	}
 
-	switch criteria := plan.criteria.(type) {
+	switch criteria := plan.Criteria.(type) {
 	case sqlparser.Values: //代表insert中values
-		index := plan.findInsertShard(criteria)
-		return []int{index}
+		tindex := plan.getInsertTableIndex(criteria)
+		plan.RouteTableIndexs = []int{tindex}
+		plan.RouteNodeIndexs = plan.TindexsToNindexs([]int{tindex})
+
+		return nil
 	case sqlparser.BoolExpr:
-		return plan.routingAnalyzeBoolean(criteria)
+		plan.RouteTableIndexs = plan.getTableIndexByBoolExpr(criteria)
+		plan.RouteNodeIndexs = plan.TindexsToNindexs(plan.RouteTableIndexs)
+
+		return nil
 	default:
-		return plan.fullList
+		plan.RouteTableIndexs = plan.TableIndexs
+		plan.RouteNodeIndexs = makeList(0, nodesCount)
+		return nil
 	}
 }
 
-func (plan *Plan) routingAnalyzeValues(vals sqlparser.Values) sqlparser.Values {
+func (plan *Plan) checkValuesType(vals sqlparser.Values) sqlparser.Values {
 	// Analyze first value of every item in the list
 	for i := 0; i < len(vals); i++ {
 		switch tuple := vals[i].(type) {
 		case sqlparser.ValTuple:
-			result := plan.routingAnalyzeValue(tuple[0])
+			result := plan.getValueType(tuple[0])
 			if result != VALUE_NODE {
 				panic(sqlparser.NewParserError("insert is too complex"))
 			}
@@ -175,56 +170,16 @@ func (plan *Plan) routingAnalyzeValues(vals sqlparser.Values) sqlparser.Values {
 	return vals
 }
 
-//bool表达式类型的分表规则，返回bool表达式对应的shard list
-func (plan *Plan) routingAnalyzeBoolean(node sqlparser.BoolExpr) []int {
-	switch node := node.(type) {
-	case *sqlparser.AndExpr:
-		left := plan.routingAnalyzeBoolean(node.Left)
-		right := plan.routingAnalyzeBoolean(node.Right)
-
-		return interList(left, right)
-	case *sqlparser.OrExpr:
-		left := plan.routingAnalyzeBoolean(node.Left)
-		right := plan.routingAnalyzeBoolean(node.Right)
-		return unionList(left, right)
-	case *sqlparser.ParenBoolExpr:
-		return plan.routingAnalyzeBoolean(node.Expr)
-	case *sqlparser.ComparisonExpr:
-		switch {
-		case sqlparser.StringIn(node.Operator, "=", "<", ">", "<=", ">=", "<=>"):
-			left := plan.routingAnalyzeValue(node.Left)
-			right := plan.routingAnalyzeValue(node.Right)
-			if (left == EID_NODE && right == VALUE_NODE) || (left == VALUE_NODE && right == EID_NODE) {
-				return plan.findConditionShard(node)
-			}
-		case sqlparser.StringIn(node.Operator, "in", "not in"):
-			left := plan.routingAnalyzeValue(node.Left)
-			right := plan.routingAnalyzeValue(node.Right)
-			if left == EID_NODE && right == LIST_NODE {
-				return plan.findConditionShard(node)
-			}
-		}
-	case *sqlparser.RangeCond:
-		left := plan.routingAnalyzeValue(node.Left)
-		from := plan.routingAnalyzeValue(node.From)
-		to := plan.routingAnalyzeValue(node.To)
-		if left == EID_NODE && from == VALUE_NODE && to == VALUE_NODE {
-			return plan.findConditionShard(node)
-		}
-	}
-	return plan.fullList
-}
-
 /*返回valExpr表达式对应的类型*/
-func (plan *Plan) routingAnalyzeValue(valExpr sqlparser.ValExpr) int {
+func (plan *Plan) getValueType(valExpr sqlparser.ValExpr) int {
 	switch node := valExpr.(type) {
 	case *sqlparser.ColName:
-		if string(node.Name) == plan.rule.Key {
+		if string(node.Name) == plan.Rule.Key {
 			return EID_NODE //表示这是分片id对应的node
 		}
 	case sqlparser.ValTuple:
 		for _, n := range node {
-			if plan.routingAnalyzeValue(n) != VALUE_NODE {
+			if plan.getValueType(n) != VALUE_NODE {
 				return OTHER_NODE
 			}
 		}
@@ -235,13 +190,52 @@ func (plan *Plan) routingAnalyzeValue(valExpr sqlparser.ValExpr) int {
 	return OTHER_NODE
 }
 
-/*获得(12,14,23)对应的shard node*/
-func (plan *Plan) findShardList(valExpr sqlparser.ValExpr) []int {
+func (plan *Plan) getTableIndexByBoolExpr(node sqlparser.BoolExpr) []int {
+	switch node := node.(type) {
+	case *sqlparser.AndExpr:
+		left := plan.getTableIndexByBoolExpr(node.Left)
+		right := plan.getTableIndexByBoolExpr(node.Right)
+
+		return interList(left, right)
+	case *sqlparser.OrExpr:
+		left := plan.getTableIndexByBoolExpr(node.Left)
+		right := plan.getTableIndexByBoolExpr(node.Right)
+		return unionList(left, right)
+	case *sqlparser.ParenBoolExpr: //加上括号的BoolExpr，node.Expr去掉了括号
+		return plan.getTableIndexByBoolExpr(node.Expr)
+	case *sqlparser.ComparisonExpr:
+		switch {
+		case sqlparser.StringIn(node.Operator, "=", "<", ">", "<=", ">=", "<=>"):
+			left := plan.getValueType(node.Left)
+			right := plan.getValueType(node.Right)
+			if (left == EID_NODE && right == VALUE_NODE) || (left == VALUE_NODE && right == EID_NODE) {
+				return plan.getTableIndexs(node)
+			}
+		case sqlparser.StringIn(node.Operator, "in", "not in"):
+			left := plan.getValueType(node.Left)
+			right := plan.getValueType(node.Right)
+			if left == EID_NODE && right == LIST_NODE {
+				return plan.getTableIndexs(node)
+			}
+		}
+	case *sqlparser.RangeCond:
+		left := plan.getValueType(node.Left)
+		from := plan.getValueType(node.From)
+		to := plan.getValueType(node.To)
+		if left == EID_NODE && from == VALUE_NODE && to == VALUE_NODE {
+			return plan.getTableIndexs(node)
+		}
+	}
+	return plan.TableIndexs
+}
+
+/*获得(12,14,23)对应的table index*/
+func (plan *Plan) getTableIndexsByTuple(valExpr sqlparser.ValExpr) []int {
 	shardset := make(map[int]bool)
 	switch node := valExpr.(type) {
 	case sqlparser.ValTuple:
 		for _, n := range node {
-			index := plan.findShard(n)
+			index := plan.getTableIndexByValue(n)
 			shardset[index] = true
 		}
 	}
@@ -256,29 +250,29 @@ func (plan *Plan) findShardList(valExpr sqlparser.ValExpr) []int {
 	return shardlist
 }
 
-func (plan *Plan) findInsertShard(vals sqlparser.Values) int {
+func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) int {
 	index := -1
 	for i := 0; i < len(vals); i++ {
 		first_value_expression := vals[i].(sqlparser.ValTuple)[0]
-		newIndex := plan.findShard(first_value_expression)
+		newIndex := plan.getTableIndexByValue(first_value_expression)
 		if index == -1 {
 			index = newIndex
 		} else if index != newIndex {
-			panic(sqlparser.NewParserError("insert has multiple shard targets"))
+			panic(sqlparser.NewParserError("insert or replace has multiple shard targets"))
 		}
 	}
 	return index
 }
 
-func (plan *Plan) findShard(valExpr sqlparser.ValExpr) int {
+func (plan *Plan) getTableIndexByValue(valExpr sqlparser.ValExpr) int {
 	value := plan.getBoundValue(valExpr)
-	return plan.rule.FindNodeIndex(value)
+	return plan.Rule.FindTableIndex(value)
 }
 
 func (plan *Plan) adjustShardIndex(valExpr sqlparser.ValExpr, index int) int {
 	value := plan.getBoundValue(valExpr)
-	//生成一个范围的接口,[100,120]
-	s, ok := plan.rule.Shard.(RangeShard) //Shard是一个interface，在这强转为RangeShard,此处语法问题？？
+	//生成一个范围的接口,[100,120)
+	s, ok := plan.Rule.Shard.(RangeShard)
 	if !ok {
 		return index
 	}
@@ -310,7 +304,7 @@ func (plan *Plan) getBoundValue(valExpr sqlparser.ValExpr) interface{} {
 		}
 		return val
 	case sqlparser.ValArg:
-		return plan.bindVars[string(node[1:])]
+		panic("Unexpected token")
 	}
 	panic("Unexpected token")
 }
@@ -412,4 +406,30 @@ func differentList(l1 []int, l2 []int) []int {
 	}
 
 	return l3
+}
+
+func cleanList(l []int) []int {
+	s := make(map[int]struct{})
+	listLen := len(l)
+	l2 := make([]int, 0, listLen)
+
+	for i := 0; i < listLen; i++ {
+		k := l[i]
+		s[k] = struct{}{}
+	}
+	for k := range s {
+		l2 = append(l2, k)
+	}
+	return l2
+}
+
+func (plan *Plan) TindexsToNindexs(tableIndexs []int) []int {
+	count := len(tableIndexs)
+	nodeIndes := make([]int, 0, count)
+	for i := 0; i < count; i++ {
+		tx := tableIndexs[i]
+		nodeIndes = append(nodeIndes, plan.Rule.TableToNode[tx])
+	}
+
+	return cleanList(nodeIndes)
 }

@@ -973,8 +973,8 @@ func yaml_emitter_analyze_tag(emitter *yaml_emitter_t, tag []byte) bool {
 		if bytes.HasPrefix(tag, tag_directive.prefix) {
 			emitter.tag_data.handle = tag_directive.handle
 			emitter.tag_data.suffix = tag[len(tag_directive.prefix):]
+			return true
 		}
-		return true
 	}
 	emitter.tag_data.suffix = tag
 	return true
@@ -1019,7 +1019,7 @@ func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
 
 	preceeded_by_whitespace = true
 	for i, w := 0, 0; i < len(value); i += w {
-		w = width(value[0])
+		w = width(value[i])
 		followed_by_whitespace = i+w >= len(value) || is_blank(value, i+w)
 
 		if i == 0 {
@@ -1279,6 +1279,9 @@ func yaml_emitter_write_tag_content(emitter *yaml_emitter_t, value []byte, need_
 			for k := 0; k < w; k++ {
 				octet := value[i]
 				i++
+				if !put(emitter, '%') {
+					return false
+				}
 
 				c := octet >> 4
 				if c < 10 {

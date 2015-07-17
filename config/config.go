@@ -48,11 +48,12 @@ type RulesConfig struct {
 
 //range或hash路由规则
 type ShardConfig struct {
-	Table string   `yaml:"table"`
-	Key   string   `yaml:"key"`
-	Nodes []string `yaml:"nodes"`
-	Type  string   `yaml:"type"`
-	Range string   `yaml:"range"`
+	Table         string   `yaml:"table"`
+	Key           string   `yaml:"key"`
+	Nodes         []string `yaml:"nodes"`
+	Locations     []int    `yaml:"locations"`
+	Type          string   `yaml:"type"`
+	TableRowLimit int      `yaml:"table_row_limit"`
 }
 
 func ParseConfigData(data []byte) (*Config, error) {

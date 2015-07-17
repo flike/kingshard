@@ -1,5 +1,5 @@
 # server listen addr
-addr : 127.0.0.1:3601
+addr : 127.0.0.1:2436
 
 # server user and password
 user :  root

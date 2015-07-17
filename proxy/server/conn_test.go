@@ -27,6 +27,7 @@ func TestConn_DeleteTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	c.Close()
+	server.Close()
 }
 
 func TestConn_CreateTable(t *testing.T) {
@@ -133,7 +134,7 @@ func TestConn_Update(t *testing.T) {
 }
 
 func TestConn_Replace(t *testing.T) {
-	s := `replace into kingshard_test_proxy_conn (id, str, f) values(1, "abc", 3.14159)`
+	s := `replace into kingshard_test_proxy_conn (id, str, f) values(1, 'abc', 3.14159)`
 
 	c := newTestDBConn(t)
 	defer c.Close()
@@ -146,7 +147,7 @@ func TestConn_Replace(t *testing.T) {
 		}
 	}
 
-	s = `replace into kingshard_test_proxy_conn (id, str) values(2, "abcb")`
+	s = `replace into kingshard_test_proxy_conn (id, str) values(2, 'abcb')`
 
 	if r, err := c.Execute(s); err != nil {
 		t.Fatal(err)

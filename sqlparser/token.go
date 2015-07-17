@@ -115,7 +115,7 @@ var keywords = map[string]int{
 	"databases": DATABASES,
 	"tables":    TABLES,
 
-	//for mixer admin
+	//for kingshard admin
 	"admin": ADMIN,
 	"proxy": PROXY,
 }

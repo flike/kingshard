@@ -116,7 +116,7 @@ func (s *NumRangeShard) FindForKey(key interface{}) int {
 			return i
 		}
 	}
-	panic(NewKeyError("Unexpected key %v, not in range", key))
+	panic(NewKeyError("Unexpected key %v, not in num range", key))
 }
 
 func (s *NumRangeShard) EqualStart(key interface{}, index int) bool {
@@ -132,7 +132,6 @@ type KeyRangeShard struct {
 	Shards []KeyRange
 }
 
-//?????
 func (s *KeyRangeShard) FindForKey(key interface{}) int {
 	v := KeyspaceId(EncodeValue(key))
 	for i, r := range s.Shards {
@@ -140,7 +139,7 @@ func (s *KeyRangeShard) FindForKey(key interface{}) int {
 			return i
 		}
 	}
-	panic(NewKeyError("Unexpected key %v, not in range", key))
+	panic(NewKeyError("Unexpected key %v, not in key range", key))
 }
 
 func (s *KeyRangeShard) EqualStart(key interface{}, index int) bool {

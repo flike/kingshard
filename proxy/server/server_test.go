@@ -14,7 +14,7 @@ var testDBOnce sync.Once
 var testDB *backend.DB
 
 var testConfigData = []byte(`
-addr : 127.0.0.1:4000
+addr : 127.0.0.1:3601
 user : root
 password : 
 
@@ -31,7 +31,7 @@ nodes :
 
 schemas :
 -
-    db : mixer 
+    db : kingshard 
     nodes: [node1]
     rules:
         default: node1 
@@ -66,7 +66,7 @@ func newTestDB(t *testing.T) *backend.DB {
 
 	f := func() {
 		var err error
-		testDB, err = backend.Open("127.0.0.1:4000", "root", "", "kingshard")
+		testDB, err = backend.Open("127.0.0.1:3601", "root", "", "kingshard")
 
 		if err != nil {
 			t.Fatal(err)

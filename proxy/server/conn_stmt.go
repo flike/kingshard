@@ -3,6 +3,8 @@ package server
 import (
 	"encoding/binary"
 	"fmt"
+	. "github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
 	. "github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
 	"math"
@@ -55,25 +57,25 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 
 	s.sql = sql
 
-	var tableName string
-	switch s := s.s.(type) {
-	case *sqlparser.Select:
-		tableName = nstring(s.From)
-	case *sqlparser.Insert:
-		tableName = nstring(s.Table)
-	case *sqlparser.Update:
-		tableName = nstring(s.Table)
-	case *sqlparser.Delete:
-		tableName = nstring(s.Table)
-	case *sqlparser.Replace:
-		tableName = nstring(s.Table)
-	default:
-		return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
-	}
+	//	var tableName string
+	//	switch s := s.s.(type) {
+	//	case *sqlparser.Select:
+	//		tableName = nstring(s.From)
+	//	case *sqlparser.Insert:
+	//		tableName = nstring(s.Table)
+	//	case *sqlparser.Update:
+	//		tableName = nstring(s.Table)
+	//	case *sqlparser.Delete:
+	//		tableName = nstring(s.Table)
+	//	case *sqlparser.Replace:
+	//		tableName = nstring(s.Table)
+	//	default:
+	//		return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
+	//	}
 
-	r := c.schema.rule.GetRule(tableName)
+	defaultRule := c.schema.rule.DefaultRule
 
-	n := c.proxy.GetNode(r.Nodes[0])
+	n := c.proxy.GetNode(defaultRule.Nodes[0])
 
 	if co, err := n.GetMasterConn(); err != nil {
 		return fmt.Errorf("prepare error %s", err)
@@ -221,20 +223,83 @@ func (c *ClientConn) handleStmtExecute(data []byte) error {
 
 	switch stmt := s.s.(type) {
 	case *sqlparser.Select:
-		err = c.handleSelect(stmt, s.sql, s.args)
+		err = c.handlePrepareSelect(stmt, s.sql, s.args)
 	case *sqlparser.Insert:
-		err = c.handleExec(s.s, s.sql, s.args)
+		err = c.handlePrepareExec(s.s, s.sql, s.args)
 	case *sqlparser.Update:
-		err = c.handleExec(s.s, s.sql, s.args)
+		err = c.handlePrepareExec(s.s, s.sql, s.args)
 	case *sqlparser.Delete:
-		err = c.handleExec(s.s, s.sql, s.args)
+		err = c.handlePrepareExec(s.s, s.sql, s.args)
 	case *sqlparser.Replace:
-		err = c.handleExec(s.s, s.sql, s.args)
+		err = c.handlePrepareExec(s.s, s.sql, s.args)
 	default:
 		err = fmt.Errorf("command %T not supported now", stmt)
 	}
 
 	s.ResetParams()
+
+	return err
+}
+
+func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
+	defaultRule := c.schema.rule.DefaultRule
+	if len(defaultRule.Nodes) == 0 {
+		return ErrNoDefaultNode
+	}
+	defaultNode := c.proxy.GetNode(defaultRule.Nodes[0])
+
+	//execute in Master DB
+	conn, err := c.getBackendConn(defaultNode, false)
+	if err != nil {
+		return err
+	}
+
+	if conn == nil {
+		r := c.newEmptyResultset(stmt)
+		return c.writeResultset(c.status, r)
+	}
+
+	var rs []*Result
+	rs, err = c.executeInNode(conn, sql, args)
+
+	c.closeConn(conn, false)
+	if err != nil {
+		golog.Error("ClientConn", "handlePrepareSelect", err.Error(), c.connectionId)
+		return err
+	}
+
+	err = c.mergeSelectResult(rs, stmt)
+	if err != nil {
+		golog.Error("ClientConn", "handlePrepareSelect", err.Error(), c.connectionId)
+	}
+
+	return err
+}
+
+func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
+	defaultRule := c.schema.rule.DefaultRule
+	if len(defaultRule.Nodes) == 0 {
+		return ErrNoDefaultNode
+	}
+	defaultNode := c.proxy.GetNode(defaultRule.Nodes[0])
+
+	//execute in Master DB
+	conn, err := c.getBackendConn(defaultNode, false)
+	if err != nil {
+		return err
+	}
+
+	if conn == nil {
+		return c.writeOK(nil)
+	}
+
+	var rs []*Result
+	rs, err = c.executeInNode(conn, sql, args)
+	c.closeConn(conn, err != nil)
+
+	if err == nil {
+		err = c.mergeExecResult(rs)
+	}
 
 	return err
 }

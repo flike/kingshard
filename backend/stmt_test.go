@@ -5,7 +5,7 @@ import (
 )
 
 func TestStmt_DropTable(t *testing.T) {
-	str := `drop table if exists mixer_test_stmt`
+	str := `drop table if exists kingshard_test_stmt`
 
 	c := newTestConn()
 
@@ -22,7 +22,7 @@ func TestStmt_DropTable(t *testing.T) {
 }
 
 func TestStmt_CreateTable(t *testing.T) {
-	str := `CREATE TABLE IF NOT EXISTS mixer_test_stmt (
+	str := `CREATE TABLE IF NOT EXISTS kingshard_test_stmt (
           id BIGINT(64) UNSIGNED  NOT NULL,
           str VARCHAR(256),
           f DOUBLE,
@@ -49,7 +49,7 @@ func TestStmt_CreateTable(t *testing.T) {
 }
 
 func TestStmt_Delete(t *testing.T) {
-	str := `delete from mixer_test_stmt`
+	str := `delete from kingshard_test_stmt`
 
 	c := newTestConn()
 	defer c.Close()
@@ -68,7 +68,7 @@ func TestStmt_Delete(t *testing.T) {
 }
 
 func TestStmt_Insert(t *testing.T) {
-	str := `insert into mixer_test_stmt (id, str, f, e, u, i) values (?, ?, ?, ?, ?, ?)`
+	str := `insert into kingshard_test_stmt (id, str, f, e, u, i) values (?, ?, ?, ?, ?, ?)`
 
 	c := newTestConn()
 	defer c.Close()
@@ -91,7 +91,7 @@ func TestStmt_Insert(t *testing.T) {
 }
 
 func TestStmt_Select(t *testing.T) {
-	str := `select str, f, e from mixer_test_stmt where id = ?`
+	str := `select str, f, e from kingshard_test_stmt where id = ?`
 
 	c := newTestConn()
 	defer c.Close()
@@ -142,7 +142,7 @@ func TestStmt_Select(t *testing.T) {
 }
 
 func TestStmt_NULL(t *testing.T) {
-	str := `insert into mixer_test_stmt (id, str, f, e) values (?, ?, ?, ?)`
+	str := `insert into kingshard_test_stmt (id, str, f, e) values (?, ?, ?, ?)`
 
 	c := newTestConn()
 	defer c.Close()
@@ -163,7 +163,7 @@ func TestStmt_NULL(t *testing.T) {
 
 	s.Close()
 
-	str = `select * from mixer_test_stmt where id = ?`
+	str = `select * from kingshard_test_stmt where id = ?`
 	s, err = c.Prepare(str)
 
 	if err != nil {
@@ -202,7 +202,7 @@ func TestStmt_NULL(t *testing.T) {
 }
 
 func TestStmt_Unsigned(t *testing.T) {
-	str := `insert into mixer_test_stmt (id, u) values (?, ?)`
+	str := `insert into kingshard_test_stmt (id, u) values (?, ?)`
 
 	c := newTestConn()
 	defer c.Close()
@@ -223,7 +223,7 @@ func TestStmt_Unsigned(t *testing.T) {
 
 	s.Close()
 
-	str = `select u from mixer_test_stmt where id = ?`
+	str = `select u from kingshard_test_stmt where id = ?`
 
 	s, err = c.Prepare(str)
 	if err != nil {
@@ -244,7 +244,7 @@ func TestStmt_Unsigned(t *testing.T) {
 }
 
 func TestStmt_Signed(t *testing.T) {
-	str := `insert into mixer_test_stmt (id, i) values (?, ?)`
+	str := `insert into kingshard_test_stmt (id, i) values (?, ?)`
 
 	c := newTestConn()
 	defer c.Close()
@@ -271,7 +271,7 @@ func TestStmt_Trans(t *testing.T) {
 	c := newTestConn()
 	defer c.Close()
 
-	if _, err := c.Execute(`insert into mixer_test_stmt (id, str) values (1002, "abc")`); err != nil {
+	if _, err := c.Execute(`insert into kingshard_test_stmt (id, str) values (1002, "abc")`); err != nil {
 		t.Fatal(err)
 	}
 
@@ -279,7 +279,7 @@ func TestStmt_Trans(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	str := `select str from mixer_test_stmt where id = ?`
+	str := `select str from kingshard_test_stmt where id = ?`
 
 	s, err := c.Prepare(str)
 	if err != nil {

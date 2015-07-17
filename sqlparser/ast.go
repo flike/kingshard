@@ -892,7 +892,7 @@ type Replace struct {
 }
 
 func (node *Replace) Format(buf *TrackedBuffer) {
-	buf.Fprintf("replace %vinto %v%v %v%v",
+	buf.Fprintf("replace %vinto %v%v %v",
 		node.Comments,
 		node.Table, node.Columns, node.Rows)
 }

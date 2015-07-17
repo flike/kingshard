@@ -1,6 +1,7 @@
 package router
 
 import (
+	"sort"
 	"testing"
 )
 
@@ -98,4 +99,9 @@ func TestListSet(t *testing.T) {
 
 	l3 = differentList(l1, l2)
 	testCheckList(t, l3, 1, 4)
+
+	l1 = []int{1, 2, 2, 1, 5, 3, 5, 2}
+	l2 = cleanList(l1)
+	sort.Sort(sort.IntSlice(l2))
+	testCheckList(t, l2, 1, 2, 3, 5)
 }

@@ -9,7 +9,7 @@ import (
 func TestConfig(t *testing.T) {
 	var testConfigData = []byte(
 		`
-addr : 127.0.0.1:4000
+addr : 127.0.0.1:3601
 user : root
 password : root
 log_level : error

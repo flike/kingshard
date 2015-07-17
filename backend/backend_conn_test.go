@@ -9,7 +9,7 @@ import (
 func newTestConn() *Conn {
 	c := new(Conn)
 
-	if err := c.Connect("127.0.0.1:3306", "root", "", "mixer"); err != nil {
+	if err := c.Connect("127.0.0.1:3306", "root", "", "kingshard"); err != nil {
 		panic(err)
 	}
 
@@ -34,13 +34,13 @@ func TestConn_DeleteTable(t *testing.T) {
 	c := newTestConn()
 	defer c.Close()
 
-	if _, err := c.Execute("drop table if exists mixer_test_conn"); err != nil {
+	if _, err := c.Execute("drop table if exists kingshard_test_conn"); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestConn_CreateTable(t *testing.T) {
-	s := `CREATE TABLE IF NOT EXISTS mixer_test_conn (
+	s := `CREATE TABLE IF NOT EXISTS kingshard_test_conn (
           id BIGINT(64) UNSIGNED  NOT NULL,
           str VARCHAR(256),
           f DOUBLE,
@@ -59,7 +59,7 @@ func TestConn_CreateTable(t *testing.T) {
 }
 
 func TestConn_Insert(t *testing.T) {
-	s := `insert into mixer_test_conn (id, str, f, e) values(1, "a", 3.14, "test1")`
+	s := `insert into kingshard_test_conn (id, str, f, e) values(1, "a", 3.14, "test1")`
 
 	c := newTestConn()
 	defer c.Close()
@@ -74,7 +74,7 @@ func TestConn_Insert(t *testing.T) {
 }
 
 func TestConn_Select(t *testing.T) {
-	s := `select str, f, e from mixer_test_conn where id = 1`
+	s := `select str, f, e from kingshard_test_conn where id = 1`
 
 	c := newTestConn()
 	defer c.Close()
@@ -122,14 +122,14 @@ func TestConn_Escape(t *testing.T) {
 	defer c.Close()
 
 	e := `""''\abc`
-	s := fmt.Sprintf(`insert into mixer_test_conn (id, str) values(5, "%s")`,
+	s := fmt.Sprintf(`insert into kingshard_test_conn (id, str) values(5, "%s")`,
 		Escape(e))
 
 	if _, err := c.Execute(s); err != nil {
 		t.Fatal(err)
 	}
 
-	s = `select str from mixer_test_conn where id = ?`
+	s = `select str from kingshard_test_conn where id = ?`
 
 	if r, err := c.Execute(s, 5); err != nil {
 		t.Fatal(err)

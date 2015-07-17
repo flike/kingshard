@@ -4,30 +4,32 @@ import (
 	"fmt"
 	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/core/yaml"
+	"github.com/flike/kingshard/sqlparser"
 	"testing"
 )
 
 func TestParseRule(t *testing.T) {
 	var s = `
-schemas :
+schemas:
 -
-  db : mixer
+  db: kingshard
   nodes: [node1, node2, node3]
   rules:
     default: node1
-    shard:
-      -   
-        table: mixer_test_shard_hash
-        key: id
-        nodes: [node2, node3]
-        type: hash
-
-      -   
-        table: mixer_test_shard_range
-        key: id
-        type: range
-        nodes: [node2, node3]
-        range: -10000-
+    shard:      
+     -
+      table: test_shard_hash
+      key: id
+      nodes: [node2, node3]
+      locations: [16,16]
+      type: hash
+     -
+      table: test_shard_range
+      key: id
+      type: range
+      nodes: [node2, node3]
+      locations: [16,16]
+      table_row_limit: 10000
 `
 	var cfg config.Config
 	if err := yaml.Unmarshal([]byte(s), &cfg); err != nil {
@@ -42,7 +44,7 @@ schemas :
 		t.Fatal("default rule parse not correct.")
 	}
 
-	hashRule := rt.GetRule("mixer_test_shard_hash")
+	hashRule := rt.GetRule("test_shard_hash")
 	if hashRule.Type != HashRuleType {
 		t.Fatal(hashRule.Type)
 	}
@@ -51,11 +53,11 @@ schemas :
 		t.Fatal("parse nodes not correct.")
 	}
 
-	if n := hashRule.FindNode(uint64(11)); n != "node3" {
+	if n := hashRule.FindNode(uint64(11)); n != "node2" {
 		t.Fatal(n)
 	}
 
-	rangeRule := rt.GetRule("mixer_test_shard_range")
+	rangeRule := rt.GetRule("test_shard_range")
 	if rangeRule.Type != RangeRuleType {
 		t.Fatal(rangeRule.Type)
 	}
@@ -64,7 +66,7 @@ schemas :
 		t.Fatal(n)
 	}
 
-	defaultRule := rt.GetRule("mixer_defaultRule_table")
+	defaultRule := rt.GetRule("defaultRule_table")
 	if defaultRule == nil {
 		t.Fatal("must not nil")
 	}
@@ -82,11 +84,11 @@ schemas :
 	}
 }
 
-func newTestDBRule() *Router {
+func newTestRouter() *Router {
 	var s = `
 schemas :
 -
-  db : mixer
+  db : kingshard
   nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
   rules:
     default: node1
@@ -94,7 +96,8 @@ schemas :
       -
         table: test1
         key: id
-        nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
+        nodes: [node1,node2,node3]
+        locations: [4,4,4]
         type: hash
 
       -
@@ -102,7 +105,50 @@ schemas :
         key: id
         type: range
         nodes: [node1,node2,node3]
-        range: -10000-20000-
+        locations: [4,4,4]
+        table_row_limit: 10000
+`
+
+	cfg, err := config.ParseConfigData([]byte(s))
+	if err != nil {
+		println(err.Error())
+		panic(err)
+	}
+
+	var r *Router
+
+	r, err = NewRouter(&cfg.Schemas[0])
+	if err != nil {
+		println(err.Error())
+		panic(err)
+	}
+
+	return r
+}
+
+func newTestDBRule() *Router {
+	var s = `
+schemas :
+-
+  db : kingshard
+  nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
+  rules:
+    default: node1
+    shard:
+      -
+        table: test1
+        key: id
+        nodes: [node1,node2,node3]
+        locations: [1,2,3]
+        type: hash
+
+      -
+        table: test2
+        key: id
+        type: range
+        nodes: [node1,node2,node3]
+        locations: [8,8,8]
+        table_row_limit: 100
 `
 
 	cfg, err := config.ParseConfigData([]byte(s))
@@ -129,245 +175,157 @@ func TestBadUpdateExpr(t *testing.T) {
 
 	sql = "insert into test1 (id) values (5) on duplicate key update  id = 10"
 
-	if _, err := r.GetShardList(sql, nil); err == nil {
+	stmt, err := sqlparser.Parse(sql)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if _, err := r.BuildPlan(stmt); err == nil {
 		t.Fatal("must err")
 	}
 
 	sql = "update test1 set id = 10 where id = 5"
 
-	if _, err := r.GetShardList(sql, nil); err == nil {
+	stmt, err = sqlparser.Parse(sql)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if _, err := r.BuildPlan(stmt); err == nil {
 		t.Fatal("must err")
 	}
 }
 
-func checkSharding(t *testing.T, sql string, args []int, checkNodeIndex ...int) {
-	r := newTestDBRule()
-
-	bindVars := make(map[string]interface{}, len(args))
-	for i, v := range args {
-		bindVars[fmt.Sprintf("v%d", i+1)] = v
+func isListEqual(l1 []int, l2 []int) bool {
+	var i, j int
+	if len(l1) != len(l2) {
+		return false
 	}
-	ns, err := r.GetShardListIndex(sql, bindVars)
-	if err != nil {
-		t.Fatal(sql, err)
-	} else if len(ns) != len(checkNodeIndex) {
-		s := fmt.Sprintf("%v %v", ns, checkNodeIndex)
-		t.Fatal(sql, s)
-	} else {
-		for i := range ns {
-			if ns[i] != checkNodeIndex[i] {
-				s := fmt.Sprintf("%v %v", ns, checkNodeIndex)
-				panic(sql)
-				t.Fatal(sql, s, i)
+	if len(l1) == 0 {
+		return true
+	}
+	for i = 0; i < len(l1); i++ {
+		for j = 0; j < len(l2); j++ {
+			if l1[i] == l2[j] {
+				break
 			}
 		}
+		if j == len(l2) {
+			return false
+		}
 	}
+	return true
 }
 
-func TestConditionSharding(t *testing.T) {
+func checkPlan(t *testing.T, sql string, tableIndexs []int, nodeIndexs []int) {
+	r := newTestRouter()
+	stmt, err := sqlparser.Parse(sql)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	plan, err := r.BuildPlan(stmt)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if isListEqual(plan.RouteTableIndexs, tableIndexs) == false {
+		err := fmt.Errorf("RouteTableIndexs=%v but tableIndexs=%v",
+			plan.RouteTableIndexs, tableIndexs)
+		t.Fatal(err.Error())
+	}
+	if isListEqual(plan.RouteNodeIndexs, nodeIndexs) == false {
+		err := fmt.Errorf("RouteNodeIndexs=%v but nodeIndexs=%v",
+			plan.RouteNodeIndexs, nodeIndexs)
+		t.Fatal(err.Error())
+	}
+	t.Logf("rewritten_sql=%v", plan.RewrittenSqls)
+
+}
+
+func TestSelectPlan(t *testing.T) {
 	var sql string
+	t1 := makeList(0, 12)
 
-	sql = "select * from test1 where id = 5"
-	checkSharding(t, sql, nil, 5)
+	sql = "select/*master*/ * from test1 where id = 5"
+	checkPlan(t, sql, []int{5}, []int{1}) //table_5 node1
 
-	sql = "select * from test1 where id in (5, 6)"
-	checkSharding(t, sql, nil, 5, 6)
+	sql = "select * from test1 where id in (5, 8)"
+	checkPlan(t, sql, []int{5, 8}, []int{1, 2})
 
 	sql = "select * from test1 where id > 5"
-	checkSharding(t, sql, nil, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+	checkPlan(t, sql, t1, []int{0, 1, 2})
 
 	sql = "select * from test1 where id in (5, 6) and id in (5, 6, 7)"
-	checkSharding(t, sql, nil, 5, 6)
+	checkPlan(t, sql, []int{5, 6}, []int{1})
 
 	sql = "select * from test1 where id in (5, 6) or id in (5, 6, 7,8)"
-	checkSharding(t, sql, nil, 5, 6, 7, 8)
+	checkPlan(t, sql, []int{5, 6, 7, 8}, []int{1, 2})
 
 	sql = "select * from test1 where id not in (5, 6) or id in (5, 6, 7,8)"
-	checkSharding(t, sql, nil, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	checkPlan(t, sql, t1, []int{0, 1, 2})
 
 	sql = "select * from test1 where id not in (5, 6)"
-	checkSharding(t, sql, nil, 0, 1, 2, 3, 4, 7, 8, 9)
+	checkPlan(t, sql, []int{0, 1, 2, 3, 4, 7, 8, 9, 10, 11}, []int{0, 1, 2})
 
 	sql = "select * from test1 where id in (5, 6) or (id in (5, 6, 7,8) and id in (1,5,7))"
-	checkSharding(t, sql, nil, 5, 6, 7)
+	checkPlan(t, sql, []int{5, 6, 7}, []int{1})
 
 	sql = "select * from test2 where id = 10000"
-	checkSharding(t, sql, nil, 1)
+	checkPlan(t, sql, []int{1}, []int{0})
 
-	sql = "select * from test2 where id between 10000 and 100000"
-	checkSharding(t, sql, nil, 1, 2)
+	sql = "select * from test2 where id between 10000 and 20000"
+	checkPlan(t, sql, []int{1, 2}, []int{0})
 
 	sql = "select * from test2 where id not between 1000 and 100000"
-	checkSharding(t, sql, nil, 0, 2)
-
-	sql = "select * from test2 where id not between 10000 and 100000"
-	checkSharding(t, sql, nil, 0, 2)
+	checkPlan(t, sql, []int{0, 10, 11}, []int{0, 2})
 
 	sql = "select * from test2 where id > 10000"
-	checkSharding(t, sql, nil, 1, 2)
+	checkPlan(t, sql, makeList(1, 12), []int{0, 1, 2})
 
-	sql = "select * from test2 where id >= 10000"
-	checkSharding(t, sql, nil, 1, 2)
+	sql = "select * from test2 where id >= 9999"
+	checkPlan(t, sql, t1, []int{0, 1, 2})
 
 	sql = "select * from test2 where id <= 10000"
-	checkSharding(t, sql, nil, 0, 1)
+	checkPlan(t, sql, []int{0, 1}, []int{0})
 
 	sql = "select * from test2 where id < 10000"
-	checkSharding(t, sql, nil, 0)
+	checkPlan(t, sql, []int{0}, []int{0})
 
-	sql = "select * from test2 where  10000 < id"
-	checkSharding(t, sql, nil, 1, 2)
+	sql = "select * from test2 where id >= 10000 and id <= 30000"
+	checkPlan(t, sql, []int{1, 2, 3}, []int{0})
 
-	sql = "select * from test2 where  10000 <= id"
-	checkSharding(t, sql, nil, 1, 2)
-
-	sql = "select * from test2 where  10000 > id"
-	checkSharding(t, sql, nil, 0)
-
-	sql = "select * from test2 where  10000 >= id"
-	checkSharding(t, sql, nil, 0, 1)
-
-	sql = "select * from test2 where id >= 10000 and id <= 100000"
-	checkSharding(t, sql, nil, 1, 2)
-
-	sql = "select * from test2 where (id >= 10000 and id <= 100000) or id < 100"
-	checkSharding(t, sql, nil, 0, 1, 2)
-
-	sql = "select * from test2 where (id >= 10000 and id <= 100000) or (id < 100 and name > 100000)"
-	checkSharding(t, sql, nil, 0, 1, 2)
+	sql = "select * from test2 where (id >= 10000 and id <= 30000) or id < 100"
+	checkPlan(t, sql, []int{0, 1, 2, 3}, []int{0})
 
 	sql = "select * from test2 where id in (1, 10000)"
-	checkSharding(t, sql, nil, 0, 1)
+	checkPlan(t, sql, []int{0, 1}, []int{0})
 
 	sql = "select * from test2 where id not in (1, 10000)"
-	checkSharding(t, sql, nil, 0, 1, 2)
-
-	sql = "select * from test2 where id in (1000, 10000)"
-	checkSharding(t, sql, nil, 0, 1)
-
-	sql = "select * from test2 where id > -1"
-	checkSharding(t, sql, nil, 0, 1, 2)
-
-	sql = "select * from test2 where id > -1 and id < 11000"
-	checkSharding(t, sql, nil, 0, 1)
-}
-
-func TestConditionVarArgSharding(t *testing.T) {
-	var sql string
-
-	sql = "select * from test1 where id = ?"
-	checkSharding(t, sql, []int{5}, 5)
-
-	sql = "select * from test1 where id in (?, ?)"
-	checkSharding(t, sql, []int{5, 6}, 5, 6)
-
-	sql = "select * from test1 where id > ?"
-	checkSharding(t, sql, []int{5}, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-
-	sql = "select * from test1 where id in (?, ?) and id in (?, ?, ?)"
-	checkSharding(t, sql, []int{5, 6, 5, 6, 7}, 5, 6)
-
-	sql = "select * from test1 where id in (?, ?) or id in (?, ?,?,?)"
-	checkSharding(t, sql, []int{5, 6, 5, 6, 7, 8}, 5, 6, 7, 8)
-
-	sql = "select * from test1 where id not in (?, ?) or id in (?, ?, ?,?)"
-	checkSharding(t, sql, []int{5, 6, 5, 6, 7, 8}, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-
-	sql = "select * from test1 where id not in (?, ?)"
-	checkSharding(t, sql, []int{5, 6}, 0, 1, 2, 3, 4, 7, 8, 9)
-
-	sql = "select * from test1 where id in (?, ?) or (id in (?, ?, ?,?) and id in (?,?,?))"
-	checkSharding(t, sql, []int{5, 6, 5, 6, 7, 8, 1, 5, 7}, 5, 6, 7)
-
-	sql = "select * from test2 where id = ?"
-	checkSharding(t, sql, []int{10000}, 1)
-
-	sql = "select * from test2 where id between ? and ?"
-	checkSharding(t, sql, []int{10000, 100000}, 1, 2)
-
-	sql = "select * from test2 where id not between ? and ?"
-	checkSharding(t, sql, []int{10000, 100000}, 0, 2)
-
-	sql = "select * from test2 where id not between ? and ?"
-	checkSharding(t, sql, []int{10000, 100000}, 0, 2)
-
-	sql = "select * from test2 where id > ?"
-	checkSharding(t, sql, []int{10000}, 1, 2)
-
-	sql = "select * from test2 where id >= ?"
-	checkSharding(t, sql, []int{10000}, 1, 2)
-
-	sql = "select * from test2 where id <= ?"
-	checkSharding(t, sql, []int{10000}, 0, 1)
-
-	sql = "select * from test2 where id < ?"
-	checkSharding(t, sql, []int{10000}, 0)
-
-	sql = "select * from test2 where  ? < id"
-	checkSharding(t, sql, []int{10000}, 1, 2)
-
-	sql = "select * from test2 where  ? <= id"
-	checkSharding(t, sql, []int{10000}, 1, 2)
-
-	sql = "select * from test2 where  ? > id"
-	checkSharding(t, sql, []int{10000}, 0)
-
-	sql = "select * from test2 where  ? >= id"
-	checkSharding(t, sql, []int{10000}, 0, 1)
-
-	sql = "select * from test2 where id >= ? and id <= ?"
-	checkSharding(t, sql, []int{10000, 100000}, 1, 2)
-
-	sql = "select * from test2 where (id >= ? and id <= ?) or id < ?"
-	checkSharding(t, sql, []int{10000, 100000, 100}, 0, 1, 2)
-
-	sql = "select * from test2 where (id >= ? and id <= ?) or (id < ? and name > ?)"
-	checkSharding(t, sql, []int{10000, 100000, 100, 100000}, 0, 1, 2)
-
-	sql = "select * from test2 where id in (?, ?)"
-	checkSharding(t, sql, []int{1, 10000}, 0, 1)
-
-	sql = "select * from test2 where id not in (?, ?)"
-	checkSharding(t, sql, []int{1, 10000}, 0, 1, 2)
-
-	sql = "select * from test2 where id in (?, ?)"
-	checkSharding(t, sql, []int{1000, 10000}, 0, 1)
-
-	sql = "select * from test2 where id > ?"
-	checkSharding(t, sql, []int{-1}, 0, 1, 2)
-
-	sql = "select * from test2 where id > ? and id < ?"
-	checkSharding(t, sql, []int{-1, 11000}, 0, 1)
+	checkPlan(t, sql, makeList(0, 12), []int{0, 1, 2})
 }
 
 func TestValueSharding(t *testing.T) {
 	var sql string
 
 	sql = "insert into test1 (id) values (5)"
-	checkSharding(t, sql, nil, 5)
+	checkPlan(t, sql, []int{5}, []int{1})
 
 	sql = "insert into test2 (id) values (10000)"
-	checkSharding(t, sql, nil, 1)
+	checkPlan(t, sql, []int{1}, []int{0})
 
 	sql = "insert into test2 (id) values (20000)"
-	checkSharding(t, sql, nil, 2)
+	checkPlan(t, sql, []int{2}, []int{0})
 
-	sql = "insert into test2 (id) values (200000)"
-	checkSharding(t, sql, nil, 2)
-}
+	sql = "update test1 set a =10 where id =12"
+	checkPlan(t, sql, []int{0}, []int{0})
 
-func TestValueVarArgSharding(t *testing.T) {
-	var sql string
+	sql = "update test2 set a =10 where id < 30000 and 10000< id"
+	checkPlan(t, sql, []int{1, 2}, []int{0})
 
-	sql = "insert into test1 (id) values (?)"
-	checkSharding(t, sql, []int{5}, 5)
+	sql = "delete from test2 where id < 30000 and 10000< id"
+	checkPlan(t, sql, []int{1, 2}, []int{0})
 
-	sql = "insert into test2 (id) values (?)"
-	checkSharding(t, sql, []int{10000}, 1)
-
-	sql = "insert into test2 (id) values (?)"
-	checkSharding(t, sql, []int{20000}, 2)
-
-	sql = "insert into test2 (id) values (?)"
-	checkSharding(t, sql, []int{200000}, 2)
+	sql = "replace into test1(id) values(5)"
+	checkPlan(t, sql, []int{5}, []int{1})
 }
