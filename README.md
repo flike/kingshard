@@ -13,5 +13,6 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 	1.安装kingshard
 	2.kingshard sharding（分表）介绍
 	3.kingshard架构概述
+	4.FAQ
 ##反馈
 目前kingshard还是1.0版本，比较核心的功能已经实现了。但还有很多地方不完善。如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至chenfei1#wps.cn与作者取得联系，或者加入QQ群(147926796)交流。

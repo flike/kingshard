@@ -4,4 +4,4 @@ go:
     - 1.4.2
     - tip
 script:
-    - make || exit $?
+    - make
