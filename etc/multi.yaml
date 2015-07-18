@@ -1,0 +1,76 @@
+# server listen addr
+addr : 127.0.0.1:9696
+
+# server user and password
+user :  kingshard
+password : kingshard
+
+# log level[debug|info|warn|error],default error
+log_level : debug
+
+# node is an agenda for real remote mysql server.
+nodes :
+- 
+    name : node1 
+
+    # default max idle conns for mysql server
+    idle_conns : 16
+
+    # if rw_split is true, select will use slave server
+    rw_split: true
+
+    # all mysql in a node must have the same user and password
+    user :  kingshard 
+    password : kingshard
+
+    # master represents a real mysql master server 
+    master : 127.0.0.1:3306
+
+    # slave represents a real mysql salve server 
+    slave : 
+    #down_after_noalive : 300
+- 
+    name : node2 
+
+    # default max idle conns for mysql server
+    idle_conns : 16
+
+    # if rw_split is true, select will use slave server
+    rw_split: true
+
+    # all mysql in a node must have the same user and password
+    user :  kingshard 
+    password : kingshard
+
+    # master represents a real mysql master server 
+    master : 192.168.59.103:3307
+
+    # slave represents a real mysql salve server 
+    slave : 
+
+    # down mysql after N seconds noalive
+    # 0 will no down
+    down_after_noalive: 100
+
+# schema defines which db can be used by client and this db's sql will be executed in which nodes
+schemas :
+-
+    db : kingshard
+    nodes: [node1,node2]
+    rules:
+        default: node1
+        shard:
+        -   
+            table: test_shard_hash
+            key: id
+            nodes: [node1, node2]
+            type: hash
+            locations: [4,4]
+
+        -   
+            table: test_shard_range
+            key: id
+            type: range
+            nodes: [node1, node2]
+            locations: [4,4]
+            table_row_limit: 10000

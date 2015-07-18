@@ -391,7 +391,7 @@ func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
 				node.SelectExprs,
 				node.From,
 			)
-			fmt.Fprintf(buf, "_%d", plan.RouteTableIndexs[i])
+			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			buf.Fprintf("%v%v%v%v%v%s",
 				node.Where,
 				node.GroupBy,
@@ -439,7 +439,7 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
 			buf.Fprintf("insert %vinto %v", node.Comments, node.Table)
-			fmt.Fprintf(buf, "_%d", plan.RouteTableIndexs[i])
+			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			buf.Fprintf("%v %v%v",
 				node.Columns,
 				node.Rows,
@@ -487,7 +487,7 @@ func (r *Router) generateUpdateSql(plan *Plan, stmt sqlparser.Statement) error {
 				node.Comments,
 				node.Table,
 			)
-			fmt.Fprintf(buf, "_%d", plan.RouteTableIndexs[i])
+			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			buf.Fprintf(" set %v%v%v%v",
 				node.Exprs,
 				node.Where,
@@ -535,7 +535,7 @@ func (r *Router) generateDeleteSql(plan *Plan, stmt sqlparser.Statement) error {
 				node.Comments,
 				node.Table,
 			)
-			fmt.Fprintf(buf, "_%d", plan.RouteTableIndexs[i])
+			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			buf.Fprintf("%v%v%v",
 				node.Where,
 				node.OrderBy,
@@ -582,7 +582,7 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 				node.Comments,
 				node.Table,
 			)
-			fmt.Fprintf(buf, "_%d", plan.RouteTableIndexs[i])
+			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			buf.Fprintf("%v %v",
 				node.Columns,
 				node.Rows,

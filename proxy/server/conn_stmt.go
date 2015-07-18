@@ -57,22 +57,6 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 
 	s.sql = sql
 
-	//	var tableName string
-	//	switch s := s.s.(type) {
-	//	case *sqlparser.Select:
-	//		tableName = nstring(s.From)
-	//	case *sqlparser.Insert:
-	//		tableName = nstring(s.Table)
-	//	case *sqlparser.Update:
-	//		tableName = nstring(s.Table)
-	//	case *sqlparser.Delete:
-	//		tableName = nstring(s.Table)
-	//	case *sqlparser.Replace:
-	//		tableName = nstring(s.Table)
-	//	default:
-	//		return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
-	//	}
-
 	defaultRule := c.schema.rule.DefaultRule
 
 	n := c.proxy.GetNode(defaultRule.Nodes[0])

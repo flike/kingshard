@@ -207,6 +207,11 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 	}
 
 	var wg sync.WaitGroup
+
+	if len(conns) == 0 {
+		return nil, ErrNoPlan
+	}
+
 	wg.Add(len(conns))
 
 	resultCount := 0
@@ -216,24 +221,24 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 
 	rs := make([]interface{}, resultCount)
 
-	f := func(rs []interface{}, i int, sql string, co *backend.BackendConn) {
-		r, err := co.Execute(sql, args...)
-		if err != nil {
-			rs[i] = err
-		} else {
-			rs[i] = r
+	f := func(rs []interface{}, i int, execSqls []string, co *backend.BackendConn) {
+		for _, v := range execSqls {
+			r, err := co.Execute(v, args...)
+			if err != nil {
+				rs[i] = err
+			} else {
+				rs[i] = r
+			}
+			i++
 		}
-
 		wg.Done()
 	}
 
-	resultNum := 0
+	offsert := 0
 	for nodeName, co := range conns {
 		s := sqls[nodeName] //[]string
-		for j := 0; j < len(s); j++ {
-			go f(rs, resultNum, s[j], co)
-			resultNum++
-		}
+		go f(rs, offsert, s, co)
+		offsert += len(s)
 	}
 
 	wg.Wait()
