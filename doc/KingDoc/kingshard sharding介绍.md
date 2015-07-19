@@ -10,8 +10,8 @@
 
 	1.kingshard将该表分成512张子表，例如：test_0000,test_0001,...
 	test_511。
-	1.将shardKey通过hash或range方式定位到其要操作的记录在哪张子表上。
-	2.子表落在哪个node上通过配置文件设置。
+	2.将shardKey通过hash或range方式定位到其要操作的记录在哪张子表上。
+	3.子表落在哪个node上通过配置文件设置。
 
 ##sharding支持的操作
 
