@@ -19,7 +19,6 @@ nodes :
   name : node1 
   down_after_noalive : 300
   idle_conns : 16
-  rw_split: true
   user: root
   password: root
   master : 127.0.0.1:3306
@@ -33,7 +32,6 @@ nodes :
   name : node3 
   down_after_noalive : 300
   idle_conns : 16
-  rw_split: false
   user: root
   password: root
   master : 127.0.0.1:3308
@@ -50,13 +48,15 @@ schemas :
         key: id
         nodes: [node1, node2, node3]
         type: hash
+		locations: [4,4,4]
 
       -   
         table: test_shard_range
         key: id
         type: range
         nodes: [node2, node3]
-        range: -10000-
+        locations: [4,4]
+		table_row_limit:10000
 `)
 
 	cfg, err := ParseConfigData(testConfigData)
@@ -76,7 +76,7 @@ schemas :
 		Name:             "node1",
 		DownAfterNoAlive: 300,
 		IdleConns:        16,
-		RWSplit:          true,
+		//RWSplit:          true,
 
 		User:     "root",
 		Password: "root",
@@ -115,7 +115,6 @@ schemas :
 		Key:   "id",
 		Nodes: []string{"node2", "node3"},
 		Type:  "range",
-		Range: "-10000-",
 	}
 	if !reflect.DeepEqual(cfg.Schemas[0].RulesConifg.ShardRule[1], testShard_2) {
 		t.Fatal("ShardConfig1 must equal")

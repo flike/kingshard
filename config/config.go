@@ -24,7 +24,6 @@ type NodeConfig struct {
 	Name             string `yaml:"name"`
 	DownAfterNoAlive int    `yaml:"down_after_noalive"`
 	IdleConns        int    `yaml:"idle_conns"`
-	RWSplit          bool   `yaml:"rw_split"`
 
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`

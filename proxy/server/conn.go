@@ -79,12 +79,12 @@ func (c *ClientConn) IsAllowConnect() bool {
 		ipValue = ipValue + k<<4
 		for i := 0; i < ipVecLen; i++ {
 			if c.proxy.allowips[i] == ipValue {
-				return false
+				return true
 			}
 		}
 	}
 
-	return true
+	return false
 }
 
 func (c *ClientConn) Handshake() error {
@@ -218,7 +218,6 @@ func (c *ClientConn) readHandshakeResponse() error {
 	auth := data[pos : pos+authLen]
 
 	checkAuth := CalcPassword(c.salt, []byte(c.proxy.cfg.Password))
-	//checkAuth := CalcPassword(c.salt, []byte("kingshard"))
 	if !bytes.Equal(auth, checkAuth) {
 		golog.Error("ClientConn", "readHandshakeResponse", "error", 0,
 			"auth", auth,

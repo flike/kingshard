@@ -173,7 +173,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s.addr = cfg.Addr
 	s.user = cfg.User
 	s.password = cfg.Password
-	fmt.Println(s.cfg.Password)
 
 	if err := s.parseAllowIps(); err != nil {
 		return nil, err
@@ -256,7 +255,7 @@ func (s *Server) onConn(c net.Conn) {
 	}()
 
 	if allowConnect := conn.IsAllowConnect(); allowConnect == false {
-		err := NewError(ER_UNKNOWN_ERROR, "ip address access denied by myshard.")
+		err := NewError(ER_UNKNOWN_ERROR, "ip address access denied by kingshard.")
 		conn.writeError(err)
 		conn.Close()
 		return

@@ -7,6 +7,8 @@ password : kingshard
 
 # log level[debug|info|warn|error],default error
 log_level : debug
+# only allow this ip list ip to connect kingshard
+allow_ips: 127.0.0.1
 
 # node is an agenda for real remote mysql server.
 nodes :
