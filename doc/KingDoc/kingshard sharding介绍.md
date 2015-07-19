@@ -13,8 +13,6 @@
 	1.将shardKey通过hash或range方式定位到其要操作的记录在哪张子表上。
 	2.子表落在哪个node上通过配置文件设置。
 
-##kingshard sharding介绍
-
 ##sharding支持的操作
 
 目前kingshard sharding支持insert, delete, select, update和replace语句, 所有这五类操作都支持跨子表。但写操作仅支持单node上的跨子表，select操作则可以跨node，跨子表。
