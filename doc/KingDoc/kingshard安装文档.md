@@ -3,7 +3,7 @@
 	1.	安装Go语言环境，具体步骤请Google。
 	2.	git clone https://github.com/flike/kingshard.git src/github.com/flike/kingshard
 	3. cd src/github.com/flike/kingshard
-	4. sh ./dev.sh
+	4. source ./dev.sh
 	5. make
 	6.设置配置文件
 	7.运行kingshard。./bin/kingshard -config=etc/multi.yaml
