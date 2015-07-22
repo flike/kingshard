@@ -88,7 +88,7 @@ kingshard采用（shardKey%子表个数）的方式得到子表下标。优点�
 4. 更改kingshard配置文件中的对应子表的路由规则。
 4. 删除老节点上的子表。
 
-##Exaple
+##Example
 简单演示一下kingshard的相关操作，感兴趣的同学可以自己试一试。:)
 
 ```
