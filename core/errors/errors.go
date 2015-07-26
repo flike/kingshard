@@ -5,9 +5,15 @@ import (
 )
 
 var (
-	ErrNoMasterConn   = errors.New("no master connection")
-	ErrNoSlaveConn    = errors.New("no slave connection")
-	ErrNoDefaultNode  = errors.New("no default node")
+	ErrNoMasterConn  = errors.New("no master connection")
+	ErrNoSlaveConn   = errors.New("no slave connection")
+	ErrNoDefaultNode = errors.New("no default node")
+	ErrNoMasterDb    = errors.New("no master database")
+	ErrNoSlaveDb     = errors.New("no slave database")
+	ErrNoDatabase    = errors.New("no database")
+	ErrMasterDown    = errors.New("master is down")
+	ErrSlaveDown     = errors.New("slave is down")
+
 	ErrLocationsCount = errors.New("locations count are not equal")
 	ErrNoCriteria     = errors.New("plan have no criteria")
 	ErrNoRouteNode    = errors.New("no route node")

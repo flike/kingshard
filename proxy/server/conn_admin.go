@@ -51,7 +51,7 @@ func (c *ClientConn) adminUpNodeServer(values sqlparser.ValExprs) error {
 }
 
 func (c *ClientConn) adminDownNodeServer(values sqlparser.ValExprs) error {
-	if len(values) != 2 {
+	if len(values) != 3 {
 		return fmt.Errorf("upnode needs 2 args, not %d", len(values))
 	}
 
@@ -60,9 +60,11 @@ func (c *ClientConn) adminDownNodeServer(values sqlparser.ValExprs) error {
 
 	switch sType {
 	case Master:
-		return c.proxy.DownMaster(nodeName)
+		masterAddr := strings.ToLower(nstring(values[2]))
+		return c.proxy.DownMaster(nodeName, masterAddr)
 	case Slave:
-		return c.proxy.DownSlave(nodeName)
+		slaveAddr := strings.ToLower(nstring(values[2]))
+		return c.proxy.DownSlave(nodeName, slaveAddr)
 	default:
 		return fmt.Errorf("invalid server type %s", sType)
 	}

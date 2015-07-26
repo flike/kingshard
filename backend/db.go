@@ -8,6 +8,12 @@ import (
 	"sync/atomic"
 )
 
+const (
+	Up = iota
+	Down
+	Unknown
+)
+
 type DB struct {
 	sync.Mutex
 
@@ -16,13 +22,14 @@ type DB struct {
 	password     string
 	db           string
 	maxIdleConns int
+	state        int32
 
 	idleConns *list.List
 
 	connNum int32
 }
 
-func Open(addr string, user string, password string, dbName string) (*DB, error) {
+func Open(addr string, user string, password string, dbName string) *DB {
 	db := new(DB)
 
 	db.addr = addr
@@ -32,8 +39,9 @@ func Open(addr string, user string, password string, dbName string) (*DB, error)
 
 	db.idleConns = list.New()
 	db.connNum = 0
+	atomic.StoreInt32(&(db.state), Unknown)
 
-	return db, nil
+	return db
 }
 
 func (db *DB) Addr() string {
