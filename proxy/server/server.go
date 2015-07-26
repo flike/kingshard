@@ -72,28 +72,18 @@ func (s *Server) parseAllowIps() error {
 }
 
 func (s *Server) parseNode(cfg config.NodeConfig) (*backend.Node, error) {
+	var err error
 	n := new(backend.Node)
-	//n.server = s
 	n.Cfg = cfg
 
 	n.DownAfterNoAlive = time.Duration(cfg.DownAfterNoAlive) * time.Second
-
-	if len(cfg.Master) == 0 {
-		return nil, fmt.Errorf("must setting master MySQL node.")
-	}
-
-	var err error
-	if n.Master, err = n.OpenDB(cfg.Master); err != nil {
+	err = n.ParseMaster(cfg.Master)
+	if err != nil {
 		return nil, err
 	}
-
-	//n.db = n.Master
-
-	if len(cfg.Slave) > 0 {
-		if n.Slave, err = n.OpenDB(cfg.Slave); err != nil {
-			golog.Error("ClientConn", "handleShowProxy", err.Error(), 0)
-			n.Slave = nil
-		}
+	err = n.ParseSlave(cfg.Slave)
+	if err != nil {
+		return nil, err
 	}
 
 	go n.Run()
@@ -309,21 +299,21 @@ func (s *Server) UpSlave(node string, addr string) error {
 
 	return n.UpSlave(addr)
 }
-func (s *Server) DownMaster(node string) error {
+func (s *Server) DownMaster(node, masterAddr string) error {
 	n := s.GetNode(node)
 	if n == nil {
 		return fmt.Errorf("invalid node %s", node)
 	}
 	//	n.db = nil
-	return n.DownMaster()
+	return n.DownMaster(masterAddr)
 }
 
-func (s *Server) DownSlave(node string) error {
+func (s *Server) DownSlave(node, slaveAddr string) error {
 	n := s.GetNode(node)
 	if n == nil {
 		return fmt.Errorf("invalid node [%s].", node)
 	}
-	return n.DownSlave()
+	return n.DownSlave(slaveAddr)
 }
 
 func (s *Server) GetNode(name string) *backend.Node {

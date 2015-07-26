@@ -357,6 +357,10 @@ func (c *Conn) GetDB() string {
 	return c.db
 }
 
+func (c *Conn) GetAddr() string {
+	return c.addr
+}
+
 func (c *Conn) Execute(command string, args ...interface{}) (*Result, error) {
 	if len(args) == 0 {
 		return c.exec(command)

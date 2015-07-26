@@ -133,7 +133,7 @@ func (c *ClientConn) handleShowProxyConfig() (*Resultset, error) {
 			}
 
 			if node.Slave != nil {
-				nodeRows = append(nodeRows, []string{nodeSection, "Slave", node.Slave.String()})
+				nodeRows = append(nodeRows, []string{nodeSection, "Slave", node.FormatSlave()})
 			}
 			nodeRows = append(nodeRows, []string{nodeSection, "Last_Master_Ping", fmt.Sprintf("%v", time.Unix(node.LastMasterPing, 0))})
 

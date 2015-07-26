@@ -36,7 +36,6 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 			}
 			return
 		}
-		golog.OutputSql("INFO", "%s", sql)
 	}()
 
 	sql = strings.TrimRight(sql, ";") //删除sql语句最后的分号
@@ -93,7 +92,7 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 	if !c.needBeginTx() {
 		if fromSlave {
 			co, err = n.GetSlaveConn()
-			if err != nil && err == ErrNoSlaveConn {
+			if err != nil {
 				co, err = n.GetMasterConn()
 			}
 		} else {
@@ -171,13 +170,20 @@ func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args [
 	rs := make([]interface{}, 1)
 
 	f := func(rs []interface{}, i int, co *backend.BackendConn) {
+		var state string
 		r, err := co.Execute(sql, args...)
 		if err != nil {
+			state = "ERROR"
 			rs[i] = err
 		} else {
+			state = "INFO"
 			rs[i] = r
 		}
-
+		golog.OutputSql(state, "%s->%s:%s",
+			c.c.RemoteAddr(),
+			co.GetAddr(),
+			sql,
+		)
 		wg.Done()
 	}
 	go f(rs, 0, conn)
@@ -222,13 +228,21 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 	rs := make([]interface{}, resultCount)
 
 	f := func(rs []interface{}, i int, execSqls []string, co *backend.BackendConn) {
+		var state string
 		for _, v := range execSqls {
 			r, err := co.Execute(v, args...)
 			if err != nil {
+				state = "ERROR"
 				rs[i] = err
 			} else {
+				state = "INFO"
 				rs[i] = r
 			}
+			golog.OutputSql(state, "%s->%s:%s",
+				c.c.RemoteAddr(),
+				co.GetAddr(),
+				v,
+			)
 			i++
 		}
 		wg.Done()
@@ -343,13 +357,11 @@ func (c *ClientConn) handleUnsupport(sql string) (bool, error) {
 	//execute in Master DB
 	conn, err := c.getBackendConn(defaultNode, false)
 	if err != nil {
-
 		return false, err
 	}
 
 	rs, err = c.executeInNode(conn, sql, nil)
 	if err != nil {
-
 		return false, err
 	}
 

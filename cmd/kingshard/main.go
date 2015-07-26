@@ -28,7 +28,7 @@ func main() {
 
 	cfg, err := config.ParseConfigFile(*configFile)
 	if err != nil {
-		fmt.Printf("parse config file error:%s", err.Error())
+		fmt.Printf("parse config file error:%v\n", err.Error())
 		return
 	}
 
