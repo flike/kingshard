@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net"
 	"runtime"
-	"strconv"
-	"strings"
 	"sync"
 	//	"sync/atomic"
 
@@ -61,29 +59,27 @@ var DEFAULT_CAPABILITY uint32 = CLIENT_LONG_PASSWORD | CLIENT_LONG_FLAG |
 var baseConnId uint32 = 10000
 
 func (c *ClientConn) IsAllowConnect() bool {
-	var ipValue int64 = 0
+	clientHost, _, err := net.SplitHostPort(c.c.RemoteAddr().String())
+	if err != nil {
+		fmt.Println(err)
+	}
+	clientIP := net.ParseIP(clientHost)
 
-	clientAddr := c.c.RemoteAddr()
-	ipPort := strings.Split(clientAddr.String(), ":")
-	ipSeg := strings.Split(ipPort[0], ".")
-
-	ipVecLen := len(c.proxy.allowips)
-	if ipVecLen == 0 {
+	ipVec := c.proxy.allowips
+	if ipVecLen := len(ipVec); ipVecLen == 0 {
 		return true
 	}
-	for _, seg := range ipSeg {
-		k, err := strconv.ParseInt(seg, 10, 32)
-		if err != nil {
-			panic(err)
-		}
-		ipValue = ipValue + k<<4
-		for i := 0; i < ipVecLen; i++ {
-			if c.proxy.allowips[i] == ipValue {
-				return true
-			}
+	for _, ip := range ipVec {
+		if ip.Equal(clientIP) {
+			golog.Info("server", "IsAllowConnect", "info",
+				c.connectionId, "client",
+				c.c.RemoteAddr().String(), " login success.")
+			return true
 		}
 	}
 
+	golog.Error("server", "IsAllowConnect", "error", ER_ACCESS_DENIED_ERROR,
+		"ip address", c.c.RemoteAddr().String(), " access denied by kindshard.")
 	return false
 }
 
