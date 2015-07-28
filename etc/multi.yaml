@@ -29,7 +29,7 @@ nodes :
     master : 127.0.0.1:3306
 
     # slave represents a real mysql salve server,and the number after '@' is 
-	#read load weight of this slave.
+    # read load weight of this slave.
     slave : 192.168.0.11:3307@2,192.168.0.12:3307@5
     #down_after_noalive : 300
 - 

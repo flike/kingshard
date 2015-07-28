@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -36,7 +35,7 @@ type Server struct {
 
 	listener net.Listener
 
-	allowips []int64
+	allowips []net.IP
 
 	nodes map[string]*backend.Node
 
@@ -49,24 +48,9 @@ func (s *Server) parseAllowIps() error {
 		return nil
 	}
 	ipVec := strings.Split(cfg.AllowIps, ",")
-	s.allowips = make([]int64, 10)
+	s.allowips = make([]net.IP, 10)
 	for _, ip := range ipVec {
-		var ipValue int64 = 0
-		ipSeg := strings.Split(ip, ".")
-		for _, seg := range ipSeg {
-			k, err := strconv.ParseInt(seg, 10, 32)
-			if err != nil {
-				panic(err)
-			}
-			ipValue = ipValue + k<<4
-		}
-		ipVecLen := len(s.allowips)
-		for i := 0; i < ipVecLen; i++ {
-			if s.allowips[i] == ipValue {
-				return fmt.Errorf("duplicate allow ip [%s].", ip)
-			}
-		}
-		s.allowips = append(s.allowips, ipValue)
+		s.allowips = append(s.allowips, net.ParseIP(strings.TrimSpace(ip)))
 	}
 	return nil
 }
@@ -245,7 +229,7 @@ func (s *Server) onConn(c net.Conn) {
 	}()
 
 	if allowConnect := conn.IsAllowConnect(); allowConnect == false {
-		err := NewError(ER_UNKNOWN_ERROR, "ip address access denied by kingshard.")
+		err := NewError(ER_ACCESS_DENIED_ERROR, "ip address access denied by kingshard.")
 		conn.writeError(err)
 		conn.Close()
 		return
