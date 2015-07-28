@@ -372,9 +372,13 @@ func (c *ClientConn) handleUnsupport(sql string) (bool, error) {
 		return false, NewError(ER_UNKNOWN_ERROR, msg)
 	}
 
-	err = c.writeResultset(c.status, rs[0].Resultset)
-	if err != nil {
+	if rs[0].Resultset != nil {
+		err = c.writeResultset(c.status, rs[0].Resultset)
+	} else {
+		err = c.writeOK(rs[0])
+	}
 
+	if err != nil {
 		return false, err
 	}
 
