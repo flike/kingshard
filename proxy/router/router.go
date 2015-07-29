@@ -122,6 +122,13 @@ func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 }
 
 func (r *Router) GetRule(table string) *Rule {
+	arry := strings.Split(table, ".")
+	if len(arry) == 2 {
+		if arry[0] == r.DB {
+			table = arry[1]
+		}
+	}
+
 	rule := r.Rules[table]
 	if rule == nil {
 		return r.DefaultRule
