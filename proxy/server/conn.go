@@ -319,12 +319,7 @@ func (c *ClientConn) dispatch(data []byte) error {
 }
 
 func (c *ClientConn) useDB(db string) error {
-	if s := c.proxy.GetSchema(db); s == nil {
-		return NewDefaultError(ER_BAD_DB_ERROR, db)
-	} else {
-		c.schema = s
-		c.db = db
-	}
+	c.db = db
 	return nil
 }
 
