@@ -81,6 +81,8 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 		return c.handleShow(sql, v)
 	case *sqlparser.Admin:
 		return c.handleAdmin(v)
+	case *sqlparser.UseDB:
+		return c.handleUseDB(v)
 	default:
 		return fmt.Errorf("statement %T not support now", stmt)
 	}

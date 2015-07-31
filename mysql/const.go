@@ -4,7 +4,7 @@ const (
 	MinProtocolVersion byte   = 10
 	MaxPayloadLen      int    = 1<<24 - 1
 	TimeFormat         string = "2006-01-02 15:04:05"
-	ServerVersion      string = "kingshard-1.0"
+	ServerVersion      string = "5.6.20-kingshard-1.0"
 )
 
 const (
@@ -154,6 +154,7 @@ var (
 	KS_TK_COMMIT   = 1
 	KS_TK_ROLLBACK = 1
 	KS_TK_ADMIN    = 1
+	KS_TK_USE      = 1
 
 	KS_TK_SELECT = 2
 
@@ -168,5 +169,6 @@ var (
 		"rollback": KS_TK_ROLLBACK,
 		"admin":    KS_TK_ADMIN,
 		"select":   KS_TK_SELECT,
+		"use":      KS_TK_USE,
 	}
 )

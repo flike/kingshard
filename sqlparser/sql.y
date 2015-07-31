@@ -154,6 +154,7 @@ var (
 %type <statement> begin_statement commit_statement rollback_statement
 %type <statement> replace_statement
 %type <statement> admin_statement
+%type <statement> use_statement
 
 %%
 
@@ -181,6 +182,7 @@ command:
 | rollback_statement
 | replace_statement
 | admin_statement
+| use_statement
 
 select_statement:
   SELECT comment_opt distinct_opt select_expression_list
@@ -274,6 +276,12 @@ admin_statement:
   ADMIN sql_id '(' value_expression_list ')'
   {
     $$ = &Admin{Name : $2, Values : $4}
+  }
+
+use_statement:
+  USE sql_id
+  {
+	$$=$2
   }
 
 create_statement:

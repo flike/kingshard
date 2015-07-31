@@ -936,3 +936,13 @@ func (*Show) IStatement() {}
 func (node *Show) Format(buf *TrackedBuffer) {
 	buf.Fprintf("show %s %s %v %v", node.Section, node.Key, node.From, node.LikeOrWhere)
 }
+
+type UseDB struct {
+	DB []byte
+}
+
+func (*UseDB) IStatement() {}
+
+func (node *UseDB) Format(buf *TrackedBuffer) {
+	buf.Fprintf("use %s", node.DB)
+}
