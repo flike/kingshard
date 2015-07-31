@@ -281,7 +281,7 @@ admin_statement:
 use_statement:
   USE sql_id
   {
-	$$=$2
+	$$= &UseDB{DB : string($2)}
   }
 
 create_statement:

@@ -938,7 +938,7 @@ func (node *Show) Format(buf *TrackedBuffer) {
 }
 
 type UseDB struct {
-	DB []byte
+	DB string
 }
 
 func (*UseDB) IStatement() {}
