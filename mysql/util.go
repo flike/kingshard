@@ -1,12 +1,13 @@
 package mysql
 
 import (
-	"crypto/rand"
 	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math/rand"
 	"runtime"
+	"time"
 	"unicode/utf8"
 )
 
@@ -45,20 +46,31 @@ func CalcPassword(scramble, password []byte) []byte {
 	return scramble
 }
 
+// seed must be in the range of ascii
 func RandomBuf(size int) ([]byte, error) {
 	buf := make([]byte, size)
-
-	if _, err := io.ReadFull(rand.Reader, buf); err != nil {
-		return nil, err
-	}
-
-	// avoid to generate '\0'
-	for i, b := range buf {
-		if uint8(b) == 0 {
-			buf[i] = '0'
+	/*
+		if _, err := io.ReadFull(rand.Reader, buf); err != nil {
+			return nil, err
 		}
+
+		// avoid to generate '\0'
+		for i, b := range buf {
+			if uint8(b) == 0 {
+				buf[i] = '0'
+			}
+		}
+	*/
+	for i := 0; i < size; i++ {
+		// exclude 0
+		buf[i] = byte(randInt(1, 127))
 	}
 	return buf, nil
+}
+
+func randInt(min int, max int) int {
+	rand.Seed(time.Now().UTC().UnixNano())
+	return min + rand.Intn(max-min)
 }
 
 func LengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {
