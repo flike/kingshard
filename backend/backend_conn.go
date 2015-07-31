@@ -319,9 +319,9 @@ func (c *Conn) writeCommandStrStr(command byte, arg1 string, arg2 string) error 
 }
 
 func (c *Conn) Ping() error {
-	n := time.Now().Unix()
+	n := time.Now().UnixNano()
 
-	if n-c.lastPing > pingPeriod {
+	if n-c.lastPing >= pingPeriod {
 		if err := c.writeCommand(COM_PING); err != nil {
 			return err
 		}
