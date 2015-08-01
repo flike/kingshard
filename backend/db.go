@@ -11,6 +11,8 @@ import (
 const (
 	Up = iota
 	Down
+	SystemUp
+	SystemDown
 	Unknown
 )
 
@@ -23,6 +25,7 @@ type DB struct {
 	db           string
 	maxIdleConns int
 	state        int32
+	downType int32
 
 	idleConns *list.List
 

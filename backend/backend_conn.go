@@ -96,7 +96,7 @@ func (c *Conn) ReConnect() error {
 		}
 	}
 
-	c.lastPing = time.Now().Unix()
+	c.lastPing = time.Now().UnixNano()
 
 	return nil
 }

@@ -42,10 +42,10 @@ func (n *Node) Run() {
 	n.checkMaster()
 	n.checkSlave()
 
-	t := time.NewTicker(3000 * time.Second)
+	t := time.NewTicker(60 * time.Second)
 	defer t.Stop()
 
-	n.LastMasterPing = time.Now().Unix()
+	n.LastMasterPing = time.Now().UnixNano()
 	n.LastSlavePing = n.LastMasterPing
 	for {
 		select {
@@ -105,21 +105,29 @@ func (n *Node) checkMaster() {
 		golog.Error("Node", "checkMaster", "Master is no alive", 0)
 		return
 	}
-	if atomic.LoadInt32(&(db.state)) == Down {
+	if atomic.LoadInt32(&(db.state)) == Down && atomic.LoadInt32(&(db.downType)) != SystemDown {
 		return
 	}
 
 	if err := db.Ping(); err != nil {
 		golog.Error("Node", "checkMaster", "Ping", 0, "db.Addr", db.Addr(), "error", err.Error())
 	} else {
-		n.LastMasterPing = time.Now().Unix()
+		n.LastMasterPing = time.Now().UnixNano()
+		if atomic.LoadInt32(&(db.downType)) == SystemDown {
+			golog.Info("Node", "checkMaster", "Master up", 0,
+				"db.Addr", db.Addr(),
+				"Master_up_time", int64(n.DownAfterNoAlive/time.Second))
+			n.UpMaster(db.addr)
+			atomic.StoreInt32(&(db.downType), SystemUp)
+		}
 	}
 
-	if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastMasterPing > int64(n.DownAfterNoAlive) {
+	if int64(n.DownAfterNoAlive) > 0 && time.Now().UnixNano()-n.LastMasterPing > int64(n.DownAfterNoAlive) {
 		golog.Info("Node", "checkMaster", "Master down", 0,
 			"db.Addr", db.Addr(),
 			"Master_down_time", int64(n.DownAfterNoAlive/time.Second))
 		n.DownMaster(db.addr)
+		atomic.StoreInt32(&(db.downType), SystemDown)
 	}
 }
 
@@ -134,21 +142,29 @@ func (n *Node) checkSlave() {
 	n.Unlock()
 
 	for i := 0; i < len(slaves); i++ {
-		if atomic.LoadInt32(&(slaves[i].state)) == Down {
+		if atomic.LoadInt32(&(slaves[i].state)) == Down && atomic.LoadInt32(&(slaves[i].downType)) != SystemDown {
 			continue
 		}
 		if err := slaves[i].Ping(); err != nil {
 			golog.Error("Node", "checkSlave", "Ping", 0, "db.Addr", slaves[i].Addr(), "error", err.Error())
 		} else {
-			n.LastSlavePing = time.Now().Unix()
+			n.LastSlavePing = time.Now().UnixNano()
+			if atomic.LoadInt32(&(slaves[i].downType)) == SystemDown {
+				golog.Info("Node", "checkSlave", "Slave up", 0,
+					"db.Addr", slaves[i].Addr(),
+					"Slave_up_time", int64(n.DownAfterNoAlive/time.Second))
+				n.UpSlave(slaves[i].addr)
+				atomic.StoreInt32(&(slaves[i].downType), SystemUp)
+			}
 		}
 
-		if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastSlavePing > int64(n.DownAfterNoAlive) {
-			golog.Info("Node", "checkMaster", "Master down", 0,
+		if int64(n.DownAfterNoAlive) > 0 && time.Now().UnixNano()-n.LastSlavePing > int64(n.DownAfterNoAlive) {
+			golog.Info("Node", "checkSlave", "Slave down", 0,
 				"db.Addr", slaves[i].Addr(),
 				"slave_down_time", int64(n.DownAfterNoAlive/time.Second))
 			//If can't ping slave after DownAfterNoAlive set slave Down
 			n.DownSlave(slaves[i].addr)
+			atomic.StoreInt32(&(slaves[i].downType), SystemDown)
 		}
 	}
 
