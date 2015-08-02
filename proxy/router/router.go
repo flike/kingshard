@@ -2,11 +2,12 @@ package router
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/flike/kingshard/config"
-	. "github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/sqlparser"
-	"strings"
 )
 
 var (
@@ -75,7 +76,7 @@ func (r *Rule) checkUpdateExprs(exprs sqlparser.UpdateExprs) error {
 
 	for _, e := range exprs {
 		if string(e.Name.Name) == r.Key {
-			return ErrUpdateKey
+			return errors.ErrUpdateKey
 		}
 	}
 	return nil
@@ -147,7 +148,7 @@ func parseRule(db string, cfg *config.ShardConfig) (*Rule, error) {
 	r.TableToNode = make([]int, 0)
 
 	if len(cfg.Locations) != len(r.Nodes) {
-		return nil, ErrLocationsCount
+		return nil, errors.ErrLocationsCount
 	}
 	for i := 0; i < len(cfg.Locations); i++ {
 		for j := 0; j < cfg.Locations[i]; j++ {
@@ -208,7 +209,7 @@ func (r *Router) BuildPlan(statement sqlparser.Statement) (*Plan, error) {
 	case *sqlparser.Delete:
 		return r.buildDeletePlan(stmt)
 	}
-	return nil, ErrNoPlan
+	return nil, errors.ErrNoPlan
 }
 
 func (r *Router) buildSelectPlan(statement sqlparser.Statement) (*Plan, error) {
@@ -232,8 +233,8 @@ func (r *Router) buildSelectPlan(statement sqlparser.Statement) (*Plan, error) {
 	}
 
 	if plan.Rule.Type != DefaultRuleType && len(plan.RouteTableIndexs) == 0 {
-		golog.Error("Route", "BuildSelectPlan", ErrNoCriteria.Error(), 0)
-		return nil, ErrNoCriteria
+		golog.Error("Route", "BuildSelectPlan", errors.ErrNoCriteria.Error(), 0)
+		return nil, errors.ErrNoCriteria
 	}
 	//generate sql,如果routeTableindexs为空则表示不分表，不分表则发default node
 	err = r.generateSelectSql(plan, stmt)
@@ -247,7 +248,7 @@ func (r *Router) buildInsertPlan(statement sqlparser.Statement) (*Plan, error) {
 	plan := &Plan{}
 	stmt := statement.(*sqlparser.Insert)
 	if _, ok := stmt.Rows.(sqlparser.SelectStatement); ok {
-		return nil, ErrSelectInInsert
+		return nil, errors.ErrSelectInInsert
 	}
 	/*根据sql语句的表，获得对应的分片规则*/
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
@@ -302,8 +303,8 @@ func (r *Router) buildUpdatePlan(statement sqlparser.Statement) (*Plan, error) {
 	}
 
 	if plan.Rule.Type != DefaultRuleType && len(plan.RouteTableIndexs) == 0 {
-		golog.Error("Route", "BuildUpdatePlan", ErrNoCriteria.Error(), 0)
-		return nil, ErrNoCriteria
+		golog.Error("Route", "BuildUpdatePlan", errors.ErrNoCriteria.Error(), 0)
+		return nil, errors.ErrNoCriteria
 	}
 	//generate sql,如果routeTableindexs为空则表示不分表，不分表则发default node
 	err = r.generateUpdateSql(plan, stmt)
@@ -336,8 +337,8 @@ func (r *Router) buildDeletePlan(statement sqlparser.Statement) (*Plan, error) {
 	}
 
 	if plan.Rule.Type != DefaultRuleType && len(plan.RouteTableIndexs) == 0 {
-		golog.Error("Route", "BuildDeletePlan", ErrNoCriteria.Error(), 0)
-		return nil, ErrNoCriteria
+		golog.Error("Route", "BuildDeletePlan", errors.ErrNoCriteria.Error(), 0)
+		return nil, errors.ErrNoCriteria
 	}
 	//generate sql,如果routeTableindexs为空则表示不分表，不分表则发default node
 	err = r.generateDeleteSql(plan, stmt)
@@ -377,10 +378,10 @@ func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
 	sqls := make(map[string][]string)
 	node, ok := stmt.(*sqlparser.Select)
 	if ok == false {
-		return ErrStmtConvert
+		return errors.ErrStmtConvert
 	}
 	if len(plan.RouteNodeIndexs) == 0 {
-		return ErrNoRouteNode
+		return errors.ErrNoRouteNode
 	}
 	if len(plan.RouteTableIndexs) == 0 {
 		buf := sqlparser.NewTrackedBuffer(nil)
@@ -426,10 +427,10 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 	sqls := make(map[string][]string)
 	node, ok := stmt.(*sqlparser.Insert)
 	if ok == false {
-		return ErrStmtConvert
+		return errors.ErrStmtConvert
 	}
 	if len(plan.RouteNodeIndexs) == 0 {
-		return ErrNoRouteNode
+		return errors.ErrNoRouteNode
 	}
 	if len(plan.RouteTableIndexs) == 0 {
 		buf := sqlparser.NewTrackedBuffer(nil)
@@ -439,8 +440,8 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 	} else {
 		nodeCount := len(plan.RouteNodeIndexs)
 		if 1 < nodeCount {
-			golog.Error("Router", "generateInsertSql", ErrInsertInMulti.Error(), 0)
-			return ErrInsertInMulti
+			golog.Error("Router", "generateInsertSql", errors.ErrInsertInMulti.Error(), 0)
+			return errors.ErrInsertInMulti
 		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
@@ -470,10 +471,10 @@ func (r *Router) generateUpdateSql(plan *Plan, stmt sqlparser.Statement) error {
 	sqls := make(map[string][]string)
 	node, ok := stmt.(*sqlparser.Update)
 	if ok == false {
-		return ErrStmtConvert
+		return errors.ErrStmtConvert
 	}
 	if len(plan.RouteNodeIndexs) == 0 {
-		return ErrNoRouteNode
+		return errors.ErrNoRouteNode
 	}
 	if len(plan.RouteTableIndexs) == 0 {
 		buf := sqlparser.NewTrackedBuffer(nil)
@@ -483,9 +484,9 @@ func (r *Router) generateUpdateSql(plan *Plan, stmt sqlparser.Statement) error {
 	} else {
 		nodeCount := len(plan.RouteNodeIndexs)
 		if 1 < nodeCount {
-			golog.Error("Router", "generateUpdateSql", ErrUpdateInMulti.Error(), 0,
+			golog.Error("Router", "generateUpdateSql", errors.ErrUpdateInMulti.Error(), 0,
 				"RouteNodeIndexs", plan.RouteNodeIndexs)
-			return ErrUpdateInMulti
+			return errors.ErrUpdateInMulti
 		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
@@ -519,10 +520,10 @@ func (r *Router) generateDeleteSql(plan *Plan, stmt sqlparser.Statement) error {
 	sqls := make(map[string][]string)
 	node, ok := stmt.(*sqlparser.Delete)
 	if ok == false {
-		return ErrStmtConvert
+		return errors.ErrStmtConvert
 	}
 	if len(plan.RouteNodeIndexs) == 0 {
-		return ErrNoRouteNode
+		return errors.ErrNoRouteNode
 	}
 	if len(plan.RouteTableIndexs) == 0 {
 		buf := sqlparser.NewTrackedBuffer(nil)
@@ -532,8 +533,8 @@ func (r *Router) generateDeleteSql(plan *Plan, stmt sqlparser.Statement) error {
 	} else {
 		nodeCount := len(plan.RouteNodeIndexs)
 		if 1 < nodeCount {
-			golog.Error("Router", "generateDeleteSql", ErrDeleteInMulti.Error(), 0)
-			return ErrUpdateInMulti
+			golog.Error("Router", "generateDeleteSql", errors.ErrDeleteInMulti.Error(), 0)
+			return errors.ErrUpdateInMulti
 		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
@@ -566,10 +567,10 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 	sqls := make(map[string][]string)
 	node, ok := stmt.(*sqlparser.Replace)
 	if ok == false {
-		return ErrStmtConvert
+		return errors.ErrStmtConvert
 	}
 	if len(plan.RouteNodeIndexs) == 0 {
-		return ErrNoRouteNode
+		return errors.ErrNoRouteNode
 	}
 	if len(plan.RouteTableIndexs) == 0 {
 		buf := sqlparser.NewTrackedBuffer(nil)
@@ -579,8 +580,8 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 	} else {
 		nodeCount := len(plan.RouteNodeIndexs)
 		if 1 < nodeCount {
-			golog.Error("Router", "generateReplaceSql", ErrReplaceInMulti.Error(), 0)
-			return ErrUpdateInMulti
+			golog.Error("Router", "generateReplaceSql", errors.ErrReplaceInMulti.Error(), 0)
+			return errors.ErrUpdateInMulti
 		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {

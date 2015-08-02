@@ -2,9 +2,10 @@ package server
 
 import (
 	"fmt"
-	"github.com/flike/kingshard/core/hack"
-	. "github.com/flike/kingshard/mysql"
 	"strconv"
+
+	"github.com/flike/kingshard/core/hack"
+	"github.com/flike/kingshard/mysql"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
@@ -42,29 +43,29 @@ func formatValue(value interface{}) ([]byte, error) {
 	}
 }
 
-func formatField(field *Field, value interface{}) error {
+func formatField(field *mysql.Field, value interface{}) error {
 	switch value.(type) {
 	case int8, int16, int32, int64, int:
 		field.Charset = 63
-		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+		field.Type = mysql.MYSQL_TYPE_LONGLONG
+		field.Flag = mysql.BINARY_FLAG | mysql.NOT_NULL_FLAG
 	case uint8, uint16, uint32, uint64, uint:
 		field.Charset = 63
-		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
+		field.Type = mysql.MYSQL_TYPE_LONGLONG
+		field.Flag = mysql.BINARY_FLAG | mysql.NOT_NULL_FLAG | mysql.UNSIGNED_FLAG
 	case string, []byte:
 		field.Charset = 33
-		field.Type = MYSQL_TYPE_VAR_STRING
+		field.Type = mysql.MYSQL_TYPE_VAR_STRING
 	default:
 		return fmt.Errorf("unsupport type %T for resultset", value)
 	}
 	return nil
 }
 
-func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*Resultset, error) {
-	r := new(Resultset)
+func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*mysql.Resultset, error) {
+	r := new(mysql.Resultset)
 
-	r.Fields = make([]*Field, len(names))
+	r.Fields = make([]*mysql.Field, len(names))
 
 	var b []byte
 	var err error
@@ -77,7 +78,7 @@ func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*Re
 		var row []byte
 		for j, value := range vs {
 			if i == 0 {
-				field := &Field{}
+				field := &mysql.Field{}
 				r.Fields[j] = field
 				field.Name = hack.Slice(names[j])
 
@@ -91,7 +92,7 @@ func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*Re
 				return nil, err
 			}
 
-			row = append(row, PutLengthEncodedString(b)...)
+			row = append(row, mysql.PutLengthEncodedString(b)...)
 		}
 
 		r.RowDatas = append(r.RowDatas, row)
@@ -100,10 +101,10 @@ func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*Re
 	return r, nil
 }
 
-func (c *ClientConn) writeResultset(status uint16, r *Resultset) error {
+func (c *ClientConn) writeResultset(status uint16, r *mysql.Resultset) error {
 	c.affectedRows = int64(-1)
 
-	columnLen := PutLengthEncodedInt(uint64(len(r.Fields)))
+	columnLen := mysql.PutLengthEncodedInt(uint64(len(r.Fields)))
 
 	data := make([]byte, 4, 1024)
 

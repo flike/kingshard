@@ -1,14 +1,15 @@
 package backend
 
 import (
-	"github.com/flike/kingshard/config"
-	. "github.com/flike/kingshard/core/errors"
-	"github.com/flike/kingshard/core/golog"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/flike/kingshard/config"
+	"github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
 )
 
 const (
@@ -72,10 +73,10 @@ func (n *Node) FormatSlave() string {
 func (n *Node) GetMasterConn() (*BackendConn, error) {
 	db := n.Master
 	if db == nil {
-		return nil, ErrNoMasterConn
+		return nil, errors.ErrNoMasterConn
 	}
 	if atomic.LoadInt32(&(db.state)) == Down {
-		return nil, ErrMasterDown
+		return nil, errors.ErrMasterDown
 	}
 
 	return db.GetConn()
@@ -90,10 +91,10 @@ func (n *Node) GetSlaveConn() (*BackendConn, error) {
 	}
 
 	if db == nil {
-		return nil, ErrNoSlaveDb
+		return nil, errors.ErrNoSlaveDb
 	}
 	if atomic.LoadInt32(&(db.state)) == Down {
-		return nil, ErrSlaveDown
+		return nil, errors.ErrSlaveDown
 	}
 
 	return db.GetConn()
@@ -205,7 +206,7 @@ func (n *Node) UpSlave(addr string) error {
 func (n *Node) DownMaster(addr string) error {
 	db := n.Master
 	if db == nil || db.addr != addr {
-		return ErrNoMasterDb
+		return errors.ErrNoMasterDb
 	}
 	db.Close()
 	atomic.StoreInt32(&(db.state), Down)
@@ -216,7 +217,7 @@ func (n *Node) DownSlave(addr string) error {
 	n.Lock()
 	if n.Slave == nil {
 		n.Unlock()
-		return ErrNoSlaveDb
+		return errors.ErrNoSlaveDb
 	}
 	slaves := make([]*DB, len(n.Slave))
 	copy(slaves, n.Slave)
@@ -235,7 +236,7 @@ func (n *Node) DownSlave(addr string) error {
 
 func (n *Node) ParseMaster(masterStr string) error {
 	if len(masterStr) == 0 {
-		return ErrNoMasterDb
+		return errors.ErrNoMasterDb
 	}
 
 	n.Master = n.OpenDB(masterStr)
