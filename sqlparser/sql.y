@@ -273,9 +273,9 @@ rollback_statement:
   }
 
 admin_statement:
-  ADMIN sql_id '(' value_expression_list ')'
+  ADMIN dml_table_expression column_list_opt row_list
   {
-    $$ = &Admin{Name : $2, Values : $4}
+    $$ = &Admin{Region : $2, Columns : $3,Rows:$4}
   }
 
 use_statement:

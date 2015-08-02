@@ -23,7 +23,9 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 
 [4.功能FAQ](./doc/KingDoc/function_FAQ.md)
 
-[5.ChangeLog](./doc/KingDoc/change_log_CN.md)
+[5.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
+
+[6.ChangeLog](./doc/KingDoc/change_log_CN.md)
 
 ## 反馈
 目前kingshard还是1.0版本，比较核心的功能已经实现了。但还有很多地方不完善。如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至flikecn#126.com与作者取得联系，或者加入QQ群(147926796)交流。
