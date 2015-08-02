@@ -914,14 +914,15 @@ func (*SimpleSelect) ISelectStatement() {}
 func (*SimpleSelect) IInsertRows()      {}
 
 type Admin struct {
-	Name   []byte
-	Values ValExprs
+	Region  *TableName
+	Columns Columns
+	Rows    InsertRows
 }
 
 func (*Admin) IStatement() {}
 
 func (node *Admin) Format(buf *TrackedBuffer) {
-	buf.Fprintf("admin %s(%v)", node.Name, node.Values)
+	buf.Fprintf("admin %v%v %v", node.Region, node.Columns, node.Rows)
 }
 
 type Show struct {

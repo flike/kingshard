@@ -266,6 +266,24 @@ func (s *Server) Close() {
 	}
 }
 
+func (s *Server) DeleteSlave(node string, addr string) error {
+	n := s.GetNode(node)
+	if n == nil {
+		return fmt.Errorf("invalid node %s", node)
+	}
+
+	return n.DeleteSlave(addr)
+}
+
+func (s *Server) AddSlave(node string, addr string) error {
+	n := s.GetNode(node)
+	if n == nil {
+		return fmt.Errorf("invalid node %s", node)
+	}
+
+	return n.AddSlave(addr)
+}
+
 func (s *Server) UpMaster(node string, addr string) error {
 	n := s.GetNode(node)
 	if n == nil {
@@ -283,12 +301,12 @@ func (s *Server) UpSlave(node string, addr string) error {
 
 	return n.UpSlave(addr)
 }
+
 func (s *Server) DownMaster(node, masterAddr string) error {
 	n := s.GetNode(node)
 	if n == nil {
 		return fmt.Errorf("invalid node %s", node)
 	}
-	//	n.db = nil
 	return n.DownMaster(masterAddr)
 }
 
