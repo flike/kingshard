@@ -11,10 +11,12 @@ var (
 	ErrNoMasterDb    = errors.New("no master database")
 	ErrNoSlaveDb     = errors.New("no slave database")
 	ErrNoDatabase    = errors.New("no database")
-	ErrMasterDown    = errors.New("master is down")
-	ErrSlaveDown     = errors.New("slave is down")
-	ErrAddressNull   = errors.New("address is nil")
-	ErrCmdUnsupport  = errors.New("command unsupport")
+
+	ErrMasterDown = errors.New("master is down")
+	ErrSlaveDown  = errors.New("slave is down")
+
+	ErrAddressNull  = errors.New("address is nil")
+	ErrCmdUnsupport = errors.New("command unsupport")
 
 	ErrLocationsCount = errors.New("locations count are not equal")
 	ErrNoCriteria     = errors.New("plan have no criteria")

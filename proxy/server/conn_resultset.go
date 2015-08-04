@@ -76,6 +76,7 @@ func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*Re
 
 		var row []byte
 		for j, value := range vs {
+			//列的定义
 			if i == 0 {
 				field := &Field{}
 				r.Fields[j] = field
