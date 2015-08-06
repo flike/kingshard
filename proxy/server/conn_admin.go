@@ -6,6 +6,7 @@ import (
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -13,8 +14,6 @@ import (
 const (
 	Master = "master"
 	Slave  = "slave"
-	Proxy  = "proxy"
-	Config = "config"
 
 	ServerRegion = "server"
 	NodeRegion   = "node"
@@ -24,6 +23,12 @@ const (
 	ADMIN_OPT_UP   = "up"
 	ADMIN_OPT_DOWN = "down"
 	ADMIN_OPT_SHOW = "show"
+
+	ADMIN_PROXY  = "proxy"
+	ADMIN_NODE   = "node"
+	ADMIN_SCHEMA = "schema"
+
+	ADMIN_CONFIG = "config"
 )
 
 var cmdServerOrder = []string{"opt", "k", "v"}
@@ -228,67 +233,155 @@ func (c *ClientConn) handleAdminShow(k, v string) (*mysql.Resultset, error) {
 	if len(k) == 0 || len(v) == 0 {
 		return nil, ErrCmdUnsupport
 	}
-	if k == Proxy && v == Config {
+	if k == ADMIN_PROXY && v == ADMIN_CONFIG {
 		return c.handleShowProxyConfig()
 	}
+
+	if k == ADMIN_NODE && v == ADMIN_CONFIG {
+		return c.handleShowNodeConfig()
+	}
+
+	if k == ADMIN_SCHEMA && v == ADMIN_CONFIG {
+		return c.handleShowSchemaConfig()
+	}
+
 	return nil, ErrCmdUnsupport
 }
 
 func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
-	var names []string = []string{"Section", "Key", "Value"}
+	var names []string = []string{"Key", "Value"}
+	var rows [][]string
+	var nodeNames []string
+
+	const (
+		Column = 2
+	)
+	for name := range c.schema.nodes {
+		nodeNames = append(nodeNames, name)
+	}
+
+	rows = append(rows, []string{"Addr", c.proxy.cfg.Addr})
+	rows = append(rows, []string{"User", c.proxy.cfg.User})
+	rows = append(rows, []string{"Password", c.proxy.cfg.Password})
+	rows = append(rows, []string{"LogLevel", c.proxy.cfg.LogLevel})
+	rows = append(rows, []string{"Nodes_Count", fmt.Sprintf("%d", len(c.proxy.nodes))})
+	rows = append(rows, []string{"Nodes_List", strings.Join(nodeNames, ",")})
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(names, values)
+}
+
+func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
+	var names []string = []string{
+		"Node",
+		"Address",
+		"Type",
+		"State",
+		"LastPing",
+		"MaxIdleConn",
+		"IdleConn",
+	}
 	var rows [][]string
 	const (
-		Column = 3
+		Column = 7
 	)
 
-	rows = append(rows, []string{"Global_Config", "Addr", c.proxy.cfg.Addr})
-	rows = append(rows, []string{"Global_Config", "User", c.proxy.cfg.User})
-	rows = append(rows, []string{"Global_Config", "Password", c.proxy.cfg.Password})
-	rows = append(rows, []string{"Global_Config", "LogLevel", c.proxy.cfg.LogLevel})
-	rows = append(rows, []string{"Global_Config", "Schemas_Count", fmt.Sprintf("%d", len(c.proxy.schemas))})
-	rows = append(rows, []string{"Global_Config", "Nodes_Count", fmt.Sprintf("%d", len(c.proxy.nodes))})
-
-	for db, schema := range c.proxy.schemas {
-		rows = append(rows, []string{"Schemas", "DB", db})
-
-		var nodeNames []string
-		var nodeRows [][]string
-		for name, node := range schema.nodes {
-			nodeNames = append(nodeNames, name)
-			var nodeSection = fmt.Sprintf("Schemas[%s]-Node[ %v ]", db, name)
-
-			if node.Master != nil {
-				nodeRows = append(nodeRows, []string{nodeSection, "Master", node.Master.String()})
-			}
-
-			if node.Slave != nil {
-				nodeRows = append(nodeRows, []string{nodeSection, "Slave", node.FormatSlave()})
-			}
-			nodeRows = append(nodeRows, []string{nodeSection, "Last_Master_Ping", fmt.Sprintf("%v", time.Unix(node.LastMasterPing, 0))})
-
-			nodeRows = append(nodeRows, []string{nodeSection, "Last_Slave_Ping", fmt.Sprintf("%v", time.Unix(node.LastSlavePing, 0))})
-
-			nodeRows = append(nodeRows, []string{nodeSection, "down_after_noalive", fmt.Sprintf("%v", node.DownAfterNoAlive)})
-
+	//var nodeRows [][]string
+	for name, node := range c.schema.nodes {
+		//"master"
+		rows = append(
+			rows,
+			[]string{
+				name,
+				node.Master.Addr(),
+				"master",
+				node.Master.State(),
+				fmt.Sprintf("%v", time.Unix(node.LastMasterPing, 0)),
+				strconv.Itoa(node.Cfg.IdleConns),
+				strconv.Itoa(node.Master.IdleConnCount()),
+			})
+		//"slave"
+		for _, slave := range node.Slave {
+			rows = append(
+				rows,
+				[]string{
+					name,
+					slave.Addr(),
+					"slave",
+					slave.State(),
+					fmt.Sprintf("%v", time.Unix(node.LastSlavePing, 0)),
+					strconv.Itoa(node.Cfg.IdleConns),
+					strconv.Itoa(slave.IdleConnCount()),
+				})
 		}
-		rows = append(rows, []string{fmt.Sprintf("Schemas[%s]", db), "Nodes_List", strings.Join(nodeNames, ",")})
-
-		var defaultRule = schema.rule.DefaultRule
-		if defaultRule.DB == db {
-			if defaultRule.DB == db {
-				rows = append(rows, []string{fmt.Sprintf("Schemas[%s]_Rule_Default", db),
-					"Default_Table", defaultRule.String()})
-			}
+	}
+	//rows = append(rows, nodeRows...)
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
 		}
-		for tb, r := range schema.rule.Rules {
-			if r.DB == db {
-				rows = append(rows, []string{fmt.Sprintf("Schemas[%s]_Rule_Table", db),
-					fmt.Sprintf("Table[ %s ]", tb), r.String()})
-			}
-		}
+	}
 
-		rows = append(rows, nodeRows...)
+	return c.buildResultset(names, values)
+}
 
+func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
+	var Column = 7
+	var rows [][]string
+	var names []string = []string{
+		"DB",
+		"Table",
+		"Type",
+		"Key",
+		"Nodes_List",
+		"Locations",
+		"TableRowLimit",
+	}
+
+	//default Rule
+	var defaultRule = c.schema.rule.DefaultRule
+	rows = append(
+		rows,
+		[]string{
+			defaultRule.DB,
+			defaultRule.Table,
+			defaultRule.Type,
+			defaultRule.Key,
+			strings.Join(defaultRule.Nodes, ", "),
+			"",
+			"0",
+		},
+	)
+
+	//shard rule
+	if len(c.proxy.cfg.Schemas) != 1 {
+		return nil, ErrCmdUnsupport
+	}
+	schemaConfig := c.proxy.cfg.Schemas[0]
+	shardRule := schemaConfig.RulesConfig.ShardRule
+
+	for _, r := range shardRule {
+		rows = append(
+			rows,
+			[]string{
+				schemaConfig.DB,
+				r.Table,
+				r.Type,
+				r.Key,
+				strings.Join(r.Nodes, ", "),
+				arrayToString(r.Locations),
+				strconv.Itoa(r.TableRowLimit),
+			},
+		)
 	}
 
 	var values [][]interface{} = make([][]interface{}, len(rows))
@@ -300,4 +393,16 @@ func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
 	}
 
 	return c.buildResultset(names, values)
+}
+
+func arrayToString(array []int) string {
+	if len(array) == 0 {
+		return ""
+	}
+	var strArray []string
+	for _, v := range array {
+		strArray = append(strArray, strconv.FormatInt(int64(v), 10))
+	}
+
+	return strings.Join(strArray, ", ")
 }

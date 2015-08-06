@@ -36,7 +36,7 @@ type NodeConfig struct {
 type SchemaConfig struct {
 	DB          string      `yaml:"db"`
 	Nodes       []string    `yaml:"nodes"`
-	RulesConifg RulesConfig `yaml:"rules"`
+	RulesConfig RulesConfig `yaml:"rules"`
 }
 
 //路由规则

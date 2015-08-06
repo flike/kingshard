@@ -42,7 +42,7 @@ func (n *Node) Run() {
 	n.checkMaster()
 	n.checkSlave()
 
-	t := time.NewTicker(3000 * time.Second)
+	t := time.NewTicker(30 * time.Second)
 	defer t.Stop()
 
 	n.LastMasterPing = time.Now().Unix()
@@ -58,15 +58,6 @@ func (n *Node) Run() {
 
 func (n *Node) String() string {
 	return n.Cfg.Name
-}
-
-func (n *Node) FormatSlave() string {
-	s := make([]byte, 0, 16)
-	for _, v := range n.Slave {
-		s = append(s, []byte(v.addr)...)
-		s = append(s, []byte("\n")...)
-	}
-	return string(s)
 }
 
 func (n *Node) GetMasterConn() (*BackendConn, error) {
@@ -113,6 +104,8 @@ func (n *Node) checkMaster() {
 		golog.Error("Node", "checkMaster", "Ping", 0, "db.Addr", db.Addr(), "error", err.Error())
 	} else {
 		n.LastMasterPing = time.Now().Unix()
+		atomic.StoreInt32(&(db.state), Up)
+		return
 	}
 
 	if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastMasterPing > int64(n.DownAfterNoAlive) {
@@ -141,6 +134,8 @@ func (n *Node) checkSlave() {
 			golog.Error("Node", "checkSlave", "Ping", 0, "db.Addr", slaves[i].Addr(), "error", err.Error())
 		} else {
 			n.LastSlavePing = time.Now().Unix()
+			atomic.StoreInt32(&(slaves[i].state), Up)
+			continue
 		}
 
 		if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastSlavePing > int64(n.DownAfterNoAlive) {
