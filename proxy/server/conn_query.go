@@ -39,8 +39,7 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	}()
 
 	sql = strings.TrimRight(sql, ";") //删除sql语句最后的分号
-
-	hasHandled, err := c.handleUnsupport(sql)
+	hasHandled, err := c.handleUnShard(sql)
 	if err != nil {
 		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled)
 		return err
@@ -326,9 +325,11 @@ func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
 }
 
 //返回true表示已经处理，false表示未处理
-func (c *ClientConn) handleUnsupport(sql string) (bool, error) {
+func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 	var rs []*Result
 	var TK_FROM string = "from"
+	var execNode *backend.Node
+	var fromSlave bool = false
 
 	sql = strings.ToLower(sql)
 	tokens := strings.Fields(sql)
@@ -348,26 +349,39 @@ func (c *ClientConn) handleUnsupport(sql string) (bool, error) {
 			}
 		}
 	}
-
-	defaultRule := c.schema.rule.DefaultRule
-	if len(defaultRule.Nodes) == 0 {
-
-		return false, ErrNoDefaultNode
+	//get node
+	if 2 <= tokensLen {
+		if tokens[0][0] == COMMENT_PREFIX {
+			nodeName := strings.Trim(tokens[0], COMMENT_STRING)
+			if c.schema.nodes[nodeName] != nil {
+				execNode = c.schema.nodes[nodeName]
+			}
+			//select
+			if WHITE_TOKEN_MAP[tokens[1]] == 2 {
+				fromSlave = true
+			}
+		}
 	}
-	defaultNode := c.proxy.GetNode(defaultRule.Nodes[0])
+
+	if execNode == nil {
+		defaultRule := c.schema.rule.DefaultRule
+		if len(defaultRule.Nodes) == 0 {
+			return false, ErrNoDefaultNode
+		}
+		execNode = c.proxy.GetNode(defaultRule.Nodes[0])
+	}
 
 	//execute in Master DB
-	conn, err := c.getBackendConn(defaultNode, false)
+	conn, err := c.getBackendConn(execNode, fromSlave)
 	if err != nil {
 		return false, err
 	}
-
 	rs, err = c.executeInNode(conn, sql, nil)
 	if err != nil {
 		return false, err
 	}
-
 	c.closeConn(conn, false)
+
 	if len(rs) == 0 {
 		msg := fmt.Sprintf("result is empty")
 		golog.Error("ClientConn", "handleUnsupport", msg, c.connectionId)
@@ -379,7 +393,6 @@ func (c *ClientConn) handleUnsupport(sql string) (bool, error) {
 	} else {
 		err = c.writeOK(rs[0])
 	}
-
 	if err != nil {
 		return false, err
 	}
