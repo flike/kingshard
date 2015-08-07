@@ -28,6 +28,40 @@ admin node(opt,node,k,v) values(‘up’,’node1’,’master’,’127.0.0.1:3
 ## 查看kingshard配置
 
 ```
-admin server(opt,k,v) values('show','proxy','config')
+#查看kingshard全局配置
+mysql> admin server(opt,k,v) values('show','proxy','config');
++-------------+----------------+
+| Key         | Value          |
++-------------+----------------+
+| Addr        | 127.0.0.1:9696 |
+| User        | kingshard      |
+| Password    | kingshard      |
+| LogLevel    | debug          |
+| Nodes_Count | 2              |
+| Nodes_List  | node1,node2    |
++-------------+----------------+
+6 rows in set (0.00 sec)
+
+#查看node状态
+mysql> admin server(opt,k,v) values('show','node','config');
++-------+---------------------+--------+-------+-------------------------------+-------------+----------+
+| Node  | Address             | Type   | State | LastPing                      | MaxIdleConn | IdleConn |
++-------+---------------------+--------+-------+-------------------------------+-------------+----------+
+| node1 | 127.0.0.1:3306      | master | up    | 2015-08-07 15:54:44 +0800 CST | 16          | 1        |
+| node2 | 192.168.59.103:3307 | master | up    | 2015-08-07 15:54:44 +0800 CST | 16          | 1        |
++-------+---------------------+--------+-------+-------------------------------+-------------+----------+
+2 rows in set (0.00 sec)
+
+#查看schema配置
+
+mysql> admin server(opt,k,v) values('show','schema','config');
++-----------+------------------+---------+------+--------------+-----------+---------------+
+| DB        | Table            | Type    | Key  | Nodes_List   | Locations | TableRowLimit |
++-----------+------------------+---------+------+--------------+-----------+---------------+
+| kingshard |                  | default |      | node1        |           | 0             |
+| kingshard | test_shard_hash  | hash    | id   | node1, node2 | 4, 4      | 0             |
+| kingshard | test_shard_range | range   | id   | node1, node2 | 4, 4      | 10000         |
++-----------+------------------+---------+------+--------------+-----------+---------------+
+3 rows in set (0.00 sec)
 
 ```
