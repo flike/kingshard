@@ -16,9 +16,18 @@ import (
 var configFile *string = flag.String("config", "/etc/kingshard.conf", "kingshard config file")
 var logLevel *string = flag.String("log-level", "", "log level [debug|info|warn|error], default error")
 
-func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+const banner string = `
+    __   _                  __                   __
+   / /__(_)___  ____ ______/ /_  ____ __________/ /
+  / //_/ / __ \/ __ \/ ___/ __ \ / __\/ ___/ __  /
+ / ,< / / / / / /_/ (__  ) / / / /_/ / /  / /_/ /
+/_/|_/_/_/ /_/\__, /____/_/ /_/\__,_/_/   \__,_/
+             /____/
+`
 
+func main() {
+	fmt.Print(banner)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 
 	if len(*configFile) == 0 {
