@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 2015-08-09
+### feature
+* 支持在单node上的事务，不支持跨多个node执行事务。
+
 ## 2015-08-08
 ### feature
 * 将sql发送到指定的node。

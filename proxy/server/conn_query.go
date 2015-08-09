@@ -324,15 +324,38 @@ func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
 	return r
 }
 
-//返回true表示已经处理，false表示未处理
-func (c *ClientConn) handleUnShard(sql string) (bool, error) {
-	var rs []*Result
-	var TK_FROM string = "from"
+func (c *ClientConn) getTransNode(tokens []string, sql string) (*backend.Node, error) {
 	var execNode *backend.Node
-	var fromSlave bool = false
 
-	sql = strings.ToLower(sql)
-	tokens := strings.Fields(sql)
+	tokensLen := len(tokens)
+	if 2 <= tokensLen {
+		if tokens[0][0] == COMMENT_PREFIX {
+			nodeName := strings.Trim(tokens[0], COMMENT_STRING)
+			if c.schema.nodes[nodeName] != nil {
+				execNode = c.schema.nodes[nodeName]
+			}
+		}
+	}
+
+	if execNode == nil {
+		defaultRule := c.schema.rule.DefaultRule
+		if len(defaultRule.Nodes) == 0 {
+			return nil, ErrNoDefaultNode
+		}
+		execNode = c.proxy.GetNode(defaultRule.Nodes[0])
+	}
+	if len(c.txConns) == 1 && c.txConns[execNode] == nil {
+		return nil, ErrTransInMulti
+	}
+	return execNode, nil
+}
+
+func (c *ClientConn) getNotransNode(tokens []string,
+	sql string, fromSlave *bool) (*backend.Node, error) {
+
+	var execNode *backend.Node
+	var TK_FROM string = "from"
+
 	tokensLen := len(tokens)
 	if 0 < tokensLen {
 		//token is in WHITE_TOKEN_MAP
@@ -341,11 +364,11 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 			if 1 < WHITE_TOKEN_MAP[tokens[0]] {
 				for i := 1; i < tokensLen; i++ {
 					if tokens[i] == TK_FROM {
-						return false, nil
+						return nil, nil
 					}
 				}
 			} else {
-				return false, nil
+				return nil, nil
 			}
 		}
 	}
@@ -358,7 +381,7 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 			}
 			//select
 			if WHITE_TOKEN_MAP[tokens[1]] == 2 {
-				fromSlave = true
+				*fromSlave = true
 			}
 		}
 	}
@@ -366,9 +389,43 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 	if execNode == nil {
 		defaultRule := c.schema.rule.DefaultRule
 		if len(defaultRule.Nodes) == 0 {
-			return false, ErrNoDefaultNode
+			return nil, ErrNoDefaultNode
 		}
 		execNode = c.proxy.GetNode(defaultRule.Nodes[0])
+	}
+
+	return execNode, nil
+}
+
+//返回true表示已经处理，false表示未处理
+func (c *ClientConn) handleUnShard(sql string) (bool, error) {
+	var rs []*Result
+	var err error
+
+	var execNode *backend.Node
+	var fromSlave bool = false
+
+	if len(sql) == 0 {
+		return false, ErrCmdUnsupport
+	}
+	sql = strings.ToLower(sql)
+	tokens := strings.Fields(sql)
+	if len(tokens) == 0 {
+		return false, ErrCmdUnsupport
+	}
+
+	if c.needBeginTx() {
+		execNode, err = c.getTransNode(tokens, sql)
+	} else {
+		execNode, err = c.getNotransNode(tokens, sql, &fromSlave)
+	}
+
+	if err != nil {
+		return false, err
+	}
+	//need shard sql
+	if execNode == nil {
+		return false, nil
 	}
 
 	//execute in Master DB
