@@ -8,6 +8,7 @@ import (
 	"github.com/flike/kingshard/proxy/server"
 	"os"
 	"os/signal"
+	"path"
 	"runtime"
 	"strings"
 	"syscall"
@@ -15,6 +16,12 @@ import (
 
 var configFile *string = flag.String("config", "/etc/kingshard.conf", "kingshard config file")
 var logLevel *string = flag.String("log-level", "", "log level [debug|info|warn|error], default error")
+
+const (
+	sqlLogName = "sql.log"
+	sysLogName = "sys.log"
+	MaxLogSize = 1024 * 1024 * 1024
+)
 
 const banner string = `
     __   _                  __                   __
@@ -41,6 +48,25 @@ func main() {
 		return
 	}
 
+	//when the log file size greater than 1GB, kingshard will generate a new file
+	if len(cfg.LogPath) != 0 {
+		sysFilePath := path.Join(cfg.LogPath, sysLogName)
+		sysFile, err := golog.NewRotatingFileHandler(sysFilePath, MaxLogSize, 1)
+		if err != nil {
+			fmt.Printf("new log file error:%v\n", err.Error())
+			return
+		}
+		golog.GlobalSysLogger = golog.New(sysFile, golog.Lfile|golog.Ltime|golog.Llevel)
+
+		sqlFilePath := path.Join(cfg.LogPath, sqlLogName)
+		sqlFile, err := golog.NewRotatingFileHandler(sqlFilePath, MaxLogSize, 1)
+		if err != nil {
+			fmt.Printf("new log file error:%v\n", err.Error())
+			return
+		}
+		golog.GlobalSqlLogger = golog.New(sqlFile, golog.Lfile|golog.Ltime|golog.Llevel)
+	}
+
 	if *logLevel != "" {
 		setLogLevel(*logLevel)
 	} else {
@@ -64,7 +90,8 @@ func main() {
 	go func() {
 		sig := <-sc
 		golog.Info("main", "main", "Got signal", 0, "signal", sig)
-		golog.GlobalLogger.Close()
+		golog.GlobalSysLogger.Close()
+		golog.GlobalSqlLogger.Close()
 		svr.Close()
 	}()
 
@@ -74,14 +101,14 @@ func main() {
 func setLogLevel(level string) {
 	switch strings.ToLower(level) {
 	case "debug":
-		golog.GlobalLogger.SetLevel(golog.LevelDebug)
+		golog.GlobalSysLogger.SetLevel(golog.LevelDebug)
 	case "info":
-		golog.GlobalLogger.SetLevel(golog.LevelInfo)
+		golog.GlobalSysLogger.SetLevel(golog.LevelInfo)
 	case "warn":
-		golog.GlobalLogger.SetLevel(golog.LevelWarn)
+		golog.GlobalSysLogger.SetLevel(golog.LevelWarn)
 	case "error":
-		golog.GlobalLogger.SetLevel(golog.LevelError)
+		golog.GlobalSysLogger.SetLevel(golog.LevelError)
 	default:
-		golog.GlobalLogger.SetLevel(golog.LevelError)
+		golog.GlobalSysLogger.SetLevel(golog.LevelError)
 	}
 }
