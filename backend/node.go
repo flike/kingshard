@@ -34,7 +34,7 @@ type Node struct {
 	LastSlavePing  int64
 }
 
-func (n *Node) Run() {
+func (n *Node) CheckNode() {
 	//to do
 	//1 check connection alive
 	//2 check remove mysql server alive

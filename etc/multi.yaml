@@ -35,7 +35,7 @@ nodes :
     # slave represents a real mysql salve server,and the number after '@' is 
     # read load weight of this slave.
     slave : 
-    #down_after_noalive : 300
+    down_after_noalive : 100
 - 
     name : node2 
 

@@ -70,7 +70,7 @@ func (s *Server) parseNode(cfg config.NodeConfig) (*backend.Node, error) {
 		return nil, err
 	}
 
-	go n.Run()
+	go n.CheckNode()
 
 	return n, nil
 }

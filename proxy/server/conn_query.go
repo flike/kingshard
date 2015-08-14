@@ -324,7 +324,7 @@ func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
 	return r
 }
 
-func (c *ClientConn) getTransNode(tokens []string, sql string) (*backend.Node, error) {
+func (c *ClientConn) GetTransNode(tokens []string, sql string) (*backend.Node, error) {
 	var execNode *backend.Node
 
 	tokensLen := len(tokens)
@@ -350,7 +350,7 @@ func (c *ClientConn) getTransNode(tokens []string, sql string) (*backend.Node, e
 	return execNode, nil
 }
 
-func (c *ClientConn) getNotransNode(tokens []string,
+func (c *ClientConn) GetNotransNode(tokens []string,
 	sql string, fromSlave *bool) (*backend.Node, error) {
 
 	var execNode *backend.Node
@@ -415,9 +415,9 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 	}
 
 	if c.needBeginTx() {
-		execNode, err = c.getTransNode(tokens, sql)
+		execNode, err = c.GetTransNode(tokens, sql)
 	} else {
-		execNode, err = c.getNotransNode(tokens, sql, &fromSlave)
+		execNode, err = c.GetNotransNode(tokens, sql, &fromSlave)
 	}
 
 	if err != nil {
