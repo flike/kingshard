@@ -61,11 +61,6 @@ func (r *Rule) FindTableIndex(key interface{}) int {
 	return r.Shard.FindForKey(key)
 }
 
-func (r *Rule) String() string {
-	return fmt.Sprintf("%s.%s?key=%v&shard=%s&nodes=%s",
-		r.DB, r.Table, r.Key, r.Type, strings.Join(r.Nodes, ", "))
-}
-
 /*UpdateExprs对应set后面的表达式*/
 func (r *Rule) checkUpdateExprs(exprs sqlparser.UpdateExprs) error {
 	if r.Type == DefaultRuleType {
@@ -86,18 +81,18 @@ func (r *Rule) checkUpdateExprs(exprs sqlparser.UpdateExprs) error {
 /*根据配置文件建立路由规则*/
 func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 	//default节点是否是节点列表中的一个
-	if !includeNode(schemaConfig.Nodes, schemaConfig.RulesConifg.Default) {
+	if !includeNode(schemaConfig.Nodes, schemaConfig.RulesConfig.Default) {
 		return nil, fmt.Errorf("default node[%s] not in the nodes list.",
-			schemaConfig.RulesConifg.Default)
+			schemaConfig.RulesConfig.Default)
 	}
 
 	rt := new(Router)
 	rt.DB = schemaConfig.DB       //对应schema中的db
 	rt.Nodes = schemaConfig.Nodes //对应schema中的nodes
-	rt.Rules = make(map[string]*Rule, len(schemaConfig.RulesConifg.ShardRule))
-	rt.DefaultRule = NewDefaultRule(rt.DB, schemaConfig.RulesConifg.Default)
+	rt.Rules = make(map[string]*Rule, len(schemaConfig.RulesConfig.ShardRule))
+	rt.DefaultRule = NewDefaultRule(rt.DB, schemaConfig.RulesConfig.Default)
 
-	for _, shard := range schemaConfig.RulesConifg.ShardRule {
+	for _, shard := range schemaConfig.RulesConfig.ShardRule {
 		//rc := &RuleConfig{shard}
 		for _, node := range shard.Nodes { //rules中的nodes是不是都在schema中的nodes
 			if !includeNode(rt.Nodes, node) {

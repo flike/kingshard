@@ -213,7 +213,8 @@ func GetLevel() int {
 }
 
 //全局变量
-var GlobalLogger *Logger = StdLogger()
+var GlobalSysLogger *Logger = StdLogger()
+var GlobalSqlLogger *Logger = GlobalSysLogger
 
 func escape(s string, filterEqual bool) string {
 	dest := make([]byte, 0, 2*len(s))
@@ -237,7 +238,7 @@ func escape(s string, filterEqual bool) string {
 }
 
 func OutputSql(state string, format string, v ...interface{}) {
-	l := GlobalLogger
+	l := GlobalSqlLogger
 	buf := l.popBuf()
 
 	if l.flag&Ltime > 0 {
@@ -263,7 +264,7 @@ func OutputSql(state string, format string, v ...interface{}) {
 }
 
 func output(level int, module string, method string, msg string, reqId uint32, args ...interface{}) {
-	if level < GlobalLogger.Level() {
+	if level < GlobalSysLogger.Level() {
 		return
 	}
 
@@ -282,7 +283,7 @@ func output(level int, module string, method string, msg string, reqId uint32, a
 	content := fmt.Sprintf(`[%s] "%s" "%s" "%s" conn_id=%d`,
 		module, method, msg, argsBuff.String(), reqId)
 
-	GlobalLogger.Output(3, level, content)
+	GlobalSysLogger.Output(3, level, content)
 }
 
 func Trace(module string, method string, msg string, reqId uint32, args ...interface{}) {

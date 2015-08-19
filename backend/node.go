@@ -35,7 +35,7 @@ type Node struct {
 	LastSlavePing  int64
 }
 
-func (n *Node) Run() {
+func (n *Node) CheckNode() {
 	//to do
 	//1 check connection alive
 	//2 check remove mysql server alive
@@ -43,7 +43,7 @@ func (n *Node) Run() {
 	n.checkMaster()
 	n.checkSlave()
 
-	t := time.NewTicker(3000 * time.Second)
+	t := time.NewTicker(30 * time.Second)
 	defer t.Stop()
 
 	n.LastMasterPing = time.Now().Unix()
@@ -59,15 +59,6 @@ func (n *Node) Run() {
 
 func (n *Node) String() string {
 	return n.Cfg.Name
-}
-
-func (n *Node) FormatSlave() string {
-	s := make([]byte, 0, 16)
-	for _, v := range n.Slave {
-		s = append(s, []byte(v.addr)...)
-		s = append(s, []byte("\n")...)
-	}
-	return string(s)
 }
 
 func (n *Node) GetMasterConn() (*BackendConn, error) {
@@ -114,6 +105,8 @@ func (n *Node) checkMaster() {
 		golog.Error("Node", "checkMaster", "Ping", 0, "db.Addr", db.Addr(), "error", err.Error())
 	} else {
 		n.LastMasterPing = time.Now().Unix()
+		atomic.StoreInt32(&(db.state), Up)
+		return
 	}
 
 	if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastMasterPing > int64(n.DownAfterNoAlive) {
@@ -142,17 +135,71 @@ func (n *Node) checkSlave() {
 			golog.Error("Node", "checkSlave", "Ping", 0, "db.Addr", slaves[i].Addr(), "error", err.Error())
 		} else {
 			n.LastSlavePing = time.Now().Unix()
+			atomic.StoreInt32(&(slaves[i].state), Up)
+			continue
 		}
 
 		if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastSlavePing > int64(n.DownAfterNoAlive) {
 			golog.Info("Node", "checkMaster", "Master down", 0,
 				"db.Addr", slaves[i].Addr(),
 				"slave_down_time", int64(n.DownAfterNoAlive/time.Second))
-			//If can't ping slave after DownAfterNoAlive set slave Down
+			//If can't ping slave after DownAfterNoAlive, set slave Down
 			n.DownSlave(slaves[i].addr)
 		}
 	}
 
+}
+
+func (n *Node) AddSlave(addr string) error {
+	var weight int
+	var err error
+	if len(addr) == 0 {
+		return errors.ErrAddressNull
+	}
+	n.Lock()
+	defer n.Unlock()
+	addrAndWeight := strings.Split(addr, WeightSplit)
+	if len(addrAndWeight) == 2 {
+		weight, err = strconv.Atoi(addrAndWeight[1])
+		if err != nil {
+			return err
+		}
+	} else {
+		weight = 1
+	}
+	n.SlaveWeights = append(n.SlaveWeights, weight)
+	db := n.OpenDB(addrAndWeight[0])
+	n.Slave = append(n.Slave, db)
+	n.InitBalancer()
+	return nil
+}
+
+func (n *Node) DeleteSlave(addr string) error {
+	n.Lock()
+	defer n.Unlock()
+	slaveCount := len(n.Slave)
+	if slaveCount == 0 {
+		return errors.ErrNoSlaveDb
+	} else if slaveCount == 1 {
+		n.Slave = nil
+		n.SlaveWeights = nil
+		n.RoundRobinQ = nil
+		return nil
+	}
+
+	s := make([]*DB, 0, slaveCount-1)
+	sw := make([]int, 0, slaveCount-1)
+	for i := 0; i < slaveCount; i++ {
+		if n.Slave[i].addr != addr {
+			s = append(s, n.Slave[i])
+			sw = append(sw, n.SlaveWeights[i])
+		}
+	}
+
+	n.Slave = s
+	n.SlaveWeights = sw
+	n.InitBalancer()
+	return nil
 }
 
 func (n *Node) OpenDB(addr string) *DB {
@@ -243,7 +290,7 @@ func (n *Node) ParseMaster(masterStr string) error {
 	return nil
 }
 
-//slaveStr(127.0.0.1:3306@2)
+//slaveStr(127.0.0.1:3306@2,192.168.0.12:3306@3)
 func (n *Node) ParseSlave(slaveStr string) error {
 	var db *DB
 	var weight int

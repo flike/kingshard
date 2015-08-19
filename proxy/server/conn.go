@@ -70,9 +70,6 @@ func (c *ClientConn) IsAllowConnect() bool {
 	}
 	for _, ip := range ipVec {
 		if ip.Equal(clientIP) {
-			golog.Info("server", "IsAllowConnect", "info",
-				c.connectionId, "client",
-				c.c.RemoteAddr().String(), " login success.")
 			return true
 		}
 	}

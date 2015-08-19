@@ -77,6 +77,7 @@ func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*my
 
 		var row []byte
 		for j, value := range vs {
+			//列的定义
 			if i == 0 {
 				field := &mysql.Field{}
 				r.Fields[j] = field

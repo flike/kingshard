@@ -7,6 +7,7 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
 - splits reads and writes
 - sharding table across multiple nodes
 - client's ip ACL control.
+- transaction in single node.
 - supports prepared statement: COM_STMT_PREPARE, COM_STMT_EXECUTE, etc.
 - MySQL HA
 

@@ -2,7 +2,6 @@ package backend
 
 import (
 	"container/list"
-	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -49,9 +48,24 @@ func (db *DB) Addr() string {
 	return db.addr
 }
 
-func (db *DB) String() string {
-	return fmt.Sprintf("%s:%s@%s/%s?maxIdleConns=%v",
-		db.user, db.password, db.addr, db.db, db.maxIdleConns)
+func (db *DB) State() string {
+	var state string
+	switch db.state {
+	case Up:
+		state = "up"
+	case Down:
+		state = "down"
+	case Unknown:
+		state = "unknow"
+	}
+	return state
+}
+
+func (db *DB) IdleConnCount() int {
+	db.Lock()
+	defer db.Unlock()
+
+	return db.idleConns.Len()
 }
 
 func (db *DB) Close() error {

@@ -127,13 +127,12 @@ func (plan *Plan) calRouteIndexs() error {
 		plan.RouteNodeIndexs = []int{0}
 		return nil
 	}
-	if plan.Criteria == nil { //如果没有分表条件，则是全表扫描
+	if plan.Criteria == nil { //如果没有分表条件，则是全子表扫描
 		if plan.Rule.Type != DefaultRuleType {
 			golog.Error("Plan", "calRouteIndexs", "plan have no criteria", 0,
 				"type", plan.Rule.Type)
 			return errors.ErrNoCriteria
 		}
-
 	}
 
 	switch criteria := plan.Criteria.(type) {

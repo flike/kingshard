@@ -96,7 +96,7 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 	}
 	defer co.Close()
 
-	if err = co.UseDB(c.schema.db); err != nil {
+	if err = co.UseDB(c.db); err != nil {
 		return err
 	}
 

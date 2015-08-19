@@ -11,8 +11,12 @@ var (
 	ErrNoMasterDb    = errors.New("no master database")
 	ErrNoSlaveDb     = errors.New("no slave database")
 	ErrNoDatabase    = errors.New("no database")
-	ErrMasterDown    = errors.New("master is down")
-	ErrSlaveDown     = errors.New("slave is down")
+
+	ErrMasterDown = errors.New("master is down")
+	ErrSlaveDown  = errors.New("slave is down")
+
+	ErrAddressNull  = errors.New("address is nil")
+	ErrCmdUnsupport = errors.New("command unsupport")
 
 	ErrLocationsCount = errors.New("locations count are not equal")
 	ErrNoCriteria     = errors.New("plan have no criteria")
@@ -23,8 +27,10 @@ var (
 	ErrDeleteInMulti  = errors.New("delete in multi node")
 	ErrReplaceInMulti = errors.New("replace in multi node")
 	ErrExecInMulti    = errors.New("exec in multi node")
-	ErrNoPlan         = errors.New("statement have no plan")
-	ErrUpdateKey      = errors.New("routing key in update expression")
-	ErrStmtConvert    = errors.New("statement fail to convert")
-	ErrConnNotEqual   = errors.New("the length of conns not equal sqls")
+	ErrTransInMulti   = errors.New("transaction in multi node")
+
+	ErrNoPlan       = errors.New("statement have no plan")
+	ErrUpdateKey    = errors.New("routing key in update expression")
+	ErrStmtConvert  = errors.New("statement fail to convert")
+	ErrConnNotEqual = errors.New("the length of conns not equal sqls")
 )
