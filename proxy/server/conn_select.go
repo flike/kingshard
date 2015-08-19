@@ -3,9 +3,10 @@ package server
 import (
 	"bytes"
 	"fmt"
-	. "github.com/flike/kingshard/mysql"
-	"github.com/flike/kingshard/sqlparser"
 	"strings"
+
+	"github.com/flike/kingshard/mysql"
+	"github.com/flike/kingshard/sqlparser"
 )
 
 func (c *ClientConn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
@@ -24,7 +25,7 @@ func (c *ClientConn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect
 		return fmt.Errorf("support select informaction function, %s", sql)
 	}
 
-	var r *Resultset
+	var r *mysql.Resultset
 	var err error
 
 	switch strings.ToLower(string(f.Name)) {
@@ -33,7 +34,7 @@ func (c *ClientConn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect
 	case "row_count":
 		r, err = c.buildSimpleSelectResult(c.affectedRows, f.Name, expr.As)
 	case "version":
-		r, err = c.buildSimpleSelectResult(ServerVersion, f.Name, expr.As)
+		r, err = c.buildSimpleSelectResult(mysql.ServerVersion, f.Name, expr.As)
 	case "connection_id":
 		r, err = c.buildSimpleSelectResult(c.connectionId, f.Name, expr.As)
 	case "database":
@@ -53,8 +54,8 @@ func (c *ClientConn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect
 	return c.writeResultset(c.status, r)
 }
 
-func (c *ClientConn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
-	field := &Field{}
+func (c *ClientConn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*mysql.Resultset, error) {
+	field := &mysql.Field{}
 
 	field.Name = name
 
@@ -66,12 +67,12 @@ func (c *ClientConn) buildSimpleSelectResult(value interface{}, name []byte, asN
 
 	formatField(field, value)
 
-	r := &Resultset{Fields: []*Field{field}}
+	r := &mysql.Resultset{Fields: []*mysql.Field{field}}
 	row, err := formatValue(value)
 	if err != nil {
 		return nil, err
 	}
-	r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row))
+	r.RowDatas = append(r.RowDatas, mysql.PutLengthEncodedString(row))
 
 	return r, nil
 }
@@ -82,7 +83,7 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 	wildcard := string(data[index+1:])
 
 	if c.schema == nil {
-		return NewDefaultError(ER_NO_DB_ERROR)
+		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
 	}
 
 	nodeName := c.schema.rule.GetRule(table).Nodes[0]
@@ -106,7 +107,7 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 	}
 }
 
-func (c *ClientConn) writeFieldList(status uint16, fs []*Field) error {
+func (c *ClientConn) writeFieldList(status uint16, fs []*mysql.Field) error {
 	c.affectedRows = int64(-1)
 
 	data := make([]byte, 4, 1024)

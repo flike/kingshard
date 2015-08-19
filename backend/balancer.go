@@ -1,9 +1,10 @@
 package backend
 
 import (
-	. "github.com/flike/kingshard/core/errors"
 	"math/rand"
 	"time"
+
+	"github.com/flike/kingshard/core/errors"
 )
 
 func Gcd(ary []int) int {
@@ -67,7 +68,7 @@ func (n *Node) InitBalancer() {
 func (n *Node) GetNextSlave() (*DB, error) {
 	var index int
 	if len(n.RoundRobinQ) == 0 {
-		return nil, ErrNoDatabase
+		return nil, errors.ErrNoDatabase
 	}
 	if len(n.RoundRobinQ) == 1 {
 		index = n.RoundRobinQ[0]

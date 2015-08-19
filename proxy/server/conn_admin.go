@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	. "github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
@@ -40,12 +40,12 @@ func (c *ClientConn) handleNodeCmd(rows sqlparser.InsertRows) error {
 
 	vals := rows.(sqlparser.Values)
 	if len(vals) == 0 {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	tuple := vals[0].(sqlparser.ValTuple)
 	if len(tuple) != len(cmdNodeOrder) {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	opt = sqlparser.String(tuple[0])
@@ -87,7 +87,7 @@ func (c *ClientConn) handleNodeCmd(rows sqlparser.InsertRows) error {
 			addr,
 		)
 	default:
-		err = ErrCmdUnsupport
+		err = errors.ErrCmdUnsupport
 		golog.Error("ClientConn", "handleNodeCmd", err.Error(),
 			c.connectionId, "opt", opt)
 	}
@@ -101,12 +101,12 @@ func (c *ClientConn) handleServerCmd(rows sqlparser.InsertRows) (*mysql.Resultse
 
 	vals := rows.(sqlparser.Values)
 	if len(vals) == 0 {
-		return nil, ErrCmdUnsupport
+		return nil, errors.ErrCmdUnsupport
 	}
 
 	tuple := vals[0].(sqlparser.ValTuple)
 	if len(tuple) != len(cmdServerOrder) {
-		return nil, ErrCmdUnsupport
+		return nil, errors.ErrCmdUnsupport
 	}
 
 	opt = sqlparser.String(tuple[0])
@@ -122,7 +122,7 @@ func (c *ClientConn) handleServerCmd(rows sqlparser.InsertRows) (*mysql.Resultse
 	case ADMIN_OPT_SHOW:
 		result, err = c.handleAdminShow(k, v)
 	default:
-		err = ErrCmdUnsupport
+		err = errors.ErrCmdUnsupport
 		golog.Error("ClientConn", "handleNodeCmd", err.Error(),
 			c.connectionId, "opt", opt)
 	}
@@ -136,7 +136,7 @@ func (c *ClientConn) handleServerCmd(rows sqlparser.InsertRows) (*mysql.Resultse
 func (c *ClientConn) AddDatabase(nodeName string, role string, addr string) error {
 	//can not add a new master database
 	if role != Slave {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	return c.proxy.AddSlave(nodeName, addr)
@@ -145,7 +145,7 @@ func (c *ClientConn) AddDatabase(nodeName string, role string, addr string) erro
 func (c *ClientConn) DeleteDatabase(nodeName string, role string, addr string) error {
 	//can not delete a master database
 	if role != Slave {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	return c.proxy.DeleteSlave(nodeName, addr)
@@ -153,7 +153,7 @@ func (c *ClientConn) DeleteDatabase(nodeName string, role string, addr string) e
 
 func (c *ClientConn) UpDatabase(nodeName string, role string, addr string) error {
 	if role != Master && role != Slave {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 	if role == Master {
 		return c.proxy.UpMaster(nodeName, addr)
@@ -164,7 +164,7 @@ func (c *ClientConn) UpDatabase(nodeName string, role string, addr string) error
 
 func (c *ClientConn) DownDatabase(nodeName string, role string, addr string) error {
 	if role != Master && role != Slave {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 	if role == Master {
 		return c.proxy.DownMaster(nodeName, addr)
@@ -183,13 +183,13 @@ func (c *ClientConn) checkCmdOrder(region string, columns sqlparser.Columns) err
 	case ServerRegion:
 		cmdOrder = cmdServerOrder
 	default:
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	for i := 0; i < len(node); i++ {
 		val := sqlparser.String(node[i])
 		if val != cmdOrder[i] {
-			return ErrCmdUnsupport
+			return errors.ErrCmdUnsupport
 		}
 	}
 
@@ -231,7 +231,7 @@ func (c *ClientConn) handleAdmin(admin *sqlparser.Admin) error {
 
 func (c *ClientConn) handleAdminShow(k, v string) (*mysql.Resultset, error) {
 	if len(k) == 0 || len(v) == 0 {
-		return nil, ErrCmdUnsupport
+		return nil, errors.ErrCmdUnsupport
 	}
 	if k == ADMIN_PROXY && v == ADMIN_CONFIG {
 		return c.handleShowProxyConfig()
@@ -245,7 +245,7 @@ func (c *ClientConn) handleAdminShow(k, v string) (*mysql.Resultset, error) {
 		return c.handleShowSchemaConfig()
 	}
 
-	return nil, ErrCmdUnsupport
+	return nil, errors.ErrCmdUnsupport
 }
 
 func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
@@ -364,7 +364,7 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 
 	//shard rule
 	if len(c.proxy.cfg.Schemas) != 1 {
-		return nil, ErrCmdUnsupport
+		return nil, errors.ErrCmdUnsupport
 	}
 	schemaConfig := c.proxy.cfg.Schemas[0]
 	shardRule := schemaConfig.RulesConfig.ShardRule

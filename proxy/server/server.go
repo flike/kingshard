@@ -8,10 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/flike/kingshard/mysql"
+
 	"github.com/flike/kingshard/backend"
 	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/core/golog"
-	. "github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/proxy/router"
 )
 
@@ -184,7 +185,7 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 	c.c = co
 	c.schema = s.GetSchema(s.db)
 
-	c.pkg = NewPacketIO(co)
+	c.pkg = mysql.NewPacketIO(co)
 
 	c.proxy = s
 
@@ -193,16 +194,16 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 
 	c.connectionId = atomic.AddUint32(&baseConnId, 1)
 
-	c.status = SERVER_STATUS_AUTOCOMMIT
+	c.status = mysql.SERVER_STATUS_AUTOCOMMIT
 
-	c.salt, _ = RandomBuf(20)
+	c.salt, _ = mysql.RandomBuf(20)
 
 	c.txConns = make(map[*backend.Node]*backend.BackendConn)
 
 	c.closed = false
 
-	c.collation = DEFAULT_COLLATION_ID
-	c.charset = DEFAULT_CHARSET
+	c.collation = mysql.DEFAULT_COLLATION_ID
+	c.charset = mysql.DEFAULT_CHARSET
 
 	c.stmtId = 0
 	c.stmts = make(map[uint32]*Stmt)
@@ -229,7 +230,7 @@ func (s *Server) onConn(c net.Conn) {
 	}()
 
 	if allowConnect := conn.IsAllowConnect(); allowConnect == false {
-		err := NewError(ER_ACCESS_DENIED_ERROR, "ip address access denied by kingshard.")
+		err := mysql.NewError(mysql.ER_ACCESS_DENIED_ERROR, "ip address access denied by kingshard.")
 		conn.writeError(err)
 		conn.Close()
 		return

@@ -1,11 +1,12 @@
 package router
 
 import (
-	. "github.com/flike/kingshard/core/errors"
-	"github.com/flike/kingshard/core/golog"
-	"github.com/flike/kingshard/sqlparser"
 	"sort"
 	"strconv"
+
+	"github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
+	"github.com/flike/kingshard/sqlparser"
 )
 
 const (
@@ -130,7 +131,7 @@ func (plan *Plan) calRouteIndexs() error {
 		if plan.Rule.Type != DefaultRuleType {
 			golog.Error("Plan", "calRouteIndexs", "plan have no criteria", 0,
 				"type", plan.Rule.Type)
-			return ErrNoCriteria
+			return errors.ErrNoCriteria
 		}
 	}
 
