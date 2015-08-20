@@ -23,3 +23,7 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
 #Other language version
 
 [简体中文](README_ZH.md)
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/flike/kingshard/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
