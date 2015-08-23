@@ -14,6 +14,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 	6. 支持强制读主库。
 	7. 支持将sql发送到特定的node。
 	8. 支持在单个node上执行事务，不支持跨多个node执行事务。
+	9. 支持跨node的count和sum操作。
 	
 ## kinshard详细说明
 

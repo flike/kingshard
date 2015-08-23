@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -18,6 +17,8 @@ import (
 
 const (
 	MasterComment = "/*master*/"
+	SumFuncName   = "sum"
+	CountFuncName = "count"
 )
 
 /*处理query语句*/
@@ -52,7 +53,7 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	var stmt sqlparser.Statement
 	stmt, err = sqlparser.Parse(sql) //解析sql语句,得到的stmt是一个interface
 	if err != nil {
-		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled)
+		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled, "sql", sql)
 		return err
 	}
 
@@ -458,46 +459,6 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 	return true, nil
 }
 
-/*处理select语句*/
-func (c *ClientConn) handleSelect(stmt *sqlparser.Select, args []interface{}) error {
-	var fromSlave bool = true
-	plan, err := c.schema.rule.BuildPlan(stmt)
-	if err != nil {
-		return err
-	}
-	if 0 < len(stmt.Comments) {
-		comment := string(stmt.Comments[0])
-		if 0 < len(comment) && strings.ToLower(comment) == MasterComment {
-			fromSlave = false
-		}
-	}
-
-	conns, err := c.getShardConns(fromSlave, plan)
-	if err != nil {
-		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
-		return err
-	}
-	if conns == nil {
-		r := c.newEmptyResultset(stmt)
-		return c.writeResultset(c.status, r)
-	}
-
-	var rs []*mysql.Result
-	rs, err = c.executeInMultiNodes(conns, plan.RewrittenSqls, args)
-	c.closeShardConns(conns, false)
-	if err != nil {
-		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
-		return err
-	}
-
-	err = c.mergeSelectResult(rs, stmt)
-	if err != nil {
-		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
-	}
-
-	return err
-}
-
 func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) error {
 	plan, err := c.schema.rule.BuildPlan(stmt)
 	conns, err := c.getShardConns(false, plan)
@@ -551,83 +512,4 @@ func (c *ClientConn) mergeExecResult(rs []*mysql.Result) error {
 	c.affectedRows = int64(r.AffectedRows)
 
 	return c.writeOK(r)
-}
-
-func (c *ClientConn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Select) error {
-	r := rs[0].Resultset
-	status := c.status | rs[0].Status
-	for i := 1; i < len(rs); i++ {
-		status |= rs[i].Status
-
-		//check fields equal
-
-		for j := range rs[i].Values {
-			r.Values = append(r.Values, rs[i].Values[j])
-			r.RowDatas = append(r.RowDatas, rs[i].RowDatas[j])
-		}
-	}
-
-	//to do order by, group by, limit offset
-	c.sortSelectResult(r, stmt)
-	//to do, add log here, sort may error because order by key not exist in resultset fields
-
-	if err := c.limitSelectResult(r, stmt); err != nil {
-		return err
-	}
-
-	return c.writeResultset(status, r)
-}
-
-func (c *ClientConn) sortSelectResult(r *mysql.Resultset, stmt *sqlparser.Select) error {
-	if stmt.OrderBy == nil {
-		return nil
-	}
-
-	sk := make([]mysql.SortKey, len(stmt.OrderBy))
-
-	for i, o := range stmt.OrderBy {
-		sk[i].Name = nstring(o.Expr)
-		sk[i].Direction = o.Direction
-	}
-
-	return r.Sort(sk)
-}
-
-func (c *ClientConn) limitSelectResult(r *mysql.Resultset, stmt *sqlparser.Select) error {
-	if stmt.Limit == nil {
-		return nil
-	}
-
-	var offset, count int64
-	var err error
-	if stmt.Limit.Offset == nil {
-		offset = 0
-	} else {
-		if o, ok := stmt.Limit.Offset.(sqlparser.NumVal); !ok {
-			return fmt.Errorf("invalid select limit %s", nstring(stmt.Limit))
-		} else {
-			if offset, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
-				return err
-			}
-		}
-	}
-
-	if o, ok := stmt.Limit.Rowcount.(sqlparser.NumVal); !ok {
-		return fmt.Errorf("invalid limit %s", nstring(stmt.Limit))
-	} else {
-		if count, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
-			return err
-		} else if count < 0 {
-			return fmt.Errorf("invalid limit %s", nstring(stmt.Limit))
-		}
-	}
-
-	if offset+count > int64(len(r.Values)) {
-		count = int64(len(r.Values)) - offset
-	}
-
-	r.Values = r.Values[offset : offset+count]
-	r.RowDatas = r.RowDatas[offset : offset+count]
-
-	return nil
 }
