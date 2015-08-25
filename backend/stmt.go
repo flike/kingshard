@@ -3,8 +3,9 @@ package backend
 import (
 	"encoding/binary"
 	"fmt"
-	. "github.com/flike/kingshard/mysql"
 	"math"
+
+	"github.com/flike/kingshard/mysql"
 )
 
 type Stmt struct {
@@ -24,7 +25,7 @@ func (s *Stmt) ColumnNum() int {
 	return s.columns
 }
 
-func (s *Stmt) Execute(args ...interface{}) (*Result, error) {
+func (s *Stmt) Execute(args ...interface{}) (*mysql.Result, error) {
 	if err := s.write(args...); err != nil {
 		return nil, err
 	}
@@ -33,7 +34,7 @@ func (s *Stmt) Execute(args ...interface{}) (*Result, error) {
 }
 
 func (s *Stmt) Close() error {
-	if err := s.conn.writeCommandUint32(COM_STMT_CLOSE, s.id); err != nil {
+	if err := s.conn.writeCommandUint32(mysql.COM_STMT_CLOSE, s.id); err != nil {
 		return err
 	}
 
@@ -60,7 +61,7 @@ func (s *Stmt) write(args ...interface{}) error {
 	for i := range args {
 		if args[i] == nil {
 			nullBitmap[i/8] |= (1 << (uint(i) % 8))
-			paramTypes[i<<1] = MYSQL_TYPE_NULL
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_NULL
 			continue
 		}
 
@@ -68,42 +69,42 @@ func (s *Stmt) write(args ...interface{}) error {
 
 		switch v := args[i].(type) {
 		case int8:
-			paramTypes[i<<1] = MYSQL_TYPE_TINY
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_TINY
 			paramValues[i] = []byte{byte(v)}
 		case int16:
-			paramTypes[i<<1] = MYSQL_TYPE_SHORT
-			paramValues[i] = Uint16ToBytes(uint16(v))
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_SHORT
+			paramValues[i] = mysql.Uint16ToBytes(uint16(v))
 		case int32:
-			paramTypes[i<<1] = MYSQL_TYPE_LONG
-			paramValues[i] = Uint32ToBytes(uint32(v))
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_LONG
+			paramValues[i] = mysql.Uint32ToBytes(uint32(v))
 		case int:
-			paramTypes[i<<1] = MYSQL_TYPE_LONGLONG
-			paramValues[i] = Uint64ToBytes(uint64(v))
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_LONGLONG
+			paramValues[i] = mysql.Uint64ToBytes(uint64(v))
 		case int64:
-			paramTypes[i<<1] = MYSQL_TYPE_LONGLONG
-			paramValues[i] = Uint64ToBytes(uint64(v))
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_LONGLONG
+			paramValues[i] = mysql.Uint64ToBytes(uint64(v))
 		case uint8:
-			paramTypes[i<<1] = MYSQL_TYPE_TINY
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_TINY
 			paramTypes[(i<<1)+1] = 0x80
 			paramValues[i] = []byte{v}
 		case uint16:
-			paramTypes[i<<1] = MYSQL_TYPE_SHORT
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_SHORT
 			paramTypes[(i<<1)+1] = 0x80
-			paramValues[i] = Uint16ToBytes(uint16(v))
+			paramValues[i] = mysql.Uint16ToBytes(uint16(v))
 		case uint32:
-			paramTypes[i<<1] = MYSQL_TYPE_LONG
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_LONG
 			paramTypes[(i<<1)+1] = 0x80
-			paramValues[i] = Uint32ToBytes(uint32(v))
+			paramValues[i] = mysql.Uint32ToBytes(uint32(v))
 		case uint:
-			paramTypes[i<<1] = MYSQL_TYPE_LONGLONG
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_LONGLONG
 			paramTypes[(i<<1)+1] = 0x80
-			paramValues[i] = Uint64ToBytes(uint64(v))
+			paramValues[i] = mysql.Uint64ToBytes(uint64(v))
 		case uint64:
-			paramTypes[i<<1] = MYSQL_TYPE_LONGLONG
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_LONGLONG
 			paramTypes[(i<<1)+1] = 0x80
-			paramValues[i] = Uint64ToBytes(uint64(v))
+			paramValues[i] = mysql.Uint64ToBytes(uint64(v))
 		case bool:
-			paramTypes[i<<1] = MYSQL_TYPE_TINY
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_TINY
 			if v {
 				paramValues[i] = []byte{1}
 			} else {
@@ -111,17 +112,17 @@ func (s *Stmt) write(args ...interface{}) error {
 
 			}
 		case float32:
-			paramTypes[i<<1] = MYSQL_TYPE_FLOAT
-			paramValues[i] = Uint32ToBytes(math.Float32bits(v))
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_FLOAT
+			paramValues[i] = mysql.Uint32ToBytes(math.Float32bits(v))
 		case float64:
-			paramTypes[i<<1] = MYSQL_TYPE_DOUBLE
-			paramValues[i] = Uint64ToBytes(math.Float64bits(v))
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_DOUBLE
+			paramValues[i] = mysql.Uint64ToBytes(math.Float64bits(v))
 		case string:
-			paramTypes[i<<1] = MYSQL_TYPE_STRING
-			paramValues[i] = append(PutLengthEncodedInt(uint64(len(v))), v...)
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_STRING
+			paramValues[i] = append(mysql.PutLengthEncodedInt(uint64(len(v))), v...)
 		case []byte:
-			paramTypes[i<<1] = MYSQL_TYPE_STRING
-			paramValues[i] = append(PutLengthEncodedInt(uint64(len(v))), v...)
+			paramTypes[i<<1] = mysql.MYSQL_TYPE_STRING
+			paramValues[i] = append(mysql.PutLengthEncodedInt(uint64(len(v))), v...)
 		default:
 			return fmt.Errorf("invalid argument type %T", args[i])
 		}
@@ -131,7 +132,7 @@ func (s *Stmt) write(args ...interface{}) error {
 
 	data := make([]byte, 4, 4+length)
 
-	data = append(data, COM_STMT_EXECUTE)
+	data = append(data, mysql.COM_STMT_EXECUTE)
 	data = append(data, byte(s.id), byte(s.id>>8), byte(s.id>>16), byte(s.id>>24))
 
 	//flag: CURSOR_TYPE_NO_CURSOR
@@ -163,7 +164,7 @@ func (s *Stmt) write(args ...interface{}) error {
 }
 
 func (c *Conn) Prepare(query string) (*Stmt, error) {
-	if err := c.writeCommandStr(COM_STMT_PREPARE, query); err != nil {
+	if err := c.writeCommandStr(mysql.COM_STMT_PREPARE, query); err != nil {
 		return nil, err
 	}
 
@@ -172,10 +173,10 @@ func (c *Conn) Prepare(query string) (*Stmt, error) {
 		return nil, err
 	}
 
-	if data[0] == ERR_HEADER {
+	if data[0] == mysql.ERR_HEADER {
 		return nil, c.handleErrorPacket(data)
-	} else if data[0] != OK_HEADER {
-		return nil, ErrMalformPacket
+	} else if data[0] != mysql.OK_HEADER {
+		return nil, mysql.ErrMalformPacket
 	}
 
 	s := new(Stmt)

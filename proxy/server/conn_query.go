@@ -2,21 +2,23 @@ package server
 
 import (
 	"fmt"
-	"github.com/flike/kingshard/backend"
-	. "github.com/flike/kingshard/core/errors"
-	"github.com/flike/kingshard/core/golog"
-	"github.com/flike/kingshard/core/hack"
-	. "github.com/flike/kingshard/mysql"
-	"github.com/flike/kingshard/proxy/router"
-	"github.com/flike/kingshard/sqlparser"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/flike/kingshard/backend"
+	"github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
+	"github.com/flike/kingshard/core/hack"
+	"github.com/flike/kingshard/mysql"
+	"github.com/flike/kingshard/proxy/router"
+	"github.com/flike/kingshard/sqlparser"
 )
 
 const (
 	MasterComment = "/*master*/"
+	SumFuncName   = "sum"
+	CountFuncName = "count"
 )
 
 /*处理query语句*/
@@ -51,7 +53,7 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	var stmt sqlparser.Statement
 	stmt, err = sqlparser.Parse(sql) //解析sql语句,得到的stmt是一个interface
 	if err != nil {
-		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled)
+		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled, "sql", sql)
 		return err
 	}
 
@@ -140,7 +142,7 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[string]*backend.BackendConn, error) {
 	var err error
 	if plan == nil || len(plan.RouteNodeIndexs) == 0 {
-		return nil, ErrNoRouteNode
+		return nil, errors.ErrNoRouteNode
 	}
 
 	nodesCount := len(plan.RouteNodeIndexs)
@@ -164,7 +166,7 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 	return conns, err
 }
 
-func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args []interface{}) ([]*Result, error) {
+func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args []interface{}) ([]*mysql.Result, error) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -192,31 +194,31 @@ func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args [
 	wg.Wait()
 
 	var err error
-	r := make([]*Result, 1)
+	r := make([]*mysql.Result, 1)
 	for i, v := range rs {
 		if e, ok := v.(error); ok {
 			err = e
 			break
 		}
-		r[i] = rs[i].(*Result)
+		r[i] = rs[i].(*mysql.Result)
 	}
 
 	return r, err
 }
 
-func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*Result, error) {
+func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {
 	if len(conns) != len(sqls) {
-		golog.Error("ClientConn", "executeInMultiNodes", ErrConnNotEqual.Error(), c.connectionId,
+		golog.Error("ClientConn", "executeInMultiNodes", errors.ErrConnNotEqual.Error(), c.connectionId,
 			"conns", conns,
 			"sqls", sqls,
 		)
-		return nil, ErrConnNotEqual
+		return nil, errors.ErrConnNotEqual
 	}
 
 	var wg sync.WaitGroup
 
 	if len(conns) == 0 {
-		return nil, ErrNoPlan
+		return nil, errors.ErrNoPlan
 	}
 
 	wg.Add(len(conns))
@@ -259,13 +261,13 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 	wg.Wait()
 
 	var err error
-	r := make([]*Result, resultCount)
+	r := make([]*mysql.Result, resultCount)
 	for i, v := range rs {
 		if e, ok := v.(error); ok {
 			err = e
 			break
 		}
-		r[i] = rs[i].(*Result)
+		r[i] = rs[i].(*mysql.Result)
 	}
 
 	return r, err
@@ -297,12 +299,12 @@ func (c *ClientConn) closeShardConns(conns map[string]*backend.BackendConn, roll
 	}
 }
 
-func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
-	r := new(Resultset)
-	r.Fields = make([]*Field, len(stmt.SelectExprs))
+func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *mysql.Resultset {
+	r := new(mysql.Resultset)
+	r.Fields = make([]*mysql.Field, len(stmt.SelectExprs))
 
 	for i, expr := range stmt.SelectExprs {
-		r.Fields[i] = &Field{}
+		r.Fields[i] = &mysql.Field{}
 		switch e := expr.(type) {
 		case *sqlparser.StarExpr:
 			r.Fields[i].Name = []byte("*")
@@ -319,18 +321,18 @@ func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
 	}
 
 	r.Values = make([][]interface{}, 0)
-	r.RowDatas = make([]RowData, 0)
+	r.RowDatas = make([]mysql.RowData, 0)
 
 	return r
 }
 
-func (c *ClientConn) getTransNode(tokens []string, sql string) (*backend.Node, error) {
+func (c *ClientConn) GetTransNode(tokens []string, sql string) (*backend.Node, error) {
 	var execNode *backend.Node
 
 	tokensLen := len(tokens)
 	if 2 <= tokensLen {
-		if tokens[0][0] == COMMENT_PREFIX {
-			nodeName := strings.Trim(tokens[0], COMMENT_STRING)
+		if tokens[0][0] == mysql.COMMENT_PREFIX {
+			nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
 			if c.schema.nodes[nodeName] != nil {
 				execNode = c.schema.nodes[nodeName]
 			}
@@ -340,17 +342,17 @@ func (c *ClientConn) getTransNode(tokens []string, sql string) (*backend.Node, e
 	if execNode == nil {
 		defaultRule := c.schema.rule.DefaultRule
 		if len(defaultRule.Nodes) == 0 {
-			return nil, ErrNoDefaultNode
+			return nil, errors.ErrNoDefaultNode
 		}
 		execNode = c.proxy.GetNode(defaultRule.Nodes[0])
 	}
 	if len(c.txConns) == 1 && c.txConns[execNode] == nil {
-		return nil, ErrTransInMulti
+		return nil, errors.ErrTransInMulti
 	}
 	return execNode, nil
 }
 
-func (c *ClientConn) getNotransNode(tokens []string,
+func (c *ClientConn) GetNotransNode(tokens []string,
 	sql string, fromSlave *bool) (*backend.Node, error) {
 
 	var execNode *backend.Node
@@ -359,9 +361,9 @@ func (c *ClientConn) getNotransNode(tokens []string,
 	tokensLen := len(tokens)
 	if 0 < tokensLen {
 		//token is in WHITE_TOKEN_MAP
-		if 0 < WHITE_TOKEN_MAP[tokens[0]] {
+		if 0 < mysql.WHITE_TOKEN_MAP[tokens[0]] {
 			//select
-			if 1 < WHITE_TOKEN_MAP[tokens[0]] {
+			if 1 < mysql.WHITE_TOKEN_MAP[tokens[0]] {
 				for i := 1; i < tokensLen; i++ {
 					if tokens[i] == TK_FROM {
 						return nil, nil
@@ -374,13 +376,13 @@ func (c *ClientConn) getNotransNode(tokens []string,
 	}
 	//get node
 	if 2 <= tokensLen {
-		if tokens[0][0] == COMMENT_PREFIX {
-			nodeName := strings.Trim(tokens[0], COMMENT_STRING)
+		if tokens[0][0] == mysql.COMMENT_PREFIX {
+			nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
 			if c.schema.nodes[nodeName] != nil {
 				execNode = c.schema.nodes[nodeName]
 			}
 			//select
-			if WHITE_TOKEN_MAP[tokens[1]] == 2 {
+			if mysql.WHITE_TOKEN_MAP[tokens[1]] == 2 {
 				*fromSlave = true
 			}
 		}
@@ -389,7 +391,7 @@ func (c *ClientConn) getNotransNode(tokens []string,
 	if execNode == nil {
 		defaultRule := c.schema.rule.DefaultRule
 		if len(defaultRule.Nodes) == 0 {
-			return nil, ErrNoDefaultNode
+			return nil, errors.ErrNoDefaultNode
 		}
 		execNode = c.proxy.GetNode(defaultRule.Nodes[0])
 	}
@@ -399,25 +401,25 @@ func (c *ClientConn) getNotransNode(tokens []string,
 
 //返回true表示已经处理，false表示未处理
 func (c *ClientConn) handleUnShard(sql string) (bool, error) {
-	var rs []*Result
+	var rs []*mysql.Result
 	var err error
 
 	var execNode *backend.Node
 	var fromSlave bool = false
 
 	if len(sql) == 0 {
-		return false, ErrCmdUnsupport
+		return false, errors.ErrCmdUnsupport
 	}
 	sql = strings.ToLower(sql)
 	tokens := strings.Fields(sql)
 	if len(tokens) == 0 {
-		return false, ErrCmdUnsupport
+		return false, errors.ErrCmdUnsupport
 	}
 
 	if c.needBeginTx() {
-		execNode, err = c.getTransNode(tokens, sql)
+		execNode, err = c.GetTransNode(tokens, sql)
 	} else {
-		execNode, err = c.getNotransNode(tokens, sql, &fromSlave)
+		execNode, err = c.GetNotransNode(tokens, sql, &fromSlave)
 	}
 
 	if err != nil {
@@ -442,7 +444,7 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 	if len(rs) == 0 {
 		msg := fmt.Sprintf("result is empty")
 		golog.Error("ClientConn", "handleUnsupport", msg, c.connectionId)
-		return false, NewError(ER_UNKNOWN_ERROR, msg)
+		return false, mysql.NewError(mysql.ER_UNKNOWN_ERROR, msg)
 	}
 
 	if rs[0].Resultset != nil {
@@ -457,46 +459,6 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 	return true, nil
 }
 
-/*处理select语句*/
-func (c *ClientConn) handleSelect(stmt *sqlparser.Select, args []interface{}) error {
-	var fromSlave bool = true
-	plan, err := c.schema.rule.BuildPlan(stmt)
-	if err != nil {
-		return err
-	}
-	if 0 < len(stmt.Comments) {
-		comment := string(stmt.Comments[0])
-		if 0 < len(comment) && strings.ToLower(comment) == MasterComment {
-			fromSlave = false
-		}
-	}
-
-	conns, err := c.getShardConns(fromSlave, plan)
-	if err != nil {
-		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
-		return err
-	}
-	if conns == nil {
-		r := c.newEmptyResultset(stmt)
-		return c.writeResultset(c.status, r)
-	}
-
-	var rs []*Result
-	rs, err = c.executeInMultiNodes(conns, plan.RewrittenSqls, args)
-	c.closeShardConns(conns, false)
-	if err != nil {
-		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
-		return err
-	}
-
-	err = c.mergeSelectResult(rs, stmt)
-	if err != nil {
-		golog.Error("ClientConn", "handleSelect", err.Error(), c.connectionId)
-	}
-
-	return err
-}
-
 func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) error {
 	plan, err := c.schema.rule.BuildPlan(stmt)
 	conns, err := c.getShardConns(false, plan)
@@ -508,9 +470,9 @@ func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) er
 		return c.writeOK(nil)
 	}
 
-	var rs []*Result
+	var rs []*mysql.Result
 	if 1 < len(conns) {
-		return ErrExecInMulti
+		return errors.ErrExecInMulti
 	}
 	if 1 < len(plan.RewrittenSqls) {
 		nodeIndex := plan.RouteNodeIndexs[0]
@@ -530,8 +492,8 @@ func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) er
 	return err
 }
 
-func (c *ClientConn) mergeExecResult(rs []*Result) error {
-	r := new(Result)
+func (c *ClientConn) mergeExecResult(rs []*mysql.Result) error {
+	r := new(mysql.Result)
 	for _, v := range rs {
 		r.Status |= v.Status
 		r.AffectedRows += v.AffectedRows
@@ -550,83 +512,4 @@ func (c *ClientConn) mergeExecResult(rs []*Result) error {
 	c.affectedRows = int64(r.AffectedRows)
 
 	return c.writeOK(r)
-}
-
-func (c *ClientConn) mergeSelectResult(rs []*Result, stmt *sqlparser.Select) error {
-	r := rs[0].Resultset
-	status := c.status | rs[0].Status
-	for i := 1; i < len(rs); i++ {
-		status |= rs[i].Status
-
-		//check fields equal
-
-		for j := range rs[i].Values {
-			r.Values = append(r.Values, rs[i].Values[j])
-			r.RowDatas = append(r.RowDatas, rs[i].RowDatas[j])
-		}
-	}
-
-	//to do order by, group by, limit offset
-	c.sortSelectResult(r, stmt)
-	//to do, add log here, sort may error because order by key not exist in resultset fields
-
-	if err := c.limitSelectResult(r, stmt); err != nil {
-		return err
-	}
-
-	return c.writeResultset(status, r)
-}
-
-func (c *ClientConn) sortSelectResult(r *Resultset, stmt *sqlparser.Select) error {
-	if stmt.OrderBy == nil {
-		return nil
-	}
-
-	sk := make([]SortKey, len(stmt.OrderBy))
-
-	for i, o := range stmt.OrderBy {
-		sk[i].Name = nstring(o.Expr)
-		sk[i].Direction = o.Direction
-	}
-
-	return r.Sort(sk)
-}
-
-func (c *ClientConn) limitSelectResult(r *Resultset, stmt *sqlparser.Select) error {
-	if stmt.Limit == nil {
-		return nil
-	}
-
-	var offset, count int64
-	var err error
-	if stmt.Limit.Offset == nil {
-		offset = 0
-	} else {
-		if o, ok := stmt.Limit.Offset.(sqlparser.NumVal); !ok {
-			return fmt.Errorf("invalid select limit %s", nstring(stmt.Limit))
-		} else {
-			if offset, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
-				return err
-			}
-		}
-	}
-
-	if o, ok := stmt.Limit.Rowcount.(sqlparser.NumVal); !ok {
-		return fmt.Errorf("invalid limit %s", nstring(stmt.Limit))
-	} else {
-		if count, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
-			return err
-		} else if count < 0 {
-			return fmt.Errorf("invalid limit %s", nstring(stmt.Limit))
-		}
-	}
-
-	if offset+count > int64(len(r.Values)) {
-		count = int64(len(r.Values)) - offset
-	}
-
-	r.Values = r.Values[offset : offset+count]
-	r.RowDatas = r.RowDatas[offset : offset+count]
-
-	return nil
 }

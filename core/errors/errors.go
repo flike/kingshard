@@ -32,5 +32,6 @@ var (
 	ErrNoPlan       = errors.New("statement have no plan")
 	ErrUpdateKey    = errors.New("routing key in update expression")
 	ErrStmtConvert  = errors.New("statement fail to convert")
+	ErrExprConvert  = errors.New("expr fail to convert")
 	ErrConnNotEqual = errors.New("the length of conns not equal sqls")
 )
