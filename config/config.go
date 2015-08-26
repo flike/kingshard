@@ -10,6 +10,7 @@ type Config struct {
 	Addr     string `yaml:"addr"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
+	LogPath  string `yaml:"log_path"`
 	LogLevel string `yaml:"log_level"`
 
 	AllowIps string `yaml:"allow_ips"`
@@ -36,7 +37,7 @@ type NodeConfig struct {
 type SchemaConfig struct {
 	DB          string      `yaml:"db"`
 	Nodes       []string    `yaml:"nodes"`
-	RulesConifg RulesConfig `yaml:"rules"`
+	RulesConfig RulesConfig `yaml:"rules"`
 }
 
 //路由规则

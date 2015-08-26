@@ -171,4 +171,7 @@ var (
 		"select":   KS_TK_SELECT,
 		"use":      KS_TK_USE,
 	}
+	// '/'
+	COMMENT_PREFIX uint8 = 47
+	COMMENT_STRING       = "/*"
 )

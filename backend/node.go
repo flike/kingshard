@@ -1,14 +1,15 @@
 package backend
 
 import (
-	"github.com/flike/kingshard/config"
-	. "github.com/flike/kingshard/core/errors"
-	"github.com/flike/kingshard/core/golog"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/flike/kingshard/config"
+	"github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
 )
 
 const (
@@ -34,7 +35,7 @@ type Node struct {
 	LastSlavePing  int64
 }
 
-func (n *Node) Run() {
+func (n *Node) CheckNode() {
 	//to do
 	//1 check connection alive
 	//2 check remove mysql server alive
@@ -42,10 +43,10 @@ func (n *Node) Run() {
 	n.checkMaster()
 	n.checkSlave()
 
-	t := time.NewTicker(60 * time.Second)
+	t := time.NewTicker(30 * time.Second)
 	defer t.Stop()
 
-	n.LastMasterPing = time.Now().UnixNano()
+	n.LastMasterPing = time.Now().Unix()
 	n.LastSlavePing = n.LastMasterPing
 	for {
 		select {
@@ -60,22 +61,13 @@ func (n *Node) String() string {
 	return n.Cfg.Name
 }
 
-func (n *Node) FormatSlave() string {
-	s := make([]byte, 0, 16)
-	for _, v := range n.Slave {
-		s = append(s, []byte(v.addr)...)
-		s = append(s, []byte("\n")...)
-	}
-	return string(s)
-}
-
 func (n *Node) GetMasterConn() (*BackendConn, error) {
 	db := n.Master
 	if db == nil {
-		return nil, ErrNoMasterConn
+		return nil, errors.ErrNoMasterConn
 	}
 	if atomic.LoadInt32(&(db.state)) == Down {
-		return nil, ErrMasterDown
+		return nil, errors.ErrMasterDown
 	}
 
 	return db.GetConn()
@@ -90,10 +82,10 @@ func (n *Node) GetSlaveConn() (*BackendConn, error) {
 	}
 
 	if db == nil {
-		return nil, ErrNoSlaveDb
+		return nil, errors.ErrNoSlaveDb
 	}
 	if atomic.LoadInt32(&(db.state)) == Down {
-		return nil, ErrSlaveDown
+		return nil, errors.ErrSlaveDown
 	}
 
 	return db.GetConn()
@@ -105,29 +97,23 @@ func (n *Node) checkMaster() {
 		golog.Error("Node", "checkMaster", "Master is no alive", 0)
 		return
 	}
-	if atomic.LoadInt32(&(db.state)) == Down && atomic.LoadInt32(&(db.downType)) != SystemDown {
+	if atomic.LoadInt32(&(db.state)) == Down {
 		return
 	}
 
 	if err := db.Ping(); err != nil {
 		golog.Error("Node", "checkMaster", "Ping", 0, "db.Addr", db.Addr(), "error", err.Error())
 	} else {
-		n.LastMasterPing = time.Now().UnixNano()
-		if atomic.LoadInt32(&(db.downType)) == SystemDown {
-			golog.Info("Node", "checkMaster", "Master up", 0,
-				"db.Addr", db.Addr(),
-				"Master_up_time", int64(n.DownAfterNoAlive/time.Second))
-			n.UpMaster(db.addr)
-			atomic.StoreInt32(&(db.downType), SystemUp)
-		}
+		n.LastMasterPing = time.Now().Unix()
+		atomic.StoreInt32(&(db.state), Up)
+		return
 	}
 
-	if int64(n.DownAfterNoAlive) > 0 && time.Now().UnixNano()-n.LastMasterPing > int64(n.DownAfterNoAlive) {
+	if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastMasterPing > int64(n.DownAfterNoAlive) {
 		golog.Info("Node", "checkMaster", "Master down", 0,
 			"db.Addr", db.Addr(),
 			"Master_down_time", int64(n.DownAfterNoAlive/time.Second))
 		n.DownMaster(db.addr)
-		atomic.StoreInt32(&(db.downType), SystemDown)
 	}
 }
 
@@ -142,29 +128,23 @@ func (n *Node) checkSlave() {
 	n.Unlock()
 
 	for i := 0; i < len(slaves); i++ {
-		if atomic.LoadInt32(&(slaves[i].state)) == Down && atomic.LoadInt32(&(slaves[i].downType)) != SystemDown {
+		if atomic.LoadInt32(&(slaves[i].state)) == Down {
 			continue
 		}
 		if err := slaves[i].Ping(); err != nil {
 			golog.Error("Node", "checkSlave", "Ping", 0, "db.Addr", slaves[i].Addr(), "error", err.Error())
 		} else {
-			n.LastSlavePing = time.Now().UnixNano()
-			if atomic.LoadInt32(&(slaves[i].downType)) == SystemDown {
-				golog.Info("Node", "checkSlave", "Slave up", 0,
-					"db.Addr", slaves[i].Addr(),
-					"Slave_up_time", int64(n.DownAfterNoAlive/time.Second))
-				n.UpSlave(slaves[i].addr)
-				atomic.StoreInt32(&(slaves[i].downType), SystemUp)
-			}
+			n.LastSlavePing = time.Now().Unix()
+			atomic.StoreInt32(&(slaves[i].state), Up)
+			continue
 		}
 
-		if int64(n.DownAfterNoAlive) > 0 && time.Now().UnixNano()-n.LastSlavePing > int64(n.DownAfterNoAlive) {
-			golog.Info("Node", "checkSlave", "Slave down", 0,
+		if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastSlavePing > int64(n.DownAfterNoAlive) {
+			golog.Info("Node", "checkMaster", "Master down", 0,
 				"db.Addr", slaves[i].Addr(),
 				"slave_down_time", int64(n.DownAfterNoAlive/time.Second))
 			//If can't ping slave after DownAfterNoAlive, set slave Down
 			n.DownSlave(slaves[i].addr)
-			atomic.StoreInt32(&(slaves[i].downType), SystemDown)
 		}
 	}
 
@@ -174,7 +154,7 @@ func (n *Node) AddSlave(addr string) error {
 	var weight int
 	var err error
 	if len(addr) == 0 {
-		return ErrAddressNull
+		return errors.ErrAddressNull
 	}
 	n.Lock()
 	defer n.Unlock()
@@ -199,7 +179,7 @@ func (n *Node) DeleteSlave(addr string) error {
 	defer n.Unlock()
 	slaveCount := len(n.Slave)
 	if slaveCount == 0 {
-		return ErrNoSlaveDb
+		return errors.ErrNoSlaveDb
 	} else if slaveCount == 1 {
 		n.Slave = nil
 		n.SlaveWeights = nil
@@ -273,7 +253,7 @@ func (n *Node) UpSlave(addr string) error {
 func (n *Node) DownMaster(addr string) error {
 	db := n.Master
 	if db == nil || db.addr != addr {
-		return ErrNoMasterDb
+		return errors.ErrNoMasterDb
 	}
 	db.Close()
 	atomic.StoreInt32(&(db.state), Down)
@@ -284,7 +264,7 @@ func (n *Node) DownSlave(addr string) error {
 	n.Lock()
 	if n.Slave == nil {
 		n.Unlock()
-		return ErrNoSlaveDb
+		return errors.ErrNoSlaveDb
 	}
 	slaves := make([]*DB, len(n.Slave))
 	copy(slaves, n.Slave)
@@ -303,7 +283,7 @@ func (n *Node) DownSlave(addr string) error {
 
 func (n *Node) ParseMaster(masterStr string) error {
 	if len(masterStr) == 0 {
-		return ErrNoMasterDb
+		return errors.ErrNoMasterDb
 	}
 
 	n.Master = n.OpenDB(masterStr)

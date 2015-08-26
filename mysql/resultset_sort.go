@@ -3,8 +3,9 @@ package mysql
 import (
 	"bytes"
 	"fmt"
-	"github.com/flike/kingshard/core/hack"
 	"sort"
+
+	"github.com/flike/kingshard/core/hack"
 )
 
 const (

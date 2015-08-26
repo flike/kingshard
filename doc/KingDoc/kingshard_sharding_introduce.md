@@ -155,3 +155,53 @@ mysql> show tables;
 
 ```
 
+## 将SQL路由到指定node上
+
+在kingshard中允许用户将特定的sql路由到指定的node上。只需要在sql语句前面加上包含node名称的注释。
+
+```
+mysql> /*node2*/show tables;
++-----------------------+
+| Tables_in_kingshard   |
++-----------------------+
+| kingshard_test_conn   |
+| test_shard_hash_0004  |
+| test_shard_hash_0005  |
+| test_shard_hash_0006  |
+| test_shard_hash_0007  |
+| test_shard_range_0004 |
+| test_shard_range_0005 |
+| test_shard_range_0006 |
+| test_shard_range_0007 |
++-----------------------+
+9 rows in set (0.03 sec)
+
+mysql> /*node2*/select * from kingshard_test_conn;
+Empty set (0.01 sec)
+
+mysql> /*node2*/desc kingshard_test_conn;
++-------+-----------------------+------+-----+---------+-------+
+| Field | Type                  | Null | Key | Default | Extra |
++-------+-----------------------+------+-----+---------+-------+
+| id    | bigint(20) unsigned   | NO   | PRI | NULL    |       |
+| str   | varchar(256)          | YES  |     | NULL    |       |
+| f     | double                | YES  |     | NULL    |       |
+| e     | enum('test1','test2') | YES  |     | NULL    |       |
+| u     | tinyint(3) unsigned   | YES  |     | NULL    |       |
+| i     | tinyint(4)            | YES  |     | NULL    |       |
++-------+-----------------------+------+-----+---------+-------+
+6 rows in set (0.00 sec)
+
+mysql> /*node2*/insert into kingshard_test_conn values(10,"hello",10.2,'test1',1,1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> /*node2*/select * from kingshard_test_conn;
++----+-------+------+-------+------+------+
+| id | str   | f    | e     | u    | i    |
++----+-------+------+-------+------+------+
+| 10 | hello | 10.2 | test1 |    1 |    1 |
++----+-------+------+-------+------+------+
+1 row in set (0.00 sec)
+
+```
+

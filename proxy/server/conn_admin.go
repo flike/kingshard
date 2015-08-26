@@ -2,15 +2,19 @@ package server
 
 import (
 	"fmt"
-	. "github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
+	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
+	"strconv"
 	"strings"
+	"time"
 )
 
 const (
-	Master       = "master"
-	Slave        = "slave"
+	Master = "master"
+	Slave  = "slave"
+
 	ServerRegion = "server"
 	NodeRegion   = "node"
 
@@ -18,6 +22,13 @@ const (
 	ADMIN_OPT_DEL  = "del"
 	ADMIN_OPT_UP   = "up"
 	ADMIN_OPT_DOWN = "down"
+	ADMIN_OPT_SHOW = "show"
+
+	ADMIN_PROXY  = "proxy"
+	ADMIN_NODE   = "node"
+	ADMIN_SCHEMA = "schema"
+
+	ADMIN_CONFIG = "config"
 )
 
 var cmdServerOrder = []string{"opt", "k", "v"}
@@ -29,12 +40,12 @@ func (c *ClientConn) handleNodeCmd(rows sqlparser.InsertRows) error {
 
 	vals := rows.(sqlparser.Values)
 	if len(vals) == 0 {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	tuple := vals[0].(sqlparser.ValTuple)
 	if len(tuple) != len(cmdNodeOrder) {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	opt = sqlparser.String(tuple[0])
@@ -76,17 +87,56 @@ func (c *ClientConn) handleNodeCmd(rows sqlparser.InsertRows) error {
 			addr,
 		)
 	default:
-		err = ErrCmdUnsupport
+		err = errors.ErrCmdUnsupport
 		golog.Error("ClientConn", "handleNodeCmd", err.Error(),
 			c.connectionId, "opt", opt)
 	}
 	return err
 }
 
+func (c *ClientConn) handleServerCmd(rows sqlparser.InsertRows) (*mysql.Resultset, error) {
+	var err error
+	var result *mysql.Resultset
+	var opt, k, v string
+
+	vals := rows.(sqlparser.Values)
+	if len(vals) == 0 {
+		return nil, errors.ErrCmdUnsupport
+	}
+
+	tuple := vals[0].(sqlparser.ValTuple)
+	if len(tuple) != len(cmdServerOrder) {
+		return nil, errors.ErrCmdUnsupport
+	}
+
+	opt = sqlparser.String(tuple[0])
+	opt = strings.Trim(opt, "'")
+
+	k = sqlparser.String(tuple[1])
+	k = strings.Trim(k, "'")
+
+	v = sqlparser.String(tuple[2])
+	v = strings.Trim(v, "'")
+
+	switch strings.ToLower(opt) {
+	case ADMIN_OPT_SHOW:
+		result, err = c.handleAdminShow(k, v)
+	default:
+		err = errors.ErrCmdUnsupport
+		golog.Error("ClientConn", "handleNodeCmd", err.Error(),
+			c.connectionId, "opt", opt)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (c *ClientConn) AddDatabase(nodeName string, role string, addr string) error {
 	//can not add a new master database
 	if role != Slave {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	return c.proxy.AddSlave(nodeName, addr)
@@ -95,7 +145,7 @@ func (c *ClientConn) AddDatabase(nodeName string, role string, addr string) erro
 func (c *ClientConn) DeleteDatabase(nodeName string, role string, addr string) error {
 	//can not delete a master database
 	if role != Slave {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	return c.proxy.DeleteSlave(nodeName, addr)
@@ -103,7 +153,7 @@ func (c *ClientConn) DeleteDatabase(nodeName string, role string, addr string) e
 
 func (c *ClientConn) UpDatabase(nodeName string, role string, addr string) error {
 	if role != Master && role != Slave {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 	if role == Master {
 		return c.proxy.UpMaster(nodeName, addr)
@@ -114,7 +164,7 @@ func (c *ClientConn) UpDatabase(nodeName string, role string, addr string) error
 
 func (c *ClientConn) DownDatabase(nodeName string, role string, addr string) error {
 	if role != Master && role != Slave {
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 	if role == Master {
 		return c.proxy.DownMaster(nodeName, addr)
@@ -130,14 +180,16 @@ func (c *ClientConn) checkCmdOrder(region string, columns sqlparser.Columns) err
 	switch region {
 	case NodeRegion:
 		cmdOrder = cmdNodeOrder
+	case ServerRegion:
+		cmdOrder = cmdServerOrder
 	default:
-		return ErrCmdUnsupport
+		return errors.ErrCmdUnsupport
 	}
 
 	for i := 0; i < len(node); i++ {
 		val := sqlparser.String(node[i])
 		if val != cmdOrder[i] {
-			return ErrCmdUnsupport
+			return errors.ErrCmdUnsupport
 		}
 	}
 
@@ -146,6 +198,8 @@ func (c *ClientConn) checkCmdOrder(region string, columns sqlparser.Columns) err
 
 func (c *ClientConn) handleAdmin(admin *sqlparser.Admin) error {
 	var err error
+	var result *mysql.Resultset
+
 	region := sqlparser.String(admin.Region)
 
 	err = c.checkCmdOrder(region, admin.Columns)
@@ -156,6 +210,8 @@ func (c *ClientConn) handleAdmin(admin *sqlparser.Admin) error {
 	switch strings.ToLower(region) {
 	case NodeRegion:
 		err = c.handleNodeCmd(admin.Rows)
+	case ServerRegion:
+		result, err = c.handleServerCmd(admin.Rows)
 	default:
 		return fmt.Errorf("admin %s not supported now", region)
 	}
@@ -166,5 +222,187 @@ func (c *ClientConn) handleAdmin(admin *sqlparser.Admin) error {
 		return err
 	}
 
+	if result != nil {
+		return c.writeResultset(c.status, result)
+	}
+
 	return c.writeOK(nil)
+}
+
+func (c *ClientConn) handleAdminShow(k, v string) (*mysql.Resultset, error) {
+	if len(k) == 0 || len(v) == 0 {
+		return nil, errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_PROXY && v == ADMIN_CONFIG {
+		return c.handleShowProxyConfig()
+	}
+
+	if k == ADMIN_NODE && v == ADMIN_CONFIG {
+		return c.handleShowNodeConfig()
+	}
+
+	if k == ADMIN_SCHEMA && v == ADMIN_CONFIG {
+		return c.handleShowSchemaConfig()
+	}
+
+	return nil, errors.ErrCmdUnsupport
+}
+
+func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
+	var names []string = []string{"Key", "Value"}
+	var rows [][]string
+	var nodeNames []string
+
+	const (
+		Column = 2
+	)
+	for name := range c.schema.nodes {
+		nodeNames = append(nodeNames, name)
+	}
+
+	rows = append(rows, []string{"Addr", c.proxy.cfg.Addr})
+	rows = append(rows, []string{"User", c.proxy.cfg.User})
+	rows = append(rows, []string{"Password", c.proxy.cfg.Password})
+	rows = append(rows, []string{"LogLevel", c.proxy.cfg.LogLevel})
+	rows = append(rows, []string{"Nodes_Count", fmt.Sprintf("%d", len(c.proxy.nodes))})
+	rows = append(rows, []string{"Nodes_List", strings.Join(nodeNames, ",")})
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(names, values)
+}
+
+func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
+	var names []string = []string{
+		"Node",
+		"Address",
+		"Type",
+		"State",
+		"LastPing",
+		"MaxIdleConn",
+		"IdleConn",
+	}
+	var rows [][]string
+	const (
+		Column = 7
+	)
+
+	//var nodeRows [][]string
+	for name, node := range c.schema.nodes {
+		//"master"
+		rows = append(
+			rows,
+			[]string{
+				name,
+				node.Master.Addr(),
+				"master",
+				node.Master.State(),
+				fmt.Sprintf("%v", time.Unix(node.LastMasterPing, 0)),
+				strconv.Itoa(node.Cfg.IdleConns),
+				strconv.Itoa(node.Master.IdleConnCount()),
+			})
+		//"slave"
+		for _, slave := range node.Slave {
+			rows = append(
+				rows,
+				[]string{
+					name,
+					slave.Addr(),
+					"slave",
+					slave.State(),
+					fmt.Sprintf("%v", time.Unix(node.LastSlavePing, 0)),
+					strconv.Itoa(node.Cfg.IdleConns),
+					strconv.Itoa(slave.IdleConnCount()),
+				})
+		}
+	}
+	//rows = append(rows, nodeRows...)
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(names, values)
+}
+
+func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
+	var Column = 7
+	var rows [][]string
+	var names []string = []string{
+		"DB",
+		"Table",
+		"Type",
+		"Key",
+		"Nodes_List",
+		"Locations",
+		"TableRowLimit",
+	}
+
+	//default Rule
+	var defaultRule = c.schema.rule.DefaultRule
+	rows = append(
+		rows,
+		[]string{
+			defaultRule.DB,
+			defaultRule.Table,
+			defaultRule.Type,
+			defaultRule.Key,
+			strings.Join(defaultRule.Nodes, ", "),
+			"",
+			"0",
+		},
+	)
+
+	//shard rule
+	if len(c.proxy.cfg.Schemas) != 1 {
+		return nil, errors.ErrCmdUnsupport
+	}
+	schemaConfig := c.proxy.cfg.Schemas[0]
+	shardRule := schemaConfig.RulesConfig.ShardRule
+
+	for _, r := range shardRule {
+		rows = append(
+			rows,
+			[]string{
+				schemaConfig.DB,
+				r.Table,
+				r.Type,
+				r.Key,
+				strings.Join(r.Nodes, ", "),
+				arrayToString(r.Locations),
+				strconv.Itoa(r.TableRowLimit),
+			},
+		)
+	}
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(names, values)
+}
+
+func arrayToString(array []int) string {
+	if len(array) == 0 {
+		return ""
+	}
+	var strArray []string
+	for _, v := range array {
+		strArray = append(strArray, strconv.FormatInt(int64(v), 10))
+	}
+
+	return strings.Join(strArray, ", ")
 }

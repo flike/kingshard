@@ -2,9 +2,10 @@ package server
 
 import (
 	"fmt"
-	. "github.com/flike/kingshard/mysql"
-	"github.com/flike/kingshard/sqlparser"
 	"strings"
+
+	"github.com/flike/kingshard/mysql"
+	"github.com/flike/kingshard/sqlparser"
 )
 
 var nstring = sqlparser.String
@@ -33,9 +34,9 @@ func (c *ClientConn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 	}
 	switch value[0] {
 	case '1':
-		c.status |= SERVER_STATUS_AUTOCOMMIT
+		c.status |= mysql.SERVER_STATUS_AUTOCOMMIT
 	case '0':
-		c.status &= ^SERVER_STATUS_AUTOCOMMIT
+		c.status &= ^mysql.SERVER_STATUS_AUTOCOMMIT
 	default:
 		return fmt.Errorf("invalid autocommit flag %s", value)
 	}
@@ -50,7 +51,7 @@ func (c *ClientConn) handleSetNames(val sqlparser.ValExpr) error {
 	}
 
 	charset := strings.ToLower(string(value))
-	cid, ok := CharsetIds[charset]
+	cid, ok := mysql.CharsetIds[charset]
 	if !ok {
 		return fmt.Errorf("invalid charset %s", charset)
 	}

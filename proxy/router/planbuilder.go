@@ -1,11 +1,12 @@
 package router
 
 import (
-	. "github.com/flike/kingshard/core/errors"
-	"github.com/flike/kingshard/core/golog"
-	"github.com/flike/kingshard/sqlparser"
 	"sort"
 	"strconv"
+
+	"github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
+	"github.com/flike/kingshard/sqlparser"
 )
 
 const (
@@ -126,13 +127,12 @@ func (plan *Plan) calRouteIndexs() error {
 		plan.RouteNodeIndexs = []int{0}
 		return nil
 	}
-	if plan.Criteria == nil { //如果没有分表条件，则是全表扫描
+	if plan.Criteria == nil { //如果没有分表条件，则是全子表扫描
 		if plan.Rule.Type != DefaultRuleType {
 			golog.Error("Plan", "calRouteIndexs", "plan have no criteria", 0,
 				"type", plan.Rule.Type)
-			return ErrNoCriteria
+			return errors.ErrNoCriteria
 		}
-
 	}
 
 	switch criteria := plan.Criteria.(type) {

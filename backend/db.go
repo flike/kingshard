@@ -2,10 +2,10 @@ package backend
 
 import (
 	"container/list"
-	"fmt"
-	. "github.com/flike/kingshard/mysql"
 	"sync"
 	"sync/atomic"
+
+	"github.com/flike/kingshard/mysql"
 )
 
 const (
@@ -51,9 +51,24 @@ func (db *DB) Addr() string {
 	return db.addr
 }
 
-func (db *DB) String() string {
-	return fmt.Sprintf("%s:%s@%s/%s?maxIdleConns=%v",
-		db.user, db.password, db.addr, db.db, db.maxIdleConns)
+func (db *DB) State() string {
+	var state string
+	switch db.state {
+	case Up:
+		state = "up"
+	case Down:
+		state = "down"
+	case Unknown:
+		state = "unknow"
+	}
+	return state
+}
+
+func (db *DB) IdleConnCount() int {
+	db.Lock()
+	defer db.Unlock()
+
+	return db.idleConns.Len()
 }
 
 func (db *DB) Close() error {
@@ -127,8 +142,8 @@ func (db *DB) tryReuse(co *Conn) error {
 
 	//connection may be set names early
 	//we must use default utf8
-	if co.GetCharset() != DEFAULT_CHARSET {
-		if err := co.SetCharset(DEFAULT_CHARSET); err != nil {
+	if co.GetCharset() != mysql.DEFAULT_CHARSET {
+		if err := co.SetCharset(mysql.DEFAULT_CHARSET); err != nil {
 			return err
 		}
 	}
