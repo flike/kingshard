@@ -309,7 +309,11 @@ func (c *ClientConn) getFuncExprs(stmt *sqlparser.Select) map[int]string {
 		if !ok {
 			continue
 		} else {
-			funcExprs[i] = string(f.Name)
+			funcName := string(f.Name)
+			switch strings.ToLower(funcName) {
+			case SumFuncName, CountFuncName:
+				funcExprs[i] = funcName
+			}
 		}
 	}
 	return funcExprs
