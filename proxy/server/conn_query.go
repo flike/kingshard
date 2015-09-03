@@ -151,7 +151,15 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 		nodeIndex := plan.RouteNodeIndexs[i]
 		nodes = append(nodes, c.proxy.GetNode(plan.Rule.Nodes[nodeIndex]))
 	}
-
+	if c.needBeginTx() {
+		if 1 < len(nodes) {
+			return nil, errors.ErrTransInMulti
+		}
+		//exec in multi node
+		if len(c.txConns) == 1 && c.txConns[nodes[0]] == nil {
+			return nil, errors.ErrTransInMulti
+		}
+	}
 	conns := make(map[string]*backend.BackendConn)
 	var co *backend.BackendConn
 	for _, n := range nodes {
@@ -328,6 +336,7 @@ func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *mysql.Resultset 
 
 func (c *ClientConn) GetTransNode(tokens []string, sql string) (*backend.Node, error) {
 	var execNode *backend.Node
+	var err error
 
 	tokensLen := len(tokens)
 	if 2 <= tokensLen {
@@ -340,11 +349,11 @@ func (c *ClientConn) GetTransNode(tokens []string, sql string) (*backend.Node, e
 	}
 
 	if execNode == nil {
-		defaultRule := c.schema.rule.DefaultRule
-		if len(defaultRule.Nodes) == 0 {
-			return nil, errors.ErrNoDefaultNode
+		execNode, _, err = c.GetNotransNode(tokens, sql)
+		if err != nil {
+			return nil, err
 		}
-		execNode = c.proxy.GetNode(defaultRule.Nodes[0])
+		return execNode, nil
 	}
 	if len(c.txConns) == 1 && c.txConns[execNode] == nil {
 		return nil, errors.ErrTransInMulti
@@ -353,10 +362,11 @@ func (c *ClientConn) GetTransNode(tokens []string, sql string) (*backend.Node, e
 }
 
 func (c *ClientConn) GetNotransNode(tokens []string,
-	sql string, fromSlave *bool) (*backend.Node, error) {
+	sql string) (*backend.Node, bool, error) {
 
 	var execNode *backend.Node
 	var TK_FROM string = "from"
+	var fromSlave bool
 
 	tokensLen := len(tokens)
 	if 0 < tokensLen {
@@ -366,11 +376,11 @@ func (c *ClientConn) GetNotransNode(tokens []string,
 			if 1 < mysql.WHITE_TOKEN_MAP[tokens[0]] {
 				for i := 1; i < tokensLen; i++ {
 					if tokens[i] == TK_FROM {
-						return nil, nil
+						return nil, false, nil
 					}
 				}
 			} else {
-				return nil, nil
+				return nil, false, nil
 			}
 		}
 	}
@@ -383,7 +393,7 @@ func (c *ClientConn) GetNotransNode(tokens []string,
 			}
 			//select
 			if mysql.WHITE_TOKEN_MAP[tokens[1]] == 2 {
-				*fromSlave = true
+				fromSlave = true
 			}
 		}
 	}
@@ -391,12 +401,12 @@ func (c *ClientConn) GetNotransNode(tokens []string,
 	if execNode == nil {
 		defaultRule := c.schema.rule.DefaultRule
 		if len(defaultRule.Nodes) == 0 {
-			return nil, errors.ErrNoDefaultNode
+			return nil, false, errors.ErrNoDefaultNode
 		}
 		execNode = c.proxy.GetNode(defaultRule.Nodes[0])
 	}
 
-	return execNode, nil
+	return execNode, fromSlave, nil
 }
 
 //返回true表示已经处理，false表示未处理
@@ -419,7 +429,7 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 	if c.needBeginTx() {
 		execNode, err = c.GetTransNode(tokens, sql)
 	} else {
-		execNode, err = c.GetNotransNode(tokens, sql, &fromSlave)
+		execNode, fromSlave, err = c.GetNotransNode(tokens, sql)
 	}
 
 	if err != nil {
