@@ -76,7 +76,6 @@ schemas :
 		Name:             "node1",
 		DownAfterNoAlive: 300,
 		IdleConns:        16,
-		//RWSplit:          true,
 
 		User:     "root",
 		Password: "root",

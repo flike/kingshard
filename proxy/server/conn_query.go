@@ -78,8 +78,6 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 		return c.handleRollback()
 	case *sqlparser.SimpleSelect:
 		return c.handleSimpleSelect(sql, v)
-	case *sqlparser.Show:
-		return c.handleShow(sql, v)
 	case *sqlparser.Admin:
 		return c.handleAdmin(v)
 	case *sqlparser.UseDB:
@@ -175,43 +173,23 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 }
 
 func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args []interface{}) ([]*mysql.Result, error) {
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	rs := make([]interface{}, 1)
-
-	f := func(rs []interface{}, i int, co *backend.BackendConn) {
-		var state string
-		r, err := co.Execute(sql, args...)
-		if err != nil {
-			state = "ERROR"
-			rs[i] = err
-		} else {
-			state = "INFO"
-			rs[i] = r
-		}
-		golog.OutputSql(state, "%s->%s:%s",
-			c.c.RemoteAddr(),
-			co.GetAddr(),
-			sql,
-		)
-		wg.Done()
+	var state string
+	r, err := conn.Execute(sql, args...)
+	if err != nil {
+		state = "ERROR"
+	} else {
+		state = "INFO"
 	}
-	go f(rs, 0, conn)
-
-	wg.Wait()
-
-	var err error
-	r := make([]*mysql.Result, 1)
-	for i, v := range rs {
-		if e, ok := v.(error); ok {
-			err = e
-			break
-		}
-		r[i] = rs[i].(*mysql.Result)
+	golog.OutputSql(state, "%s->%s:%s",
+		c.c.RemoteAddr(),
+		conn.GetAddr(),
+		sql,
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	return r, err
+	return []*mysql.Result{r}, err
 }
 
 func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {

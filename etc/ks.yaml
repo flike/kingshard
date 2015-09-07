@@ -22,9 +22,6 @@ nodes :
     # default max idle conns for mysql server
     idle_conns : 16
 
-    # if rw_split is true, select will use slave server
-    rw_split: true
-
     # all mysql in a node must have the same user and password
     user :  kingshard 
     password : kingshard
@@ -41,9 +38,6 @@ nodes :
 
     # default max idle conns for mysql server
     idle_conns : 16
-
-    # if rw_split is true, select will use slave server
-    rw_split: true
 
     # all mysql in a node must have the same user and password
     user :  kingshard 
