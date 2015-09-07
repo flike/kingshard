@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/flike/kingshard/core/yaml"
 	"io/ioutil"
+
+	"github.com/flike/kingshard/core/yaml"
 )
 
 //整个config文件对应的结构
@@ -14,6 +15,7 @@ type Config struct {
 	LogLevel string `yaml:"log_level"`
 
 	AllowIps string `yaml:"allow_ips"`
+	LogSql   string `yaml:"log_sql"`
 
 	Nodes []NodeConfig `yaml:"nodes"`
 

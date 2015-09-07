@@ -180,11 +180,14 @@ func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args [
 	} else {
 		state = "INFO"
 	}
-	golog.OutputSql(state, "%s->%s:%s",
-		c.c.RemoteAddr(),
-		conn.GetAddr(),
-		sql,
-	)
+	if strings.ToLower(c.proxy.cfg.LogSql) != golog.LogSqlOff {
+		golog.OutputSql(state, "%s->%s:%s",
+			c.c.RemoteAddr(),
+			conn.GetAddr(),
+			sql,
+		)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -227,11 +230,13 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 				state = "INFO"
 				rs[i] = r
 			}
-			golog.OutputSql(state, "%s->%s:%s",
-				c.c.RemoteAddr(),
-				co.GetAddr(),
-				v,
-			)
+			if c.proxy.cfg.LogSql != golog.LogSqlOff {
+				golog.OutputSql(state, "%s->%s:%s",
+					c.c.RemoteAddr(),
+					co.GetAddr(),
+					v,
+				)
+			}
 			i++
 		}
 		wg.Done()
