@@ -10,6 +10,7 @@
 ```
 
 ##配置文件说明
+
 ```
 # kingshard的地址和端口
 addr : 127.0.0.1:9696
@@ -20,7 +21,11 @@ password : kingshard
 
 # log级别，[debug|info|warn|error],默认是error
 log_level : debug
-# 只允许下面的IP列表连接kingshard
+# 打开SQL日志，设置为on;关闭SQL日志，设置为off
+log_sql : on
+#日志文件路径，如果不配置则会输出到终端。
+log_path : /Users/flike/log
+# 只允许下面的IP列表连接kingshard，如果不配置则对连接kingshard的IP不做限制。
 allow_ips: 127.0.0.1
 
 # 一个node节点表示mysql集群的一个数据分片，包括一主多从（可以不配置从库）
@@ -38,9 +43,9 @@ nodes :
     # master的地址和端口 
     master : 127.0.0.1:3306
 
-    # slave的地址和端口，可不配置
-    slave : 
-    #kingshard在300秒内都连接不上mysql，则会下线该mysql
+    # slave的地址、端口和读权重，@后面的表示该slave的读权重。可不配置slave
+    #slave : 192.168.0.12@2,192.168.0.13@3
+    #kingshard在300秒内都连接不上mysql，kingshard则会下线该mysql
     down_after_noalive : 300
 - 
     name : node2 
@@ -56,16 +61,25 @@ nodes :
 # 分表规则
 schemas :
 -
+    #分表使用的db，所有的分表必须都在这个db中。
     db : kingshard
+    #分表分布的node名字
     nodes: [node1,node2]
     rules:
+    	#所有未分表的SQL，都会发往默认node。
         default: node1
         shard:
         -   
+            #分表名字
             table: test_shard_hash
+            #分表字段
             key: id
+            #分表分布的node
             nodes: [node1, node2]
+            #分表类型
             type: hash
+            #子表个数分布，表示node1有4个子表，				  
+			#node2有4个子表。
             locations: [4,4]
 
         -   
@@ -74,7 +88,10 @@ schemas :
             type: range
             nodes: [node1, node2]
             locations: [4,4]
+            #表示每个子表包含的最大记录数，也就是说每				  
+			#个子表最多包好10000条记录。
             table_row_limit: 10000
+
 
 ```
 

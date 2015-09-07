@@ -30,6 +30,8 @@ password : kingshard
 
 # log级别，[debug|info|warn|error],默认是error
 log_level : debug
+# 打开SQL日志，设置为on;关闭SQL日志，设置为off
+log_sql : on
 #日志文件路径，如果不配置则会输出到终端。
 log_path : /Users/flike/log
 # 只允许下面的IP列表连接kingshard，如果不配置则对连接kingshard的IP不做限制。
