@@ -76,8 +76,6 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 		return c.handleCommit()
 	case *sqlparser.Rollback:
 		return c.handleRollback()
-	case *sqlparser.SimpleSelect:
-		return c.handleSimpleSelect(sql, v)
 	case *sqlparser.Admin:
 		return c.handleAdmin(v)
 	case *sqlparser.UseDB:
