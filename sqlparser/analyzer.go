@@ -8,6 +8,8 @@ package sqlparser
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/flike/kingshard/sqltypes"
 )
 
@@ -31,14 +33,16 @@ func GetDBName(sql string) (string, error) {
 	return "", fmt.Errorf("statement '%s' is not a dml", sql)
 }
 
-// GetTableName returns the table name from the SimpleTableExpr
-// only if it's a simple expression. Otherwise, it returns "".
-func GetTableName(node SimpleTableExpr) string {
-	if n, ok := node.(*TableName); ok && n.Qualifier == nil {
-		return string(n.Name)
+func GetTableName(token string) string {
+	if len(token) == 0 {
+		return ""
 	}
-	// sub-select or '.' expression
-	return ""
+	vec := strings.SplitN(token, ".", 2)
+	if len(vec) == 2 {
+		return vec[1]
+	} else {
+		return vec[0]
+	}
 }
 
 // GetColName returns the column name, only if

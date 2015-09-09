@@ -1,5 +1,5 @@
 # server listen addr
-addr : 127.0.0.1:9696
+addr : 0.0.0.0:9696
 
 # server user and password
 user :  kingshard

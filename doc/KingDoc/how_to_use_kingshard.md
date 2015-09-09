@@ -22,7 +22,7 @@
 
 ```
 # kingshard的地址和端口
-addr : 127.0.0.1:9696
+addr : 0.0.0.0:9696
 
 # 连接kingshard的用户名和密码
 user :  kingshard

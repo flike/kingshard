@@ -145,33 +145,38 @@ const (
 )
 
 var (
-	KS_TK_INSERT   = 1
-	KS_TK_UPDATE   = 1
-	KS_TK_DELETE   = 1
-	KS_TK_REPLACE  = 1
-	KS_TK_SET      = 1
-	KS_TK_BEGIN    = 1
-	KS_TK_COMMIT   = 1
-	KS_TK_ROLLBACK = 1
-	KS_TK_ADMIN    = 1
-	KS_TK_USE      = 1
+	TK_ID_INSERT   = 1
+	TK_ID_UPDATE   = 2
+	TK_ID_DELETE   = 3
+	TK_ID_REPLACE  = 4
+	TK_ID_SET      = 5
+	TK_ID_BEGIN    = 6
+	TK_ID_COMMIT   = 7
+	TK_ID_ROLLBACK = 8
+	TK_ID_ADMIN    = 9
+	TK_ID_USE      = 10
 
-	KS_TK_SELECT = 2
+	TK_ID_SELECT = 11
 
 	WHITE_TOKEN_MAP = map[string]int{
-		"insert":   KS_TK_INSERT,
-		"update":   KS_TK_UPDATE,
-		"delete":   KS_TK_DELETE,
-		"replace":  KS_TK_REPLACE,
-		"set":      KS_TK_SET,
-		"begin":    KS_TK_BEGIN,
-		"commit":   KS_TK_COMMIT,
-		"rollback": KS_TK_ROLLBACK,
-		"admin":    KS_TK_ADMIN,
-		"select":   KS_TK_SELECT,
-		"use":      KS_TK_USE,
+		"insert":   TK_ID_INSERT,
+		"update":   TK_ID_UPDATE,
+		"delete":   TK_ID_DELETE,
+		"replace":  TK_ID_REPLACE,
+		"set":      TK_ID_SET,
+		"begin":    TK_ID_BEGIN,
+		"commit":   TK_ID_COMMIT,
+		"rollback": TK_ID_ROLLBACK,
+		"admin":    TK_ID_ADMIN,
+		"select":   TK_ID_SELECT,
+		"use":      TK_ID_USE,
 	}
 	// '/'
 	COMMENT_PREFIX uint8 = 47
 	COMMENT_STRING       = "/*"
+
+	//
+	TK_STR_FROM = "from"
+	TK_STR_INTO = "into"
+	TK_STR_SET  = "set"
 )
