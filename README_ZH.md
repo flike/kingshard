@@ -41,4 +41,4 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 kingshard采用MIT协议，相关协议请参看[目录](./doc/License)
 
 ## 反馈
-目前kingshard还是1.0版本，比较核心的功能已经实现了。但还有很多地方不完善。如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至flikecn#126.com与作者取得联系，或者加入QQ群(147926796)交流。
+kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至flikecn#126.com与作者取得联系，或者加入QQ群(147926796)交流。
