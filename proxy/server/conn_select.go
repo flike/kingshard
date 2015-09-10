@@ -296,6 +296,17 @@ func (c *ClientConn) buildFuncExprValues(
 	var rowEmpty bool
 
 	values := make([][]interface{}, 0, len(rs))
+
+	if len(funcExprs) == len(rs[0].Values[0]) {
+		value := make([]interface{}, len(rs[0].Fields))
+		for k := range funcExprs {
+			value[k] = funcExprValues[k]
+		}
+		values = append(values, value)
+
+		return values, nil
+	}
+
 	for i := 0; i < len(rs); i++ {
 		*status |= rs[i].Status
 		//iterate every row in the resultset(rs[i])
@@ -320,15 +331,6 @@ func (c *ClientConn) buildFuncExprValues(
 			}
 			values = append(values, rs[i].Values[j])
 		}
-	}
-
-	//generate one row just for sum or count
-	if len(values) == 0 {
-		value := make([]interface{}, len(rs[0].Fields))
-		for k := range funcExprs {
-			value[k] = funcExprValues[k]
-		}
-		values = append(values, value)
 	}
 
 	return values, nil
