@@ -6,7 +6,7 @@
 	4. source ./dev.sh
 	5. make
 	6.设置配置文件
-	7.运行kingshard。./bin/kingshard -config=etc/multi.yaml
+	7.运行kingshard。./bin/kingshard -config=etc/ks.yaml
 ```
 
 ##配置文件说明

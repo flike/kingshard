@@ -20,7 +20,7 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
     6. set the config file (etc/multi.yaml)
     7. run kingshard (./bin/kingshard -config=etc/multi.yaml)
 
-# Licence
+# License
 
 kingshard is under the MIT license. See the [LICENSE](./doc/License) directory for details.
 
