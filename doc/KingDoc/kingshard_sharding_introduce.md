@@ -93,7 +93,7 @@ kingshard采用（shardKey%子表个数）的方式得到子表下标。优点�
 
 ```
 #启动kingshard
-kingshard git:(master) ✗ ./bin/kingshard -config=etc/multi.yaml
+kingshard git:(master) ✗ ./bin/kingshard -config=etc/ks.yaml
 kingshard
 2015/07/19 11:13:43 - INFO - server.go:[205] - [server] "NewServer" "Server running" "netProto=tcp|address=127.0.0.1:9696" conn_id=0
 

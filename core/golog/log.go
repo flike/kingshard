@@ -28,9 +28,12 @@ const (
 
 var LevelName [6]string = [6]string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
 
-const TimeFormat = "2006/01/02 15:04:05"
-
-const maxBufPoolSize = 16
+const (
+	LogSqlOn       = "on"
+	LogSqlOff      = "off"
+	TimeFormat     = "2006/01/02 15:04:05"
+	maxBufPoolSize = 16
+)
 
 type Logger struct {
 	sync.Mutex

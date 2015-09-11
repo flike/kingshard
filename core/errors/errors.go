@@ -15,8 +15,9 @@ var (
 	ErrMasterDown = errors.New("master is down")
 	ErrSlaveDown  = errors.New("slave is down")
 
-	ErrAddressNull  = errors.New("address is nil")
-	ErrCmdUnsupport = errors.New("command unsupport")
+	ErrAddressNull     = errors.New("address is nil")
+	ErrInvalidArgument = errors.New("argument is invalid")
+	ErrCmdUnsupport    = errors.New("command unsupport")
 
 	ErrLocationsCount = errors.New("locations count are not equal")
 	ErrNoCriteria     = errors.New("plan have no criteria")

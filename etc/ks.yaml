@@ -1,5 +1,5 @@
 # server listen addr
-addr : 127.0.0.1:9696
+addr : 0.0.0.0:9696
 
 # server user and password
 user :  kingshard
@@ -11,6 +11,8 @@ password : kingshard
 
 # log level[debug|info|warn|error],default error
 log_level : debug
+#if set log_sql(on|off) off,the sql log will not output
+log_sql: off 
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
 
@@ -21,9 +23,6 @@ nodes :
 
     # default max idle conns for mysql server
     idle_conns : 16
-
-    # if rw_split is true, select will use slave server
-    rw_split: true
 
     # all mysql in a node must have the same user and password
     user :  kingshard 
@@ -41,9 +40,6 @@ nodes :
 
     # default max idle conns for mysql server
     idle_conns : 16
-
-    # if rw_split is true, select will use slave server
-    rw_split: true
 
     # all mysql in a node must have the same user and password
     user :  kingshard 

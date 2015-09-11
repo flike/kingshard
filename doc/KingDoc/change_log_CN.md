@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 2015-09-07
+### feature
+* 增加SQL日志输出开关。
+
 ## 2015-08-23
 ### feature
 * select操作支持函数表达式。

@@ -177,7 +177,7 @@
 
 ##启动Kingshard
 
-	# ./bin/kingshard -config=etc/multi.yaml
+	# ./bin/kingshard -config=etc/ks.yaml
 
 ##测试shard功能
 

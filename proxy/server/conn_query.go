@@ -41,7 +41,7 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	}()
 
 	sql = strings.TrimRight(sql, ";") //删除sql语句最后的分号
-	hasHandled, err := c.handleUnShard(sql)
+	hasHandled, err := c.preHandleShard(sql)
 	if err != nil {
 		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled)
 		return err
@@ -76,10 +76,6 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 		return c.handleCommit()
 	case *sqlparser.Rollback:
 		return c.handleRollback()
-	case *sqlparser.SimpleSelect:
-		return c.handleSimpleSelect(sql, v)
-	case *sqlparser.Show:
-		return c.handleShow(sql, v)
 	case *sqlparser.Admin:
 		return c.handleAdmin(v)
 	case *sqlparser.UseDB:
@@ -175,43 +171,26 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 }
 
 func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args []interface{}) ([]*mysql.Result, error) {
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	rs := make([]interface{}, 1)
-
-	f := func(rs []interface{}, i int, co *backend.BackendConn) {
-		var state string
-		r, err := co.Execute(sql, args...)
-		if err != nil {
-			state = "ERROR"
-			rs[i] = err
-		} else {
-			state = "INFO"
-			rs[i] = r
-		}
+	var state string
+	r, err := conn.Execute(sql, args...)
+	if err != nil {
+		state = "ERROR"
+	} else {
+		state = "INFO"
+	}
+	if strings.ToLower(c.proxy.cfg.LogSql) != golog.LogSqlOff {
 		golog.OutputSql(state, "%s->%s:%s",
 			c.c.RemoteAddr(),
-			co.GetAddr(),
+			conn.GetAddr(),
 			sql,
 		)
-		wg.Done()
-	}
-	go f(rs, 0, conn)
-
-	wg.Wait()
-
-	var err error
-	r := make([]*mysql.Result, 1)
-	for i, v := range rs {
-		if e, ok := v.(error); ok {
-			err = e
-			break
-		}
-		r[i] = rs[i].(*mysql.Result)
 	}
 
-	return r, err
+	if err != nil {
+		return nil, err
+	}
+
+	return []*mysql.Result{r}, err
 }
 
 func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {
@@ -249,11 +228,13 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 				state = "INFO"
 				rs[i] = r
 			}
-			golog.OutputSql(state, "%s->%s:%s",
-				c.c.RemoteAddr(),
-				co.GetAddr(),
-				v,
-			)
+			if c.proxy.cfg.LogSql != golog.LogSqlOff {
+				golog.OutputSql(state, "%s->%s:%s",
+					c.c.RemoteAddr(),
+					co.GetAddr(),
+					v,
+				)
+			}
 			i++
 		}
 		wg.Done()
@@ -334,7 +315,7 @@ func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *mysql.Resultset 
 	return r
 }
 
-func (c *ClientConn) GetTransNode(tokens []string, sql string) (*backend.Node, error) {
+func (c *ClientConn) GetTransExecNode(tokens []string, sql string) (*backend.Node, error) {
 	var execNode *backend.Node
 	var err error
 
@@ -349,7 +330,7 @@ func (c *ClientConn) GetTransNode(tokens []string, sql string) (*backend.Node, e
 	}
 
 	if execNode == nil {
-		execNode, _, err = c.GetNotransNode(tokens, sql)
+		execNode, _, err = c.GetExecNode(tokens, sql)
 		if err != nil {
 			return nil, err
 		}
@@ -361,39 +342,66 @@ func (c *ClientConn) GetTransNode(tokens []string, sql string) (*backend.Node, e
 	return execNode, nil
 }
 
-func (c *ClientConn) GetNotransNode(tokens []string,
+func (c *ClientConn) GetExecNode(tokens []string,
 	sql string) (*backend.Node, bool, error) {
-
 	var execNode *backend.Node
-	var TK_FROM string = "from"
 	var fromSlave bool
 
-	tokensLen := len(tokens)
-	if 0 < tokensLen {
-		//token is in WHITE_TOKEN_MAP
-		if 0 < mysql.WHITE_TOKEN_MAP[tokens[0]] {
-			//select
-			if 1 < mysql.WHITE_TOKEN_MAP[tokens[0]] {
-				for i := 1; i < tokensLen; i++ {
-					if tokens[i] == TK_FROM {
-						return nil, false, nil
+	schema := c.proxy.schemas[c.proxy.db]
+	rules := schema.rule.Rules
+	if 0 < len(rules) {
+		tokensLen := len(tokens)
+		if 0 < tokensLen {
+			tokenId, ok := mysql.WHITE_TOKEN_MAP[tokens[0]]
+			if ok == true {
+				switch tokenId {
+				case mysql.TK_ID_SELECT, mysql.TK_ID_DELETE:
+					for i := 1; i < tokensLen; i++ {
+						if tokens[i] == mysql.TK_STR_FROM {
+							if i+1 < tokensLen {
+								tableName := sqlparser.GetTableName(tokens[i+1])
+								if _, ok := rules[tableName]; ok {
+									return nil, false, nil
+								}
+							}
+						}
 					}
+				case mysql.TK_ID_INSERT, mysql.TK_ID_REPLACE:
+					for i := 0; i < tokensLen; i++ {
+						if tokens[i] == mysql.TK_STR_INTO {
+							if i+1 < tokensLen {
+								tableName := sqlparser.GetTableName(tokens[i+1])
+								if _, ok := rules[tableName]; ok {
+									return nil, false, nil
+								}
+							}
+						}
+					}
+				case mysql.TK_ID_UPDATE:
+					for i := 0; i < tokensLen; i++ {
+						if tokens[i] == mysql.TK_STR_SET {
+							tableName := sqlparser.GetTableName(tokens[i-1])
+							if _, ok := rules[tableName]; ok {
+								return nil, false, nil
+							}
+						}
+					}
+				default:
+					return nil, false, nil
 				}
-			} else {
-				return nil, false, nil
 			}
 		}
-	}
-	//get node
-	if 2 <= tokensLen {
-		if tokens[0][0] == mysql.COMMENT_PREFIX {
-			nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
-			if c.schema.nodes[nodeName] != nil {
-				execNode = c.schema.nodes[nodeName]
-			}
-			//select
-			if mysql.WHITE_TOKEN_MAP[tokens[1]] == 2 {
-				fromSlave = true
+		//get node
+		if 2 <= tokensLen {
+			if tokens[0][0] == mysql.COMMENT_PREFIX {
+				nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
+				if c.schema.nodes[nodeName] != nil {
+					execNode = c.schema.nodes[nodeName]
+				}
+				//select
+				if mysql.WHITE_TOKEN_MAP[tokens[1]] == mysql.TK_ID_SELECT {
+					fromSlave = true
+				}
 			}
 		}
 	}
@@ -410,7 +418,7 @@ func (c *ClientConn) GetNotransNode(tokens []string,
 }
 
 //返回true表示已经处理，false表示未处理
-func (c *ClientConn) handleUnShard(sql string) (bool, error) {
+func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	var rs []*mysql.Result
 	var err error
 
@@ -427,9 +435,9 @@ func (c *ClientConn) handleUnShard(sql string) (bool, error) {
 	}
 
 	if c.needBeginTx() {
-		execNode, err = c.GetTransNode(tokens, sql)
+		execNode, err = c.GetTransExecNode(tokens, sql)
 	} else {
-		execNode, fromSlave, err = c.GetNotransNode(tokens, sql)
+		execNode, fromSlave, err = c.GetExecNode(tokens, sql)
 	}
 
 	if err != nil {
