@@ -15,12 +15,6 @@ import (
 	"github.com/flike/kingshard/sqlparser"
 )
 
-const (
-	MasterComment = "/*master*/"
-	SumFuncName   = "sum"
-	CountFuncName = "count"
-)
-
 /*处理query语句*/
 func (c *ClientConn) handleQuery(sql string) (err error) {
 	defer func() {

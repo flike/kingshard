@@ -12,7 +12,7 @@ password : kingshard
 # log level[debug|info|warn|error],default error
 log_level : debug
 #if set log_sql(on|off) off,the sql log will not output
-log_sql: off 
+#log_sql: off 
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
 

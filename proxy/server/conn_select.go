@@ -12,6 +12,22 @@ import (
 	"github.com/flike/kingshard/sqlparser"
 )
 
+const (
+	MasterComment = "/*master*/"
+	SumFuncName   = "sum"
+	CountFuncName = "count"
+	MaxFuncName   = "max"
+	MinFuncName   = "min"
+	FUNC_EXIST    = 1
+)
+
+var funcNameMap = map[string]int{
+	"sum":   FUNC_EXIST,
+	"count": FUNC_EXIST,
+	"max":   FUNC_EXIST,
+	"min":   FUNC_EXIST,
+}
+
 func (c *ClientConn) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
 	table := string(data[0:index])
@@ -215,7 +231,7 @@ func (c *ClientConn) buildFuncExprResult(stmt *sqlparser.Select,
 		for _, field := range rs[0].Fields {
 			names = append(names, string(field.Name))
 		}
-		r, err = c.buildResultset(names, r.Values)
+		r, err = c.buildResultset(rs[0].Fields, names, r.Values)
 		if err != nil {
 			return nil, err
 		}
@@ -241,14 +257,126 @@ func (c *ClientConn) getFuncExprs(stmt *sqlparser.Select) map[int]string {
 		if !ok {
 			continue
 		} else {
-			funcName := string(f.Name)
-			switch strings.ToLower(funcName) {
-			case SumFuncName, CountFuncName:
+			funcName := strings.ToLower(string(f.Name))
+			switch funcNameMap[funcName] {
+			case FUNC_EXIST:
 				funcExprs[i] = funcName
 			}
 		}
 	}
 	return funcExprs
+}
+
+func (c *ClientConn) getMaxFuncExprValue(
+	rs []*mysql.Result, index int) (interface{}, error) {
+	var max interface{}
+	var findNotNull bool
+	if len(rs) == 0 {
+		return nil, nil
+	} else {
+		for _, r := range rs {
+			for k := range r.Values {
+				result, err := r.GetValue(k, index)
+				if err != nil {
+					return nil, err
+				}
+				if result != nil {
+					max = result
+					findNotNull = true
+					break
+				}
+			}
+			if findNotNull {
+				break
+			}
+		}
+	}
+	for _, r := range rs {
+		for k := range r.Values {
+			result, err := r.GetValue(k, index)
+			if err != nil {
+				return nil, err
+			}
+			if result == nil {
+				continue
+			}
+			switch result.(type) {
+			case int64:
+				if max.(int64) < result.(int64) {
+					max = result
+				}
+			case uint64:
+				if max.(uint64) < result.(uint64) {
+					max = result
+				}
+			case float64:
+				if max.(float64) < result.(float64) {
+					max = result
+				}
+			case string:
+				if max.(string) < result.(string) {
+					max = result
+				}
+			}
+		}
+	}
+	return max, nil
+}
+
+func (c *ClientConn) getMinFuncExprValue(
+	rs []*mysql.Result, index int) (interface{}, error) {
+	var min interface{}
+	var findNotNull bool
+	if len(rs) == 0 {
+		return nil, nil
+	} else {
+		for _, r := range rs {
+			for k := range r.Values {
+				result, err := r.GetValue(k, index)
+				if err != nil {
+					return nil, err
+				}
+				if result != nil {
+					min = result
+					findNotNull = true
+					break
+				}
+			}
+			if findNotNull {
+				break
+			}
+		}
+	}
+	for _, r := range rs {
+		for k := range r.Values {
+			result, err := r.GetValue(k, index)
+			if err != nil {
+				return nil, err
+			}
+			if result == nil {
+				continue
+			}
+			switch result.(type) {
+			case int64:
+				if min.(int64) > result.(int64) {
+					min = result
+				}
+			case uint64:
+				if min.(uint64) > result.(uint64) {
+					min = result
+				}
+			case float64:
+				if min.(float64) > result.(float64) {
+					min = result
+				}
+			case string:
+				if min.(string) > result.(string) {
+					min = result
+				}
+			}
+		}
+	}
+	return min, nil
 }
 
 //calculate the the value funcExpr(sum or count)
@@ -258,6 +386,9 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 	var num int64
 	switch strings.ToLower(funcName) {
 	case SumFuncName, CountFuncName:
+		if len(rs) == 0 {
+			return nil, nil
+		}
 		for _, r := range rs {
 			for k := range r.Values {
 				result, err := r.GetInt(k, index)
@@ -268,7 +399,14 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 			}
 		}
 		return num, nil
+	case MaxFuncName:
+		return c.getMaxFuncExprValue(rs, index)
+	case MinFuncName:
+		return c.getMinFuncExprValue(rs, index)
 	default:
+		if len(rs) == 0 {
+			return nil, nil
+		}
 		//get a non-null value of funcExpr
 		for _, r := range rs {
 			for k := range r.Values {

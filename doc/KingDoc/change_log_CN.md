@@ -1,12 +1,16 @@
 # ChangeLog
 
+## 2015-09-12
+### feature
+* select操作支持min和max函数表达式。
+
 ## 2015-09-07
 ### feature
 * 增加SQL日志输出开关。
 
 ## 2015-08-23
 ### feature
-* select操作支持函数表达式。
+* select操作支持sum和count函数表达式。
 
 ## 2015-08-13
 ### feature

@@ -2,13 +2,14 @@ package server
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -275,7 +276,7 @@ func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
 		}
 	}
 
-	return c.buildResultset(names, values)
+	return c.buildResultset(nil, names, values)
 }
 
 func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
@@ -331,7 +332,7 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 		}
 	}
 
-	return c.buildResultset(names, values)
+	return c.buildResultset(nil, names, values)
 }
 
 func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
@@ -392,7 +393,7 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 		}
 	}
 
-	return c.buildResultset(names, values)
+	return c.buildResultset(nil, names, values)
 }
 
 func arrayToString(array []int) string {
