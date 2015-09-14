@@ -346,7 +346,7 @@ func (c *ClientConn) GetExecNode(tokens []string,
 	if 0 < len(rules) {
 		tokensLen := len(tokens)
 		if 0 < tokensLen {
-			tokenId, ok := mysql.WHITE_TOKEN_MAP[tokens[0]]
+			tokenId, ok := mysql.WHITE_TOKEN_MAP[strings.ToLower(tokens[0])]
 			if ok == true {
 				switch tokenId {
 				case mysql.TK_ID_SELECT, mysql.TK_ID_DELETE:

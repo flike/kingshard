@@ -124,7 +124,6 @@ func (r *Router) GetRule(table string) *Rule {
 			table = arry[1]
 		}
 	}
-
 	rule := r.Rules[table]
 	if rule == nil {
 		return r.DefaultRule
@@ -210,8 +209,14 @@ func (r *Router) BuildPlan(statement sqlparser.Statement) (*Plan, error) {
 func (r *Router) buildSelectPlan(statement sqlparser.Statement) (*Plan, error) {
 	plan := &Plan{}
 	var where *sqlparser.Where
+	var tableName string
 	stmt := statement.(*sqlparser.Select)
-	plan.Rule = r.GetRule(sqlparser.String(stmt.From[0])) //根据表名获得分表规则
+	if ate, ok := (stmt.From[0]).(*sqlparser.AliasedTableExpr); ok {
+		tableName = sqlparser.String(ate.Expr)
+	} else {
+		tableName = sqlparser.String(stmt.From[0])
+	}
+	plan.Rule = r.GetRule(tableName) //根据表名获得分表规则
 	where = stmt.Where
 
 	if where != nil {
@@ -388,13 +393,30 @@ func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
 
-			buf.Fprintf("select %v%s%v from %v",
+			buf.Fprintf("select %v%s%v from ",
 				node.Comments,
 				node.Distinct,
 				node.SelectExprs,
-				node.From,
 			)
-			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
+			if ate, ok := (node.From[0]).(*sqlparser.AliasedTableExpr); ok {
+				if len(ate.As) != 0 {
+					fmt.Fprintf(buf, "%s_%04d AS %s",
+						sqlparser.String(ate.Expr),
+						plan.RouteTableIndexs[i],
+						string(ate.As),
+					)
+				} else {
+					fmt.Fprintf(buf, "%s_%04d",
+						sqlparser.String(ate.Expr),
+						plan.RouteTableIndexs[i],
+					)
+				}
+			} else {
+				fmt.Fprintf(buf, "%s_%04d",
+					sqlparser.String(node.From[0]),
+					plan.RouteTableIndexs[i],
+				)
+			}
 			buf.Fprintf("%v%v%v%v%v%s",
 				node.Where,
 				node.GroupBy,
