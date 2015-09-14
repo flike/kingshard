@@ -20,7 +20,7 @@ func (c *ClientConn) handleSet(stmt *sqlparser.Set) error {
 	switch strings.ToUpper(k) {
 	case `AUTOCOMMIT`:
 		return c.handleSetAutoCommit(stmt.Exprs[0].Expr)
-	case `NAMES`:
+	case `NAMES`, `CHARACTER_SET_RESULTS`, `CHARACTER_SET_CLIENT`, `CHARACTER_SET_CONNECTION`:
 		return c.handleSetNames(stmt.Exprs[0].Expr)
 	default:
 		return fmt.Errorf("set %s is not supported now", k)
@@ -45,12 +45,13 @@ func (c *ClientConn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 }
 
 func (c *ClientConn) handleSetNames(val sqlparser.ValExpr) error {
-	value, ok := val.(sqlparser.StrVal)
-	if !ok {
-		return fmt.Errorf("set names charset error")
-	}
+	value := sqlparser.String(val)
+	value = strings.Trim(value, "'`\"")
 
-	charset := strings.ToLower(string(value))
+	charset := strings.ToLower(value)
+	if charset == "null" {
+		return c.writeOK(nil)
+	}
 	cid, ok := mysql.CharsetIds[charset]
 	if !ok {
 		return fmt.Errorf("invalid charset %s", charset)
