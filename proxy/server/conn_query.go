@@ -37,7 +37,7 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	sql = strings.TrimRight(sql, ";") //删除sql语句最后的分号
 	hasHandled, err := c.preHandleShard(sql)
 	if err != nil {
-		golog.Error("server", "parse", err.Error(), 0, "hasHandled", hasHandled)
+		golog.Error("server", "preHandleShard", err.Error(), 0, "hasHandled", hasHandled)
 		return err
 	}
 	if hasHandled {
@@ -351,7 +351,7 @@ func (c *ClientConn) GetExecNode(tokens []string,
 				switch tokenId {
 				case mysql.TK_ID_SELECT, mysql.TK_ID_DELETE:
 					for i := 1; i < tokensLen; i++ {
-						if tokens[i] == mysql.TK_STR_FROM {
+						if strings.ToLower(tokens[i]) == mysql.TK_STR_FROM {
 							if i+1 < tokensLen {
 								tableName := sqlparser.GetTableName(tokens[i+1])
 								if _, ok := rules[tableName]; ok {
@@ -362,7 +362,7 @@ func (c *ClientConn) GetExecNode(tokens []string,
 					}
 				case mysql.TK_ID_INSERT, mysql.TK_ID_REPLACE:
 					for i := 0; i < tokensLen; i++ {
-						if tokens[i] == mysql.TK_STR_INTO {
+						if strings.ToLower(tokens[i]) == mysql.TK_STR_INTO {
 							if i+1 < tokensLen {
 								tableName := sqlparser.GetTableName(tokens[i+1])
 								if _, ok := rules[tableName]; ok {
@@ -373,7 +373,7 @@ func (c *ClientConn) GetExecNode(tokens []string,
 					}
 				case mysql.TK_ID_UPDATE:
 					for i := 0; i < tokensLen; i++ {
-						if tokens[i] == mysql.TK_STR_SET {
+						if strings.ToLower(tokens[i]) == mysql.TK_STR_SET {
 							tableName := sqlparser.GetTableName(tokens[i-1])
 							if _, ok := rules[tableName]; ok {
 								return nil, false, nil
@@ -422,7 +422,7 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	if len(sql) == 0 {
 		return false, errors.ErrCmdUnsupport
 	}
-	sql = strings.ToLower(sql)
+
 	tokens := strings.Fields(sql)
 	if len(tokens) == 0 {
 		return false, errors.ErrCmdUnsupport
