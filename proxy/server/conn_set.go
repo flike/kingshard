@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
 )
 
 var nstring = sqlparser.String
 
-func (c *ClientConn) handleSet(stmt *sqlparser.Set) error {
+func (c *ClientConn) handleSet(stmt *sqlparser.Set, sql string) error {
 	if len(stmt.Exprs) != 1 {
 		return fmt.Errorf("must set one item once, not %s", nstring(stmt))
 	}
@@ -23,7 +24,9 @@ func (c *ClientConn) handleSet(stmt *sqlparser.Set) error {
 	case `NAMES`, `CHARACTER_SET_RESULTS`, `CHARACTER_SET_CLIENT`, `CHARACTER_SET_CONNECTION`:
 		return c.handleSetNames(stmt.Exprs[0].Expr)
 	default:
-		return fmt.Errorf("set %s is not supported now", k)
+		golog.Error("ClientConn", "handleSet", "command not supported",
+			c.connectionId, "sql", sql)
+		return c.writeOK(nil)
 	}
 }
 
