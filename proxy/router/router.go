@@ -211,11 +211,19 @@ func (r *Router) buildSelectPlan(statement sqlparser.Statement) (*Plan, error) {
 	var where *sqlparser.Where
 	var tableName string
 	stmt := statement.(*sqlparser.Select)
-	if ate, ok := (stmt.From[0]).(*sqlparser.AliasedTableExpr); ok {
-		tableName = sqlparser.String(ate.Expr)
-	} else {
-		tableName = sqlparser.String(stmt.From[0])
+	switch v := (stmt.From[0]).(type) {
+	case *sqlparser.AliasedTableExpr:
+		tableName = sqlparser.String(v.Expr)
+	case *sqlparser.JoinTableExpr:
+		if ate, ok := (v.LeftExpr).(*sqlparser.AliasedTableExpr); ok {
+			tableName = sqlparser.String(ate.Expr)
+		} else {
+			tableName = sqlparser.String(v)
+		}
+	default:
+		tableName = sqlparser.String(v)
 	}
+
 	plan.Rule = r.GetRule(tableName) //根据表名获得分表规则
 	where = stmt.Where
 
@@ -392,26 +400,50 @@ func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
-
 			buf.Fprintf("select %v%s%v from ",
 				node.Comments,
 				node.Distinct,
 				node.SelectExprs,
 			)
-			if ate, ok := (node.From[0]).(*sqlparser.AliasedTableExpr); ok {
-				if len(ate.As) != 0 {
+			switch v := (node.From[0]).(type) {
+			case *sqlparser.AliasedTableExpr:
+				if len(v.As) != 0 {
 					fmt.Fprintf(buf, "%s_%04d AS %s",
-						sqlparser.String(ate.Expr),
+						sqlparser.String(v.Expr),
 						plan.RouteTableIndexs[i],
-						string(ate.As),
+						string(v.As),
 					)
 				} else {
 					fmt.Fprintf(buf, "%s_%04d",
-						sqlparser.String(ate.Expr),
+						sqlparser.String(v.Expr),
 						plan.RouteTableIndexs[i],
 					)
 				}
-			} else {
+			case *sqlparser.JoinTableExpr:
+				if ate, ok := (v.LeftExpr).(*sqlparser.AliasedTableExpr); ok {
+					if len(ate.As) != 0 {
+						fmt.Fprintf(buf, "%s_%04d AS %s",
+							sqlparser.String(ate.Expr),
+							plan.RouteTableIndexs[i],
+							string(ate.As),
+						)
+					} else {
+						fmt.Fprintf(buf, "%s_%04d",
+							sqlparser.String(ate.Expr),
+							plan.RouteTableIndexs[i],
+						)
+					}
+				} else {
+					fmt.Fprintf(buf, "%s_%04d",
+						sqlparser.String(v.LeftExpr),
+						plan.RouteTableIndexs[i],
+					)
+				}
+				buf.Fprintf(" %s %v", v.Join, v.RightExpr)
+				if v.On != nil {
+					buf.Fprintf(" on %v", v.On)
+				}
+			default:
 				fmt.Fprintf(buf, "%s_%04d",
 					sqlparser.String(node.From[0]),
 					plan.RouteTableIndexs[i],
