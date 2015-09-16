@@ -10,7 +10,6 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
 - Transaction in single node.
 - Support setting the backend database online or offline dynamically.
 - Supports prepared statement: COM_STMT_PREPARE, COM_STMT_EXECUTE, etc.
-- Support setting the backend database online or offline dynamically
 - Support multi slaves, and loading banlance between slaves.
 - Support reading master database forcely.
 - Support sending sql to the specified node.
