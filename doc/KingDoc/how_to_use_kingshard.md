@@ -75,7 +75,7 @@ schemas :
     #分表分布的node名字
     nodes: [node1,node2]
     rules:
-    		#所有未分表的SQL，都会发往默认node。
+        #所有未分表的SQL，都会发往默认node。
         default: node1
         shard:
         -
