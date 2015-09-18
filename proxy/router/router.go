@@ -118,6 +118,7 @@ func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 }
 
 func (r *Router) GetRule(table string) *Rule {
+	table = strings.Trim(table, "`")
 	arry := strings.Split(table, ".")
 	if len(arry) == 2 {
 		if arry[0] == r.DB {
