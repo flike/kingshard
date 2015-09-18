@@ -39,9 +39,9 @@ func GetTableName(token string) string {
 	}
 	vec := strings.SplitN(token, ".", 2)
 	if len(vec) == 2 {
-		return strings.Replace(vec[1],"`","",2)
+		return strings.Trim(vec[1],"`")
 	} else {
-		return strings.Replace(vec[0],"`","",2)
+		return strings.Trim(vec[0],"`")
 	}
 }
 
