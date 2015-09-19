@@ -343,59 +343,71 @@ func (c *ClientConn) GetExecNode(tokens []string,
 
 	schema := c.proxy.schemas[c.proxy.db]
 	rules := schema.rule.Rules
-	if 0 < len(rules) {
-		tokensLen := len(tokens)
-		if 0 < tokensLen {
-			tokenId, ok := mysql.WHITE_TOKEN_MAP[strings.ToLower(tokens[0])]
-			if ok == true {
-				switch tokenId {
-				case mysql.TK_ID_SELECT, mysql.TK_ID_DELETE:
-					for i := 1; i < tokensLen; i++ {
-						if strings.ToLower(tokens[i]) == mysql.TK_STR_FROM {
-							if i+1 < tokensLen {
-								tableName := sqlparser.GetTableName(tokens[i+1])
-								if _, ok := rules[tableName]; ok {
-									return nil, false, nil
-								}
-							}
-						}
+
+	tokensLen := len(tokens)
+	if 0 < tokensLen {
+		tokenId, ok := mysql.WHITE_TOKEN_MAP[strings.ToLower(tokens[0])]
+		if ok == true {
+			switch tokenId {
+			case mysql.TK_ID_SELECT, mysql.TK_ID_DELETE:
+				if len(rules) == 0 {
+					if tokenId == mysql.TK_ID_SELECT {
+						fromSlave = true
 					}
-				case mysql.TK_ID_INSERT, mysql.TK_ID_REPLACE:
-					for i := 0; i < tokensLen; i++ {
-						if strings.ToLower(tokens[i]) == mysql.TK_STR_INTO {
-							if i+1 < tokensLen {
-								tableName := sqlparser.GetInsertTableName(tokens[i+1])
-								if _, ok := rules[tableName]; ok {
-									return nil, false, nil
-								}
-							}
-						}
-					}
-				case mysql.TK_ID_UPDATE:
-					for i := 0; i < tokensLen; i++ {
-						if strings.ToLower(tokens[i]) == mysql.TK_STR_SET {
-							tableName := sqlparser.GetTableName(tokens[i-1])
+					break
+				}
+				for i := 1; i < tokensLen; i++ {
+					if strings.ToLower(tokens[i]) == mysql.TK_STR_FROM {
+						if i+1 < tokensLen {
+							tableName := sqlparser.GetTableName(tokens[i+1])
+
 							if _, ok := rules[tableName]; ok {
 								return nil, false, nil
 							}
 						}
 					}
-				default:
-					return nil, false, nil
 				}
+			case mysql.TK_ID_INSERT, mysql.TK_ID_REPLACE:
+				if len(rules) == 0 {
+					break
+				}
+				for i := 0; i < tokensLen; i++ {
+					if strings.ToLower(tokens[i]) == mysql.TK_STR_INTO {
+						if i+1 < tokensLen {
+							tableName := sqlparser.GetInsertTableName(tokens[i+1])
+							if _, ok := rules[tableName]; ok {
+								return nil, false, nil
+							}
+						}
+					}
+				}
+			case mysql.TK_ID_UPDATE:
+				if len(rules) == 0 {
+					break
+				}
+				for i := 0; i < tokensLen; i++ {
+					if strings.ToLower(tokens[i]) == mysql.TK_STR_SET {
+						tableName := sqlparser.GetTableName(tokens[i-1])
+						if _, ok := rules[tableName]; ok {
+							return nil, false, nil
+						}
+					}
+				}
+			default:
+				return nil, false, nil
 			}
 		}
-		//get node
-		if 2 <= tokensLen {
-			if tokens[0][0] == mysql.COMMENT_PREFIX {
-				nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
-				if c.schema.nodes[nodeName] != nil {
-					execNode = c.schema.nodes[nodeName]
-				}
-				//select
-				if mysql.WHITE_TOKEN_MAP[tokens[1]] == mysql.TK_ID_SELECT {
-					fromSlave = true
-				}
+	}
+	//get node
+	if 2 <= tokensLen {
+		if tokens[0][0] == mysql.COMMENT_PREFIX {
+			nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
+			if c.schema.nodes[nodeName] != nil {
+				execNode = c.schema.nodes[nodeName]
+			}
+			//select
+			if mysql.WHITE_TOKEN_MAP[tokens[1]] == mysql.TK_ID_SELECT {
+				fromSlave = true
 			}
 		}
 	}
