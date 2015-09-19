@@ -4,7 +4,7 @@ kingshard开源有一段时间了，有些热心的用户发邮件来咨询kings
 
 ## 1. 整体架构
 
-kingshard采用Go开发，充分地利用了Go语言的并发特性。Go语言在并发方面，做了很好的封装，这大大简化了kingshard的开发工作。kingshard的整体工作流程入下所述：
+kingshard采用Go开发，充分地利用了Go语言的并发特性。Go语言在并发方面，做了很好的封装，这大大简化了kingshard的开发工作。kingshard的整体工作流程如下所述：
 
 1. 读取配置文件并启动，在配置文件中设置的监听端口监听客户端请求。
 2. 收到客户端连接请求后，启动一个goroutine单独处理该请求。
@@ -66,7 +66,7 @@ kingshard只支持单台DB上的事务，不允许跨DB的事务。kingshard处�
 
 1. 用户发送begin语句。
 2. kingshard接收到SQL语句后，将该连接的状态设置为事务。
-3. 用户发送DML语句，kingshard识别出语句需要发送到的DB，然后kingshard新建一个与后端DB的连接中取一个连接，利用该连接发送语句。
+3. 用户发送DML语句，kingshard识别出语句需要发送到的DB，然后kingshard新建一个与后端DB的连接，利用该连接发送语句。
 4. 收取SQL语句的结果后，将连接放回。
 5. kingshard收到下一条SQL语句，判断该SQL是不是发往同一个DB，如果不是则报错。如果是发往同一个DB，则利用该连接发送语句。
 6. 收到用户发送的commit语句，将该连接的状态设置为非事务，事务结束。
@@ -77,7 +77,7 @@ kingshard每个node启动了一个goroutine用于检测后端master和slave的�
 
 ## 7. 客户端白名单机制
 
-有时候用户为了安全考虑，希望只能某几台server能够连接kingshard。在kingshard的配置文件中有一个参数：allow_ips，用于实现客户端白名单机制。当管理员设置了该参数，则意味着只有allow_ips指定的IP能够连接kingshard，其他IP都会被kingshard拒绝连接。如果不设置该参数，则连接kingshard的客户端不受限制。
+有时候用户为了安全考虑，希望只只允许某几台server连接kingshard。在kingshard的配置文件中有一个参数：allow_ips，用于实现客户端白名单机制。当管理员设置了该参数，则意味着只有allow_ips指定的IP能够连接kingshard，其他IP都会被kingshard拒绝连接。如果不设置该参数，则连接kingshard的客户端不受限制。
 
 ## 8. 管理端设计和实现
 kingshard的管理端口复用了工作端口，通过特定的关键字(admin)来标示。kingshard是通过对管理端特定的SQL进行词法和语义分析，将SQL语句解析为一条kingshard可以识别的命令。目前支持平滑上下线master和slave，和查看kingshard配置和后端DB状态。后续打算将web页面集成到管理端，这样用户就可以不用输入命令行操作，而是在网页上操作。大大降低用户使用kingshard的门槛。
