@@ -50,7 +50,6 @@ nodes :
 - 
     name : node2 
     idle_conns : 16
-    rw_split: true
     user :  kingshard 
     password : kingshard
 

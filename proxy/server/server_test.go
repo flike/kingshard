@@ -1,11 +1,12 @@
 package server
 
 import (
-	"github.com/flike/kingshard/backend"
-	"github.com/flike/kingshard/config"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/flike/kingshard/backend"
+	"github.com/flike/kingshard/config"
 )
 
 var testServerOnce sync.Once
@@ -23,7 +24,6 @@ nodes :
     name : node1 
     down_after_noalive : 300
     idle_conns : 16
-    rw_split: false
     user: root
     password:
     master : 127.0.0.1:3306
