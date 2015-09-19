@@ -37,12 +37,27 @@ func GetTableName(token string) string {
 	if len(token) == 0 {
 		return ""
 	}
-	token = strings.Trim(token, "`")
+
 	vec := strings.SplitN(token, ".", 2)
 	if len(vec) == 2 {
 		return strings.Trim(vec[1], "`")
 	} else {
 		return strings.Trim(vec[0], "`")
+	}
+}
+
+func GetInsertTableName(token string) string {
+	if len(token) == 0 {
+		return ""
+	}
+
+	vec := strings.SplitN(token, ".", 2)
+	if len(vec) == 2 {
+		table := strings.Split(vec[1], "(")
+		return strings.Trim(table[0], "`")
+	} else {
+		table := strings.Split(vec[0], "(")
+		return strings.Trim(table[0], "`")
 	}
 }
 

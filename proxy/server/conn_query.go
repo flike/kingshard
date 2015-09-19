@@ -364,7 +364,7 @@ func (c *ClientConn) GetExecNode(tokens []string,
 					for i := 0; i < tokensLen; i++ {
 						if strings.ToLower(tokens[i]) == mysql.TK_STR_INTO {
 							if i+1 < tokensLen {
-								tableName := sqlparser.GetTableName(tokens[i+1])
+								tableName := sqlparser.GetInsertTableName(tokens[i+1])
 								if _, ok := rules[tableName]; ok {
 									return nil, false, nil
 								}
