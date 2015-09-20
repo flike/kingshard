@@ -163,9 +163,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	var err error
 	netProto := "tcp"
-//	if strings.Contains(netProto, "/") {
-//		netProto = "unix"
-//	}
+
 	s.listener, err = net.Listen(netProto, s.addr)
 
 	if err != nil {

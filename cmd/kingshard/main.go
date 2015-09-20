@@ -3,15 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/flike/kingshard/config"
-	"github.com/flike/kingshard/core/golog"
-	"github.com/flike/kingshard/proxy/server"
 	"os"
 	"os/signal"
 	"path"
 	"runtime"
 	"strings"
 	"syscall"
+
+	"github.com/flike/kingshard/config"
+	"github.com/flike/kingshard/core/golog"
+	"github.com/flike/kingshard/proxy/server"
 )
 
 var configFile *string = flag.String("config", "/etc/kingshard.conf", "kingshard config file")
@@ -77,6 +78,8 @@ func main() {
 	svr, err = server.NewServer(cfg)
 	if err != nil {
 		golog.Error("main", "main", err.Error(), 0)
+		golog.GlobalSysLogger.Close()
+		golog.GlobalSqlLogger.Close()
 		return
 	}
 
