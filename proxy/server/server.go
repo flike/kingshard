@@ -49,7 +49,7 @@ func (s *Server) parseAllowIps() error {
 		return nil
 	}
 	ipVec := strings.Split(cfg.AllowIps, ",")
-	s.allowips = make([]net.IP, 10)
+	s.allowips = make([]net.IP, 0, 10)
 	for _, ip := range ipVec {
 		s.allowips = append(s.allowips, net.ParseIP(strings.TrimSpace(ip)))
 	}
