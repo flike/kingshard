@@ -65,12 +65,7 @@ func newTestDB(t *testing.T) *backend.DB {
 	newTestServer(t)
 
 	f := func() {
-		var err error
-		testDB, err = backend.Open("127.0.0.1:3601", "root", "", "kingshard")
-
-		if err != nil {
-			t.Fatal(err)
-		}
+		testDB = backend.Open("127.0.0.1:3601", "root", "", "kingshard")
 
 		testDB.SetMaxIdleConnNum(4)
 	}
