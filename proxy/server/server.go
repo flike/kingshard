@@ -244,7 +244,7 @@ func (s *Server) onConn(c net.Conn) {
 
 func (s *Server) Run() error {
 	s.running = true
-	/*server一直在监听，监听到conn后，启动一个协程来处理*/
+
 	for s.running {
 		conn, err := s.listener.Accept()
 		if err != nil {

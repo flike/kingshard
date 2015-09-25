@@ -115,8 +115,6 @@ func (c *ClientConn) Close() error {
 
 	c.c.Close()
 
-	c.rollback()
-
 	c.closed = true
 
 	return nil
