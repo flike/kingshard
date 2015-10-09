@@ -218,7 +218,7 @@ func (c *ClientConn) readHandshakeResponse() error {
 
 	pos += authLen
 
-	if c.capability|mysql.CLIENT_CONNECT_WITH_DB > 0 {
+	if c.capability&mysql.CLIENT_CONNECT_WITH_DB > 0 {
 		if len(data[pos:]) == 0 {
 			return nil
 		}
