@@ -254,7 +254,7 @@ ERROR 1105 (HY000): no route node
 
 ### 3.2. 指定发送的node
 
-有时候我们需要操作的表，不在default node中。在kingshard中允许用户将特定的sql路由到指定的node上。只需要在sql语句前面加上包含node名称的注释。
+有时候我们需要操作的表，不在default node中。在kingshard中允许用户将特定的sql路由到指定的node上。只需要在sql语句前面加上包含node名称的注释(连接MySQL时需要加上-c选项，避免客户端过滤掉注释)。
 
 ```
 mysql> /*node2*/show tables;
