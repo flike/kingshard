@@ -7,8 +7,9 @@ package sqlparser
 import (
 	"bytes"
 	"fmt"
-	"github.com/flike/kingshard/sqltypes"
 	"strings"
+
+	"github.com/flike/kingshard/sqltypes"
 )
 
 const EOFCHAR = 0x100
@@ -112,7 +113,9 @@ var keywords = map[string]int{
 	"replace": REPLACE,
 
 	//for kingshard admin
-	"admin": ADMIN,
+	"admin":       ADMIN,
+	"start":       START,
+	"transaction": TRANSACTION,
 }
 
 // Lex returns the next token form the Tokenizer.

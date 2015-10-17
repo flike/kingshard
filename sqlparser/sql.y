@@ -85,7 +85,7 @@ var (
 %left <empty> END
 
 // Transaction Tokens
-%token <empty> BEGIN COMMIT ROLLBACK
+%token <empty> BEGIN START TRANSACTION COMMIT ROLLBACK
 
 // Charset Tokens
 %token <empty> NAMES 
@@ -93,7 +93,7 @@ var (
 // Replace
 %token <empty> REPLACE
 
-// Mixer admin
+// admin
 %token <empty> ADMIN
 
 // DDL Tokens
@@ -259,6 +259,11 @@ begin_statement:
   {
     $$ = &Begin{}
   }
+| START TRANSACTION
+  {
+    $$ = &Begin{}
+  }
+
 
 commit_statement:
   COMMIT

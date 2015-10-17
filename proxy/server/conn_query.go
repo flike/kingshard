@@ -19,7 +19,7 @@ import (
 func (c *ClientConn) handleQuery(sql string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			golog.OutputSql("Error", "%s", sql)
+			golog.OutputSql("Error", "err:%v,sql:%s", e, sql)
 
 			if err, ok := e.(error); ok {
 				const size = 4096
@@ -82,7 +82,7 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 }
 
 func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backend.BackendConn, err error) {
-	if !c.needBeginTx() {
+	if !c.isInTransaction() {
 		if fromSlave {
 			co, err = n.GetSlaveConn()
 			if err != nil {
@@ -141,7 +141,7 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 		nodeIndex := plan.RouteNodeIndexs[i]
 		nodes = append(nodes, c.proxy.GetNode(plan.Rule.Nodes[nodeIndex]))
 	}
-	if c.needBeginTx() {
+	if c.isInTransaction() {
 		if 1 < len(nodes) {
 			return nil, errors.ErrTransInMulti
 		}
@@ -346,7 +346,7 @@ func (c *ClientConn) GetExecNode(tokens []string,
 
 	tokensLen := len(tokens)
 	if 0 < tokensLen {
-		tokenId, ok := mysql.WHITE_TOKEN_MAP[strings.ToLower(tokens[0])]
+		tokenId, ok := mysql.PARSE_TOKEN_MAP[strings.ToLower(tokens[0])]
 		if ok == true {
 			switch tokenId {
 			case mysql.TK_ID_SELECT, mysql.TK_ID_DELETE:
@@ -406,7 +406,7 @@ func (c *ClientConn) GetExecNode(tokens []string,
 				execNode = c.schema.nodes[nodeName]
 			}
 			//select
-			if mysql.WHITE_TOKEN_MAP[tokens[1]] == mysql.TK_ID_SELECT {
+			if mysql.PARSE_TOKEN_MAP[tokens[1]] == mysql.TK_ID_SELECT {
 				fromSlave = true
 			}
 		}
@@ -440,7 +440,7 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 		return false, errors.ErrCmdUnsupport
 	}
 
-	if c.needBeginTx() {
+	if c.isInTransaction() {
 		execNode, err = c.GetTransExecNode(tokens, sql)
 	} else {
 		execNode, fromSlave, err = c.GetExecNode(tokens, sql)

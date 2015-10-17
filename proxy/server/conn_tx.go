@@ -1,9 +1,13 @@
 package server
 
-import "github.com/flike/kingshard/mysql"
+import (
+	"github.com/flike/kingshard/backend"
+	"github.com/flike/kingshard/mysql"
+)
 
 func (c *ClientConn) isInTransaction() bool {
-	return c.status&mysql.SERVER_STATUS_IN_TRANS > 0
+	return c.status&mysql.SERVER_STATUS_IN_TRANS > 0 ||
+		!c.isAutoCommit()
 }
 
 func (c *ClientConn) isAutoCommit() bool {
@@ -41,7 +45,7 @@ func (c *ClientConn) commit() (err error) {
 		co.Close()
 	}
 	c.Lock()
-	c.txConns = nil
+	c.txConns = make(map[*backend.Node]*backend.BackendConn)
 	c.Unlock()
 	return
 }
@@ -56,14 +60,7 @@ func (c *ClientConn) rollback() (err error) {
 		co.Close()
 	}
 	c.Lock()
-	c.txConns = nil
+	c.txConns = make(map[*backend.Node]*backend.BackendConn)
 	c.Unlock()
 	return
-}
-
-//if status is in_trans, need
-//else if status is not autocommit, need
-//else no need
-func (c *ClientConn) needBeginTx() bool {
-	return c.isInTransaction() || !c.isAutoCommit()
 }

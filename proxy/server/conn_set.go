@@ -38,6 +38,9 @@ func (c *ClientConn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 	switch value[0] {
 	case '1':
 		c.status |= mysql.SERVER_STATUS_AUTOCOMMIT
+		if c.status&mysql.SERVER_STATUS_IN_TRANS > 0 {
+			c.status &= ^mysql.SERVER_STATUS_IN_TRANS
+		}
 	case '0':
 		c.status &= ^mysql.SERVER_STATUS_AUTOCOMMIT
 	default:

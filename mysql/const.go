@@ -156,20 +156,24 @@ var (
 	TK_ID_ADMIN    = 9
 	TK_ID_USE      = 10
 
-	TK_ID_SELECT = 11
+	TK_ID_SELECT      = 11
+	TK_ID_START       = 12
+	TK_ID_TRANSACTION = 13
 
-	WHITE_TOKEN_MAP = map[string]int{
-		"insert":   TK_ID_INSERT,
-		"update":   TK_ID_UPDATE,
-		"delete":   TK_ID_DELETE,
-		"replace":  TK_ID_REPLACE,
-		"set":      TK_ID_SET,
-		"begin":    TK_ID_BEGIN,
-		"commit":   TK_ID_COMMIT,
-		"rollback": TK_ID_ROLLBACK,
-		"admin":    TK_ID_ADMIN,
-		"select":   TK_ID_SELECT,
-		"use":      TK_ID_USE,
+	PARSE_TOKEN_MAP = map[string]int{
+		"insert":      TK_ID_INSERT,
+		"update":      TK_ID_UPDATE,
+		"delete":      TK_ID_DELETE,
+		"replace":     TK_ID_REPLACE,
+		"set":         TK_ID_SET,
+		"begin":       TK_ID_BEGIN,
+		"commit":      TK_ID_COMMIT,
+		"rollback":    TK_ID_ROLLBACK,
+		"admin":       TK_ID_ADMIN,
+		"select":      TK_ID_SELECT,
+		"use":         TK_ID_USE,
+		"start":       TK_ID_START,
+		"transaction": TK_ID_TRANSACTION,
 	}
 	// '/'
 	COMMENT_PREFIX uint8 = 47
