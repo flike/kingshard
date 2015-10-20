@@ -249,9 +249,9 @@ set_statement:
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
   }
-| SET comment_opt NAMES ID 
+| SET comment_opt NAMES value_expression 
   {
-    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal($4)}}}
+    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: $4}}}
   }
 
 begin_statement:
