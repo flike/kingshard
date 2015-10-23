@@ -109,7 +109,7 @@ func (n *Node) checkMaster() {
 		return
 	}
 
-	if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastMasterPing > int64(n.DownAfterNoAlive) {
+	if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastMasterPing > int64(n.DownAfterNoAlive/time.Second) {
 		golog.Info("Node", "checkMaster", "Master down", 0,
 			"db.Addr", db.Addr(),
 			"Master_down_time", int64(n.DownAfterNoAlive/time.Second))
@@ -139,7 +139,7 @@ func (n *Node) checkSlave() {
 			continue
 		}
 
-		if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastSlavePing > int64(n.DownAfterNoAlive) {
+		if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastSlavePing > int64(n.DownAfterNoAlive/time.Second) {
 			golog.Info("Node", "checkMaster", "Master down", 0,
 				"db.Addr", slaves[i].Addr(),
 				"slave_down_time", int64(n.DownAfterNoAlive/time.Second))
