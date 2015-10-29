@@ -21,6 +21,8 @@ type DB struct {
 	user         string
 	password     string
 	db           string
+	wait_timeout int
+
 	maxIdleConns int
 	state        int32
 
@@ -29,13 +31,14 @@ type DB struct {
 	connNum int32
 }
 
-func Open(addr string, user string, password string, dbName string) *DB {
+func Open(addr string, user string, password string, dbName string,wait_timeout int) *DB {
 	db := new(DB)
 
 	db.addr = addr
 	db.user = user
 	db.password = password
 	db.db = dbName
+	db.wait_timeout = wait_timeout
 
 	db.idleConns = list.New()
 	db.connNum = 0
@@ -115,7 +118,7 @@ func (db *DB) GetConnNum() int {
 func (db *DB) newConn() (*Conn, error) {
 	co := new(Conn)
 
-	if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
+	if err := co.Connect(db.addr, db.user, db.password, db.db,db.wait_timeout); err != nil {
 		return nil, err
 	}
 
