@@ -179,8 +179,16 @@ func NewServer(cfg *config.Config) (*Server, error) {
 }
 func (s *Server) newClientConn(co net.Conn) *ClientConn {
 	c := new(ClientConn)
+	tcpConn := co.(*net.TCPConn)
 
-	c.c = co
+	//SetNoDelay controls whether the operating system should delay packet transmission
+	// in hopes of sending fewer packets (Nagle's algorithm).
+	// The default is true (no delay),
+	// meaning that data is sent as soon as possible after a Write.
+	//I set this option false.
+	tcpConn.SetNoDelay(false)
+	c.c = tcpConn
+
 	c.schema = s.GetSchema(s.db)
 
 	c.pkg = mysql.NewPacketIO(co)
