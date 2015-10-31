@@ -26,6 +26,7 @@ type Conn struct {
 	user     string
 	password string
 	db       string
+	wait_timeout time.Duration
 
 	capability uint32
 
@@ -40,11 +41,12 @@ type Conn struct {
 	pkgErr error
 }
 
-func (c *Conn) Connect(addr string, user string, password string, db string) error {
+func (c *Conn) Connect(addr string, user string, password string, db string,wait_timeout int) error {
 	c.addr = addr
 	c.user = user
 	c.password = password
 	c.db = db
+	c.wait_timeout = time.Duration(wait_timeout) * time.Second
 
 	//use utf8
 	c.collation = mysql.DEFAULT_COLLATION_ID
@@ -63,7 +65,9 @@ func (c *Conn) ReConnect() error {
 		n = "unix"
 	}
 
-	netConn, err := net.Dial(n, c.addr)
+    nd := net.Dialer{Timeout:c.wait_timeout}
+	netConn, err := nd.Dial(n, c.addr)
+    //netConn, err := net.Dial(n, c.addr)
 	if err != nil {
 		return err
 	}

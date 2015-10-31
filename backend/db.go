@@ -3,8 +3,9 @@ package backend
 import (
 	"container/list"
 	"sync"
+	"fmt"
+	"time"
 	"sync/atomic"
-
 	"github.com/flike/kingshard/mysql"
 )
 
@@ -15,30 +16,39 @@ const (
 )
 
 type DB struct {
-	sync.Mutex
+	sync.RWMutex
 
 	addr         string
 	user         string
 	password     string
 	db           string
+	wait_timeout int
+
 	maxIdleConns int
+	maxConns     int
+	getFailed    int64
 	state        int32
 
 	idleConns *list.List
 
+    rlock      sync.RWMutex
+
+
 	connNum int32
 }
 
-func Open(addr string, user string, password string, dbName string) *DB {
+func Open(addr string, user string, password string, dbName string,wait_timeout int) *DB {
 	db := new(DB)
 
 	db.addr = addr
 	db.user = user
 	db.password = password
 	db.db = dbName
+	db.wait_timeout = wait_timeout
 
 	db.idleConns = list.New()
 	db.connNum = 0
+	db.getFailed = 0
 	atomic.StoreInt32(&(db.state), Unknown)
 
 	return db
@@ -62,8 +72,8 @@ func (db *DB) State() string {
 }
 
 func (db *DB) IdleConnCount() int {
-	db.Lock()
-	defer db.Unlock()
+	db.RLock()
+	defer db.RUnlock()
 
 	return db.idleConns.Len()
 }
@@ -104,6 +114,10 @@ func (db *DB) SetMaxIdleConnNum(num int) {
 	db.maxIdleConns = num
 }
 
+func (db *DB) SetMaxConnNum(num int) {
+	db.maxConns = num
+}
+
 func (db *DB) GetIdleConnNum() int {
 	return db.idleConns.Len()
 }
@@ -115,7 +129,7 @@ func (db *DB) GetConnNum() int {
 func (db *DB) newConn() (*Conn, error) {
 	co := new(Conn)
 
-	if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
+	if err := co.Connect(db.addr, db.user, db.password, db.db,db.wait_timeout); err != nil {
 		return nil, err
 	}
 
@@ -164,14 +178,32 @@ func (db *DB) PopConn() (co *Conn, err error) {
 				return co, nil
 			}
 		}
+		atomic.AddInt32(&db.connNum, -1)
 		co.Close()
 	}
 
-	co, err = db.newConn()
-	if err == nil {
-		atomic.AddInt32(&db.connNum, 1)
-	}
-	return
+    waitSecond := 100
+    for {
+        db.RLock()
+        oversize := int(db.connNum) >= db.maxConns
+        db.RUnlock()
+        if oversize {
+            if waitSecond <= 0 {
+                atomic.AddInt64(&(db.getFailed),1)
+                err = fmt.Errorf("waiting exceed time get conn %s failed ", db.addr)
+                break
+            }
+            time.Sleep(time.Second)
+            waitSecond--
+            continue
+        }
+        co, err = db.newConn()
+        if err == nil {
+            atomic.AddInt32(&db.connNum, 1)
+        }
+        break
+    }
+    return
 }
 
 func (db *DB) PushConn(co *Conn, err error) {
@@ -201,7 +233,6 @@ func (db *DB) PushConn(co *Conn, err error) {
 
 	if closeConn != nil {
 		atomic.AddInt32(&db.connNum, -1)
-
 		closeConn.Close()
 	}
 }

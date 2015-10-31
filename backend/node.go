@@ -203,9 +203,15 @@ func (n *Node) DeleteSlave(addr string) error {
 }
 
 func (n *Node) OpenDB(addr string) *DB {
-	db := Open(addr, n.Cfg.User, n.Cfg.Password, "")
+	db := Open(addr, n.Cfg.User, n.Cfg.Password, "",n.Cfg.WaitTimeOut)
 
-	db.SetMaxIdleConnNum(n.Cfg.IdleConns)
+    if n.Cfg.IdleConns > n.Cfg.MaxConns {
+	    db.SetMaxIdleConnNum(n.Cfg.MaxConns)
+    }else{
+        db.SetMaxIdleConnNum(n.Cfg.IdleConns)
+    }
+
+	db.SetMaxConnNum(n.Cfg.MaxConns)
 	return db
 }
 

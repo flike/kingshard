@@ -12,44 +12,56 @@ password : kingshard
 # log level[debug|info|warn|error],default error
 log_level : debug
 #if set log_sql(on|off) off,the sql log will not output
-#log_sql: off 
+log_sql: off 
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
 
 # node is an agenda for real remote mysql server.
 nodes :
-- 
-    name : node1 
+-
+    name : node1
 
     # default max idle conns for mysql server
     idle_conns : 16
 
+    # default max conns for mysql server
+    max_conns  :  16
+
+    # default max wait time out  for connect mysql server [second]
+    wait_timeout : 32
+
     # all mysql in a node must have the same user and password
-    user :  kingshard 
+    user :  kingshard
     password : kingshard
 
-    # master represents a real mysql master server 
-    master : 127.0.0.1:3306
+    # master represents a real mysql master server
+    master : 127.0.0.1:32769
 
-    # slave represents a real mysql salve server,and the number after '@' is 
+    # slave represents a real mysql salve server,and the number after '@' is
     # read load weight of this slave.
-    slave : 
+    slave :
     down_after_noalive : 100
-- 
-    name : node2 
+-
+    name : node2
 
     # default max idle conns for mysql server
     idle_conns : 16
 
+    # default max conns for mysql server
+    max_conns  : 32
+
+    # wait conns release
+    wait_timeout : 5
+
     # all mysql in a node must have the same user and password
-    user :  kingshard 
+    user :  kingshard
     password : kingshard
 
-    # master represents a real mysql master server 
-    master : 192.168.59.103:3307
+    # master represents a real mysql master server
+    master : 127.0.0.1:32770
 
-    # slave represents a real mysql salve server 
-    slave : 
+    # slave represents a real mysql salve server
+    slave :
 
     # down mysql after N seconds noalive
     # 0 will no down
@@ -63,17 +75,41 @@ schemas :
     rules:
         default: node1
         shard:
-        -   
+        -
             table: test_shard_hash
             key: id
             nodes: [node1, node2]
             type: hash
             locations: [4,4]
 
-        -   
+        -
             table: test_shard_range
             key: id
             type: range
             nodes: [node1, node2]
             locations: [4,4]
             table_row_limit: 10000
+        -
+            table: sbtest1
+            key: id
+            nodes: [node1, node2]
+            type: hash
+            locations: [4,4]
+        -
+            table: sbtest2
+            key: id
+            nodes: [node1, node2]
+            type: hash
+            locations: [4,4]
+        -
+            table: sbtest3
+            key: id
+            nodes: [node1, node2]
+            type: hash
+            locations: [4,4]
+        -
+            table: sbtest4
+            key: id
+            nodes: [node1, node2]
+            type: hash
+            locations: [4,4]
