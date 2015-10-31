@@ -191,11 +191,9 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 
 	c.schema = s.GetSchema(s.db)
 
-	c.pkg = mysql.NewPacketIO(co)
-
+	c.pkg = mysql.NewPacketIO(tcpConn)
 	c.proxy = s
 
-	c.c = co
 	c.pkg.Sequence = 0
 
 	c.connectionId = atomic.AddUint32(&baseConnId, 1)

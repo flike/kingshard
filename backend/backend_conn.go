@@ -77,7 +77,7 @@ func (c *Conn) ReConnect() error {
 	//I set this option false.
 	tcpConn.SetNoDelay(false)
 	c.conn = tcpConn
-	c.pkg = mysql.NewPacketIO(netConn)
+	c.pkg = mysql.NewPacketIO(tcpConn)
 
 	if err := c.readInitialHandshake(); err != nil {
 		c.conn.Close()
