@@ -12,8 +12,9 @@ var (
 	ErrNoSlaveDb     = errors.New("no slave database")
 	ErrNoDatabase    = errors.New("no database")
 
-	ErrMasterDown = errors.New("master is down")
-	ErrSlaveDown  = errors.New("slave is down")
+	ErrMasterDown    = errors.New("master is down")
+	ErrSlaveDown     = errors.New("slave is down")
+	ErrDatabaseClose = errors.New("database is close")
 
 	ErrAddressNull     = errors.New("address is nil")
 	ErrInvalidArgument = errors.New("argument is invalid")

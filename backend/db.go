@@ -1,10 +1,10 @@
 package backend
 
 import (
-	"container/list"
 	"sync"
 	"sync/atomic"
 
+	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/mysql"
 )
 
@@ -12,32 +12,39 @@ const (
 	Up = iota
 	Down
 	Unknown
+
+	DefaultMaxConnNum = 64
 )
 
 type DB struct {
 	sync.Mutex
 
-	addr         string
-	user         string
-	password     string
-	db           string
-	maxIdleConns int
-	state        int32
+	addr       string
+	user       string
+	password   string
+	db         string
+	maxConnNum int
+	state      int32
 
-	idleConns *list.List
+	idleConns chan *Conn
 
-	connNum int32
+	connNum int
 }
 
-func Open(addr string, user string, password string, dbName string) *DB {
+func Open(addr string, user string, password string, dbName string, maxConnNum int) *DB {
 	db := new(DB)
 
 	db.addr = addr
 	db.user = user
 	db.password = password
 	db.db = dbName
+	if 0 < maxConnNum {
+		db.maxConnNum = maxConnNum
+	} else {
+		db.maxConnNum = DefaultMaxConnNum
+	}
 
-	db.idleConns = list.New()
+	db.idleConns = make(chan *Conn, maxConnNum)
 	db.connNum = 0
 	atomic.StoreInt32(&(db.state), Unknown)
 
@@ -64,27 +71,22 @@ func (db *DB) State() string {
 func (db *DB) IdleConnCount() int {
 	db.Lock()
 	defer db.Unlock()
-
-	return db.idleConns.Len()
+	return len(db.idleConns)
 }
 
 func (db *DB) Close() error {
 	db.Lock()
-
-	for {
-		if db.idleConns.Len() > 0 {
-			v := db.idleConns.Back()
-			co := v.Value.(*Conn)
-			db.idleConns.Remove(v)
-
-			co.Close()
-
-		} else {
-			break
-		}
-	}
-
+	connChannel := db.idleConns
+	db.idleConns = nil
+	db.connNum = 0
 	db.Unlock()
+	if connChannel == nil {
+		return nil
+	}
+	close(connChannel)
+	for conn := range connChannel {
+		conn.Close()
+	}
 
 	return nil
 }
@@ -98,18 +100,6 @@ func (db *DB) Ping() error {
 	err = c.Ping()
 	db.PushConn(c, err)
 	return err
-}
-
-func (db *DB) SetMaxIdleConnNum(num int) {
-	db.maxIdleConns = num
-}
-
-func (db *DB) GetIdleConnNum() int {
-	return db.idleConns.Len()
-}
-
-func (db *DB) GetConnNum() int {
-	return int(db.connNum)
 }
 
 func (db *DB) newConn() (*Conn, error) {
@@ -148,61 +138,72 @@ func (db *DB) tryReuse(co *Conn) error {
 	return nil
 }
 
-func (db *DB) PopConn() (co *Conn, err error) {
+func (db *DB) PopConn() (*Conn, error) {
+	var conn *Conn = nil
+	var needNewConn bool
+
 	db.Lock()
-	if db.idleConns.Len() > 0 {
-		v := db.idleConns.Front()
-		co = v.Value.(*Conn)
-		db.idleConns.Remove(v)
+	connChannel := db.idleConns
+	db.Unlock()
+	if connChannel == nil {
+		return nil, errors.ErrDatabaseClose
+	}
+	if 0 < len(connChannel) {
+		conn = <-connChannel
+	}
+
+	if conn != nil {
+		if err := conn.Ping(); err == nil {
+			if err := db.tryReuse(conn); err == nil {
+				//connection may alive
+				return conn, nil
+			}
+		}
+		conn.Close()
+	}
+
+	db.Lock()
+	if db.connNum < db.maxConnNum {
+		db.connNum++
+		needNewConn = true
 	}
 	db.Unlock()
 
-	if co != nil {
-		if err := co.Ping(); err == nil {
-			if err := db.tryReuse(co); err == nil {
-				//connection may alive
-				return co, nil
-			}
-		}
-		co.Close()
+	if needNewConn {
+		return db.newConn()
 	}
 
-	co, err = db.newConn()
-	if err == nil {
-		atomic.AddInt32(&db.connNum, 1)
+	conn = <-connChannel
+	if conn != nil {
+		if err := conn.Ping(); err == nil {
+			if err := db.tryReuse(conn); err == nil {
+				//connection may alive
+				return conn, nil
+			}
+		}
+		conn.Close()
 	}
-	return
+
+	//conn is nil
+	return nil, errors.ErrDatabaseClose
 }
 
 func (db *DB) PushConn(co *Conn, err error) {
-	var closeConn *Conn = nil
+	db.Lock()
+	defer db.Unlock()
 
-	if err != nil {
-		closeConn = co
-	} else {
-		if db.maxIdleConns > 0 {
-			db.Lock()
-
-			if db.idleConns.Len() >= db.maxIdleConns {
-				v := db.idleConns.Front()
-				closeConn = v.Value.(*Conn)
-				db.idleConns.Remove(v)
-			}
-
-			db.idleConns.PushBack(co)
-
-			db.Unlock()
-
-		} else {
-			closeConn = co
-		}
-
+	if err != nil || db.idleConns == nil {
+		co.Close()
+		db.connNum--
+		return
 	}
 
-	if closeConn != nil {
-		atomic.AddInt32(&db.connNum, -1)
-
-		closeConn.Close()
+	select {
+	case db.idleConns <- co:
+		break
+	default:
+		db.connNum--
+		co.Close()
 	}
 }
 
