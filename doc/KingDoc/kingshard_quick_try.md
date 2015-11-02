@@ -96,8 +96,8 @@
     - 
         name : node1 
     
-        # default max idle conns for mysql server
-        idle_conns : 16
+        # default max conns for mysql server
+        max_conns_limit : 8
     
         # all mysql in a node must have the same user and password
         user :  root
@@ -114,8 +114,8 @@
     - 
         name : node2 
     
-        # default max idle conns for mysql server
-        idle_conns : 16
+        # default max conns for mysql server
+        max_conns_limit : 8
     
         # all mysql in a node must have the same user and password
         user :  root

@@ -33,8 +33,8 @@ nodes :
     #node节点名字
     name : node1 
 
-    # 连接池中默认的空闲连接数
-    idle_conns : 16
+    # 连接池中最大空闲连接数，也就是最多与后端DB建立max_conns_limit个连接
+    max_conns_limit : 16
 
     # kingshard连接该node中mysql的用户名和密码，master和slave的用户名和密码必须一致
     user :  kingshard 
@@ -49,7 +49,7 @@ nodes :
     down_after_noalive : 300
 - 
     name : node2 
-    idle_conns : 16
+    max_conns_limit : 16
     user :  kingshard 
     password : kingshard
 
