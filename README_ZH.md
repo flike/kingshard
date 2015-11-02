@@ -28,15 +28,17 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 
 [3.kingshard架构设计和功能实现](./doc/KingDoc/architecture_of_kingshard_CN.md)
 
-[4.kingshard sharding介绍](./doc/KingDoc/kingshard_sharding_introduce.md)
+[4.kingshard性能优化之网络篇](./doc/KingDoc/kingshard_performance_profiling.md)
 
-[5.kingshard 快速入门](./doc/KingDoc/kingshard_quick_try.md)
+[5.kingshard sharding介绍](./doc/KingDoc/kingshard_sharding_introduce.md)
 
-[6.功能FAQ](./doc/KingDoc/function_FAQ.md)
+[6.kingshard 快速入门](./doc/KingDoc/kingshard_quick_try.md)
 
-[7.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
+[7.功能FAQ](./doc/KingDoc/function_FAQ.md)
 
-[8.ChangeLog](./doc/KingDoc/change_log_CN.md)
+[8.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
+
+[9.ChangeLog](./doc/KingDoc/change_log_CN.md)
 
 ## License
 
