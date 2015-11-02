@@ -286,7 +286,7 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 		"Type",
 		"State",
 		"LastPing",
-		"MaxIdleConn",
+		"MaxConn",
 		"IdleConn",
 	}
 	var rows [][]string
@@ -305,7 +305,7 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 				"master",
 				node.Master.State(),
 				fmt.Sprintf("%v", time.Unix(node.LastMasterPing, 0)),
-				strconv.Itoa(node.Cfg.IdleConns),
+				strconv.Itoa(node.Cfg.MaxConnNum),
 				strconv.Itoa(node.Master.IdleConnCount()),
 			})
 		//"slave"
@@ -318,7 +318,7 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 					"slave",
 					slave.State(),
 					fmt.Sprintf("%v", time.Unix(node.LastSlavePing, 0)),
-					strconv.Itoa(node.Cfg.IdleConns),
+					strconv.Itoa(node.Cfg.MaxConnNum),
 					strconv.Itoa(slave.IdleConnCount()),
 				})
 		}

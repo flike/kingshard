@@ -26,7 +26,7 @@ type Config struct {
 type NodeConfig struct {
 	Name             string `yaml:"name"`
 	DownAfterNoAlive int    `yaml:"down_after_noalive"`
-	IdleConns        int    `yaml:"idle_conns"`
+	MaxConnNum       int    `yaml:"max_conns_limit"`
 
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`

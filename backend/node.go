@@ -21,6 +21,7 @@ const (
 
 type Node struct {
 	Cfg config.NodeConfig
+
 	sync.Mutex
 	Master *DB
 
@@ -203,9 +204,7 @@ func (n *Node) DeleteSlave(addr string) error {
 }
 
 func (n *Node) OpenDB(addr string) *DB {
-	db := Open(addr, n.Cfg.User, n.Cfg.Password, "")
-
-	db.SetMaxIdleConnNum(n.Cfg.IdleConns)
+	db := Open(addr, n.Cfg.User, n.Cfg.Password, "", n.Cfg.MaxConnNum)
 	return db
 }
 

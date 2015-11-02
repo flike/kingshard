@@ -66,8 +66,6 @@ func newTestDB(t *testing.T) *backend.DB {
 
 	f := func() {
 		testDB = backend.Open("127.0.0.1:3601", "root", "", "kingshard")
-
-		testDB.SetMaxIdleConnNum(4)
 	}
 
 	testDBOnce.Do(f)
