@@ -2,10 +2,11 @@ package router
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/core/yaml"
 	"github.com/flike/kingshard/sqlparser"
-	"testing"
 )
 
 func TestParseRule(t *testing.T) {
@@ -53,7 +54,7 @@ schemas:
 		t.Fatal("parse nodes not correct.")
 	}
 
-	if n := hashRule.FindNode(uint64(11)); n != "node2" {
+	if n, _ := hashRule.FindNode(uint64(11)); n != "node2" {
 		t.Fatal(n)
 	}
 
@@ -62,7 +63,7 @@ schemas:
 		t.Fatal(rangeRule.Type)
 	}
 
-	if n := rangeRule.FindNode(10000 - 1); n != "node2" {
+	if n, _ := rangeRule.FindNode(10000 - 1); n != "node2" {
 		t.Fatal(n)
 	}
 
@@ -79,7 +80,7 @@ schemas:
 		t.Fatal("nil error")
 	}
 
-	if n := defaultRule.FindNode(11); n != "node1" {
+	if n, _ := defaultRule.FindNode(11); n != "node1" {
 		t.Fatal(n)
 	}
 }

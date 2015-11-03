@@ -6,9 +6,11 @@ package router
 
 import (
 	"fmt"
-	"github.com/flike/kingshard/core/hack"
 	"hash/crc32"
 	"strconv"
+
+	"github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/hack"
 )
 
 /*由分片ID找到分片，可用文件中的函数*/
@@ -85,7 +87,7 @@ func NumValue(value interface{}) int64 {
 }
 
 type Shard interface {
-	FindForKey(key interface{}) int
+	FindForKey(key interface{}) (int, error)
 }
 
 /*一个范围的分片,例如[start,end)*/
@@ -99,24 +101,24 @@ type HashShard struct {
 	ShardNum int
 }
 
-func (s *HashShard) FindForKey(key interface{}) int {
+func (s *HashShard) FindForKey(key interface{}) (int, error) {
 	h := HashValue(key)
 
-	return int(h % uint64(s.ShardNum))
+	return int(h % uint64(s.ShardNum)), nil
 }
 
 type NumRangeShard struct {
 	Shards []NumKeyRange
 }
 
-func (s *NumRangeShard) FindForKey(key interface{}) int {
+func (s *NumRangeShard) FindForKey(key interface{}) (int, error) {
 	v := NumValue(key)
 	for i, r := range s.Shards {
 		if r.Contains(v) {
-			return i
+			return i, nil
 		}
 	}
-	panic(NewKeyError("Unexpected key %v, not in num range", key))
+	return -1, errors.ErrKeyOutOfRange
 }
 
 func (s *NumRangeShard) EqualStart(key interface{}, index int) bool {
@@ -132,14 +134,15 @@ type KeyRangeShard struct {
 	Shards []KeyRange
 }
 
-func (s *KeyRangeShard) FindForKey(key interface{}) int {
+func (s *KeyRangeShard) FindForKey(key interface{}) (int, error) {
 	v := KeyspaceId(EncodeValue(key))
 	for i, r := range s.Shards {
 		if r.Contains(v) {
-			return i
+			return i, nil
 		}
 	}
-	panic(NewKeyError("Unexpected key %v, not in key range", key))
+
+	return -1, errors.ErrKeyOutOfRange
 }
 
 func (s *KeyRangeShard) EqualStart(key interface{}, index int) bool {
@@ -154,6 +157,6 @@ func (s *KeyRangeShard) EqualStop(key interface{}, index int) bool {
 type DefaultShard struct {
 }
 
-func (s *DefaultShard) FindForKey(key interface{}) int {
-	return 0
+func (s *DefaultShard) FindForKey(key interface{}) (int, error) {
+	return 0, nil
 }

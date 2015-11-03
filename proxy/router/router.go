@@ -46,18 +46,24 @@ func NewDefaultRule(db string, node string) *Rule {
 	return r
 }
 
-func (r *Rule) FindNode(key interface{}) string {
-	tableIndex := r.Shard.FindForKey(key)
+func (r *Rule) FindNode(key interface{}) (string, error) {
+	tableIndex, err := r.Shard.FindForKey(key)
+	if err != nil {
+		return "", err
+	}
 	nodeIndex := r.TableToNode[tableIndex]
-	return r.Nodes[nodeIndex]
+	return r.Nodes[nodeIndex], nil
 }
 
-func (r *Rule) FindNodeIndex(key interface{}) int {
-	tableIndex := r.Shard.FindForKey(key)
-	return r.TableToNode[tableIndex]
+func (r *Rule) FindNodeIndex(key interface{}) (int, error) {
+	tableIndex, err := r.Shard.FindForKey(key)
+	if err != nil {
+		return -1, err
+	}
+	return r.TableToNode[tableIndex], nil
 }
 
-func (r *Rule) FindTableIndex(key interface{}) int {
+func (r *Rule) FindTableIndex(key interface{}) (int, error) {
 	return r.Shard.FindForKey(key)
 }
 

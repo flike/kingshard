@@ -485,6 +485,9 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 
 func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) error {
 	plan, err := c.schema.rule.BuildPlan(stmt)
+	if err != nil {
+		return err
+	}
 	conns, err := c.getShardConns(false, plan)
 	if err != nil {
 		golog.Error("ClientConn", "handleExec", err.Error(), c.connectionId)
