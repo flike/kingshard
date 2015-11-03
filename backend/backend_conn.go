@@ -67,6 +67,7 @@ func (c *Conn) ReConnect() error {
 
     nd := net.Dialer{Timeout:c.wait_timeout}
 	netConn, err := nd.Dial(n, c.addr)
+    //netConn, err := net.Dial(n, c.addr)
 	if err != nil {
 		return err
 	}

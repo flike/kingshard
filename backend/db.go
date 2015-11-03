@@ -1,11 +1,12 @@
 package backend
 
 import (
-	"container/list"
 	"sync"
+	"fmt"
+	"time"
 	"sync/atomic"
-
 	"github.com/flike/kingshard/mysql"
+	"github.com/flike/kingshard/core/golog"
 )
 
 const (
@@ -24,14 +25,15 @@ type DB struct {
 	wait_timeout int
 
 	maxIdleConns int
+	maxConns     int32
 	state        int32
 
-	idleConns *list.List
-
-	connNum int32
+    conns chan *Conn
+    initialConns int
+    numConn int32
 }
 
-func Open(addr string, user string, password string, dbName string,wait_timeout int) *DB {
+func Open(addr string, user string, password string, dbName string,wait_timeout int,initialConns,maxConns int) (*DB ,error){
 	db := new(DB)
 
 	db.addr = addr
@@ -40,11 +42,25 @@ func Open(addr string, user string, password string, dbName string,wait_timeout 
 	db.db = dbName
 	db.wait_timeout = wait_timeout
 
-	db.idleConns = list.New()
-	db.connNum = 0
 	atomic.StoreInt32(&(db.state), Unknown)
 
-	return db
+    db.initialConns = initialConns
+    db.maxConns = int32(maxConns)
+    db.numConn = 0
+    db.conns = make(chan *Conn, db.maxConns)
+
+    // create initial connections, if something goes wrong,
+    // just close the pool error out.
+    for i := 0; i < db.initialConns; i++ {
+        conn, err := db.newConn()
+        if err != nil {
+            db.Close()
+            return nil, fmt.Errorf("not able to fill the pool: %s", err)
+        }
+        db.conns <- conn
+    }
+
+	return db,nil
 }
 
 func (db *DB) Addr() string {
@@ -65,31 +81,23 @@ func (db *DB) State() string {
 }
 
 func (db *DB) IdleConnCount() int {
-	db.Lock()
-	defer db.Unlock()
-
-	return db.idleConns.Len()
+    return len(db.getConns())
 }
 
-func (db *DB) Close() error {
-	db.Lock()
+func (db *DB) Close() {
+    db.Lock()
+    conns := db.conns
+    db.conns = nil
+    db.Unlock()
 
-	for {
-		if db.idleConns.Len() > 0 {
-			v := db.idleConns.Back()
-			co := v.Value.(*Conn)
-			db.idleConns.Remove(v)
+    if conns == nil {
+        return
+    }
 
-			co.Close()
-
-		} else {
-			break
-		}
-	}
-
-	db.Unlock()
-
-	return nil
+    close(conns)
+    for conn := range conns {
+        db.closeConn(conn)
+    }
 }
 
 func (db *DB) Ping() error {
@@ -103,16 +111,15 @@ func (db *DB) Ping() error {
 	return err
 }
 
-func (db *DB) SetMaxIdleConnNum(num int) {
-	db.maxIdleConns = num
+func (db *DB) getConns() chan *Conn {
+    db.Lock()
+    conns := db.conns
+    db.Unlock()
+    return conns
 }
 
 func (db *DB) GetIdleConnNum() int {
-	return db.idleConns.Len()
-}
-
-func (db *DB) GetConnNum() int {
-	return int(db.connNum)
+    return len(db.getConns())
 }
 
 func (db *DB) newConn() (*Conn, error) {
@@ -121,9 +128,15 @@ func (db *DB) newConn() (*Conn, error) {
 	if err := co.Connect(db.addr, db.user, db.password, db.db,db.wait_timeout); err != nil {
 		return nil, err
 	}
-
+	atomic.AddInt32(&(db.numConn),1)
 	return co, nil
 }
+
+func (db *DB) closeConn(co *Conn) error {
+    atomic.AddInt32(&(db.numConn),-1)
+	return co.Close()
+}
+
 
 func (db *DB) tryReuse(co *Conn) error {
 	if co.IsInTransaction() {
@@ -152,61 +165,61 @@ func (db *DB) tryReuse(co *Conn) error {
 }
 
 func (db *DB) PopConn() (co *Conn, err error) {
-	db.Lock()
-	if db.idleConns.Len() > 0 {
-		v := db.idleConns.Front()
-		co = v.Value.(*Conn)
-		db.idleConns.Remove(v)
-	}
-	db.Unlock()
+    golog.Error("begin","","",0,"db.numConn",db.numConn)
+    conns := db.getConns()
+    if conns == nil {
+        return nil,fmt.Errorf("database connection pool closed")
+    }
 
-	if co != nil {
-		if err := co.Ping(); err == nil {
-			if err := db.tryReuse(co); err == nil {
-				//connection may alive
-				return co, nil
-			}
-		}
-		co.Close()
-	}
-
-	co, err = db.newConn()
-	if err == nil {
-		atomic.AddInt32(&db.connNum, 1)
-	}
-	return
+    select {
+    case co := <-conns:
+        if co == nil {
+            return nil,fmt.Errorf("database connection pool closed")
+        }else{
+            if err := co.Ping(); err == nil {
+                if err := db.tryReuse(co); err == nil {
+                    //connection may alive
+                    return co, nil
+                }
+            }
+            db.closeConn(co)
+            return nil,fmt.Errorf("connection can't use , please get again")
+        }
+    case <- time.After(time.Millisecond * 500):
+        db.Lock()
+        if db.numConn >= db.maxConns {
+            db.Unlock()
+            return nil,fmt.Errorf("exceed pool size %d",db.maxConns)
+        }
+        golog.Error("create","","",0,"db.numConn",db.numConn)
+        co,err := db.newConn()
+        db.Unlock()
+        if err != nil {
+            return nil,err
+        }
+        return co,err
+    }
 }
 
 func (db *DB) PushConn(co *Conn, err error) {
-	var closeConn *Conn = nil
+    db.Lock()
+    defer db.Unlock()
 
-	if err != nil {
-		closeConn = co
-	} else {
-		if db.maxIdleConns > 0 {
-			db.Lock()
+    if db.conns == nil {
+        db.closeConn(co)
+        return
+    }
 
-			if db.idleConns.Len() >= db.maxIdleConns {
-				v := db.idleConns.Front()
-				closeConn = v.Value.(*Conn)
-				db.idleConns.Remove(v)
-			}
-
-			db.idleConns.PushBack(co)
-
-			db.Unlock()
-
-		} else {
-			closeConn = co
-		}
-
-	}
-
-	if closeConn != nil {
-		atomic.AddInt32(&db.connNum, -1)
-
-		closeConn.Close()
-	}
+    // put the resource back into the pool. If the pool is full, this will
+    // block and the default case will be executed.
+    select {
+    case db.conns <- co:
+        return
+    default:
+        // pool is full, close passed connection
+        db.closeConn(co)
+        return
+    }
 }
 
 type BackendConn struct {
@@ -217,12 +230,22 @@ type BackendConn struct {
 
 func (p *BackendConn) Close() {
 	if p.Conn != nil {
-		p.db.PushConn(p.Conn, p.Conn.pkgErr)
-		p.Conn = nil
-	}
+        if p.Conn.pkgErr != nil {
+            p.db.closeConn(p.Conn)
+        }else {
+            p.db.PushConn(p.Conn, p.Conn.pkgErr)
+            p.Conn = nil
+        }
+    }
 }
 
 func (db *DB) GetConn() (*BackendConn, error) {
 	c, err := db.PopConn()
-	return &BackendConn{c, db}, err
+	backend_conn := db.wrapConn(c)
+	return backend_conn, err
+}
+
+func (db *DB) wrapConn(conn *Conn) *BackendConn {
+    backend_conn := &BackendConn{conn, db}
+    return backend_conn
 }

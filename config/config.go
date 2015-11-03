@@ -24,9 +24,10 @@ type Config struct {
 
 //node节点对应的配置
 type NodeConfig struct {
-	Name             string `yaml:"name"`
-	DownAfterNoAlive int    `yaml:"down_after_noalive"`
-	IdleConns        int    `yaml:"idle_conns"`
+    Name             string `yaml:"name"`
+    DownAfterNoAlive int    `yaml:"down_after_noalive"`
+    InitialConns     int    `yaml:"initial_conns"`
+    MaxConns         int    `yaml:"max_conns"`
     WaitTimeOut      int    `yaml:"wait_timeout"`
 
 	User     string `yaml:"user"`
