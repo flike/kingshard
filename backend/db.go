@@ -13,7 +13,7 @@ const (
 	Down
 	Unknown
 
-	DefaultMaxConnNum = 64
+	DefaultMaxConnNum = 10000
 )
 
 type DB struct {
