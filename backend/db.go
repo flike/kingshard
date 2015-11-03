@@ -171,34 +171,47 @@ func (db *DB) PopConn() (co *Conn, err error) {
         return nil,fmt.Errorf("database connection pool closed")
     }
 
-    select {
-    case co := <-conns:
-        if co == nil {
-            return nil,fmt.Errorf("database connection pool closed")
-        }else{
-            if err := co.Ping(); err == nil {
-                if err := db.tryReuse(co); err == nil {
-                    //connection may alive
-                    return co, nil
+    retryTimes := 10
+    PopLoop:
+    for {
+        retryTimes--
+        if retryTimes <= 0{
+            co, err = nil,fmt.Errorf("database connection pool closed")
+            break PopLoop
+        }
+        select {
+        case co = <-conns:
+            if co == nil {
+                co, err = nil,fmt.Errorf("database connection pool closed")
+                break PopLoop
+            }else{
+                if err = co.Ping(); err == nil {
+                    if err = db.tryReuse(co); err == nil {
+                        break PopLoop
+                    }
+                }else{
+                    db.closeConn(co)
+                    break
                 }
             }
-            db.closeConn(co)
-            return nil,fmt.Errorf("connection can't use , please get again")
+        case <- time.After(time.Millisecond * 150):
+            db.Lock()
+            if db.numConn >= db.maxConns {
+                db.Unlock()
+                break
+            }else{
+                golog.Error("create","","",0,"db.numConn",db.numConn)
+                co,err = db.newConn()
+                db.Unlock()
+                if err != nil {
+                    break
+                }else{
+                    break PopLoop
+                }
+            }
         }
-    case <- time.After(time.Millisecond * 500):
-        db.Lock()
-        if db.numConn >= db.maxConns {
-            db.Unlock()
-            return nil,fmt.Errorf("exceed pool size %d",db.maxConns)
-        }
-        golog.Error("create","","",0,"db.numConn",db.numConn)
-        co,err := db.newConn()
-        db.Unlock()
-        if err != nil {
-            return nil,err
-        }
-        return co,err
     }
+    return
 }
 
 func (db *DB) PushConn(co *Conn, err error) {
