@@ -65,7 +65,7 @@ func newTestDB(t *testing.T) *backend.DB {
 	newTestServer(t)
 
 	f := func() {
-		testDB = backend.Open("127.0.0.1:3601", "root", "", "kingshard")
+		testDB, _ = backend.Open("127.0.0.1:3601", "root", "", "kingshard", 100)
 	}
 
 	testDBOnce.Do(f)

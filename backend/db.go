@@ -3,7 +3,8 @@ package backend
 import (
 	"sync"
 	"sync/atomic"
-    "time"
+	"time"
+
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/mysql"
 )
@@ -13,9 +14,8 @@ const (
 	Down
 	Unknown
 
-	DefaultMaxConnNum = 1000
-	DefaultWait = 100
-	DefaultRetryTimes = 10
+	DefaultMaxConnNum = 10000
+	DefaultWait       = 4
 )
 
 type DB struct {
@@ -33,7 +33,7 @@ type DB struct {
 	connNum int32
 }
 
-func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB ,error){
+func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB, error) {
 	db := new(DB)
 
 	db.addr = addr
@@ -50,17 +50,17 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 	db.connNum = 0
 	atomic.StoreInt32(&(db.state), Unknown)
 
-    for i := 0; i < int(db.maxConnNum * 2/3); i++ {
-        atomic.AddInt32(&(db.connNum),1)
-        conn, err := db.newConn()
-        if err != nil {
-            db.Close()
-            return nil, errors.ErrDBPoolInit
-        }
-        db.idleConns <- conn
-    }
+	for i := 0; i < int(db.maxConnNum/2); i++ {
+		atomic.AddInt32(&(db.connNum), 1)
+		conn, err := db.newConn()
+		if err != nil {
+			db.Close()
+			return nil, errors.ErrDBPoolInit
+		}
+		db.idleConns <- conn
+	}
 
-    return db,nil
+	return db, nil
 }
 
 func (db *DB) Addr() string {
@@ -97,17 +97,17 @@ func (db *DB) Close() error {
 	}
 	close(connChannel)
 	for conn := range connChannel {
-	    db.closeConn(conn)
+		db.closeConn(conn)
 	}
 
 	return nil
 }
 
 func (db *DB) getConns() chan *Conn {
-    db.Lock()
-    conns := db.idleConns
-    db.Unlock()
-    return conns
+	db.Lock()
+	conns := db.idleConns
+	db.Unlock()
+	return conns
 }
 
 func (db *DB) Ping() error {
@@ -122,22 +122,22 @@ func (db *DB) Ping() error {
 }
 
 func (db *DB) newConn() (*Conn, error) {
-    co := new(Conn)
+	co := new(Conn)
 
-    if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
-        return nil, err
-    }
+	if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
+		return nil, err
+	}
 
-    return co, nil
+	return co, nil
 }
 
 func (db *DB) closeConn(co *Conn) error {
-    atomic.AddInt32(&(db.connNum),-1)
-    if co != nil{
-        return co.Close()
-    }else{
-        return nil
-    }
+	if co != nil {
+		atomic.AddInt32(&(db.connNum), -1)
+		return co.Close()
+	} else {
+		return nil
+	}
 }
 
 func (db *DB) tryReuse(co *Conn) error {
@@ -166,50 +166,46 @@ func (db *DB) tryReuse(co *Conn) error {
 	return nil
 }
 
-func (db *DB) PopConn() (co *Conn, err error) {
-    conns := db.getConns()
-    if conns == nil {
-        return nil,errors.ErrDatabaseClose
-    }
+func (db *DB) PopConn() (*Conn, error) {
+	var co *Conn
+	var err error
 
-    retryTimes := DefaultRetryTimes
-    PopLoop:
-    for {
-        retryTimes--
-        if retryTimes <= 0{
-            co, err = nil,errors.ErrDatabaseClose
-            break PopLoop
-        }
-        select {
-        case co = <-conns:
-            if co == nil {
-                co, err = nil,errors.ErrDatabaseClose
-                break PopLoop
-            }
-            if err = co.Ping(); err == nil {
-                if err = db.tryReuse(co); err == nil {
-                    break PopLoop
-                }
-            }
-            db.closeConn(co)
-            break
-        case <- time.After(time.Millisecond * DefaultWait):
-            db.Lock()
-            if db.connNum >= db.maxConnNum {
-                db.Unlock()
-                break
-            }
-            db.connNum++
-            db.Unlock()
-            co,err = db.newConn()
-            if err != nil {
-                db.closeConn(co)
-                break
-            }
-            break PopLoop
-        }
-    }
-    return
+	conns := db.getConns()
+	if conns == nil {
+		return nil, errors.ErrDatabaseClose
+	}
+
+	for {
+		select {
+		case co = <-conns:
+			if co == nil {
+				return nil, errors.ErrDatabaseClose
+			}
+			if err = co.Ping(); err == nil {
+				if err = db.tryReuse(co); err == nil {
+					return co, nil
+				}
+			}
+			db.closeConn(co)
+			return nil, errors.ErrDatabaseClose
+		case <-time.After(time.Millisecond * DefaultWait):
+			db.Lock()
+			if db.maxConnNum <= db.connNum {
+				db.Unlock()
+				break
+			}
+			db.connNum++
+			db.Unlock()
+			co, err = db.newConn()
+			if err != nil {
+				db.closeConn(co)
+				return nil, errors.ErrDatabaseClose
+			}
+			return co, nil
+		}
+	}
+
+	return nil, errors.ErrDatabaseClose
 }
 
 func (db *DB) PushConn(co *Conn, err error) {
@@ -217,16 +213,16 @@ func (db *DB) PushConn(co *Conn, err error) {
 	defer db.Unlock()
 
 	if err != nil || db.idleConns == nil {
-        db.closeConn(co)
+		db.closeConn(co)
 		return
 	}
 
 	select {
 	case db.idleConns <- co:
-	    return
+		return
 	default:
-        db.closeConn(co)
-        return
+		db.closeConn(co)
+		return
 	}
 }
 
@@ -237,23 +233,20 @@ type BackendConn struct {
 }
 
 func (p *BackendConn) Close() {
-    if p.Conn != nil {
-        if p.Conn.pkgErr != nil {
-            p.db.closeConn(p.Conn)
-        }else {
-            p.db.PushConn(p.Conn, p.Conn.pkgErr)
-            p.Conn = nil
-        }
-    }
+	if p.Conn != nil {
+		if p.Conn.pkgErr != nil {
+			p.db.closeConn(p.Conn)
+		} else {
+			p.db.PushConn(p.Conn, p.Conn.pkgErr)
+			p.Conn = nil
+		}
+	}
 }
 
 func (db *DB) GetConn() (*BackendConn, error) {
-    c, err := db.PopConn()
-    backend_conn := db.wrapConn(c)
-    return backend_conn, err
-}
-
-func (db *DB) wrapConn(conn *Conn) *BackendConn {
-    backend_conn := &BackendConn{conn, db}
-    return backend_conn
+	c, err := db.PopConn()
+	if err != nil {
+		return nil, err
+	}
+	return &BackendConn{c, db}, nil
 }

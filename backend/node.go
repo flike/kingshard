@@ -152,7 +152,7 @@ func (n *Node) checkSlave() {
 }
 
 func (n *Node) AddSlave(addr string) error {
-    var db *DB
+	var db *DB
 	var weight int
 	var err error
 	if len(addr) == 0 {
@@ -170,13 +170,13 @@ func (n *Node) AddSlave(addr string) error {
 		weight = 1
 	}
 	n.SlaveWeights = append(n.SlaveWeights, weight)
-    if db, err= n.OpenDB(addrAndWeight[0]);err !=nil {
-        return err
-    }else{
-        n.Slave = append(n.Slave, db)
-        n.InitBalancer()
-        return nil
-    }
+	if db, err = n.OpenDB(addrAndWeight[0]); err != nil {
+		return err
+	} else {
+		n.Slave = append(n.Slave, db)
+		n.InitBalancer()
+		return nil
+	}
 }
 
 func (n *Node) DeleteSlave(addr string) error {
@@ -207,17 +207,17 @@ func (n *Node) DeleteSlave(addr string) error {
 	return nil
 }
 
-func (n *Node) OpenDB(addr string) (*DB, error){
-	db, err:= Open(addr, n.Cfg.User, n.Cfg.Password, "", n.Cfg.MaxConnNum)
+func (n *Node) OpenDB(addr string) (*DB, error) {
+	db, err := Open(addr, n.Cfg.User, n.Cfg.Password, "", n.Cfg.MaxConnNum)
 	return db, err
 }
 
-func (n *Node) checkUpDB(addr string) (*DB, error) {
-	db, err:= n.OpenDB(addr)
+func (n *Node) UpDB(addr string) (*DB, error) {
+	db, err := n.OpenDB(addr)
 
-    if err != nil{
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
 	if err := db.Ping(); err != nil {
 		db.Close()
@@ -229,7 +229,7 @@ func (n *Node) checkUpDB(addr string) (*DB, error) {
 }
 
 func (n *Node) UpMaster(addr string) error {
-	db, err := n.checkUpDB(addr)
+	db, err := n.UpDB(addr)
 	if err != nil {
 		golog.Error("Node", "UpMaster", err.Error(), 0)
 	}
@@ -238,7 +238,7 @@ func (n *Node) UpMaster(addr string) error {
 }
 
 func (n *Node) UpSlave(addr string) error {
-	db, err := n.checkUpDB(addr)
+	db, err := n.UpDB(addr)
 	if err != nil {
 		golog.Error("Node", "UpSlave", err.Error(), 0)
 	}
@@ -289,12 +289,12 @@ func (n *Node) DownSlave(addr string) error {
 }
 
 func (n *Node) ParseMaster(masterStr string) error {
-    var err error
+	var err error
 	if len(masterStr) == 0 {
 		return errors.ErrNoMasterDb
 	}
 
-	n.Master,err = n.OpenDB(masterStr)
+	n.Master, err = n.OpenDB(masterStr)
 	return err
 }
 
@@ -325,8 +325,8 @@ func (n *Node) ParseSlave(slaveStr string) error {
 			weight = 1
 		}
 		n.SlaveWeights = append(n.SlaveWeights, weight)
-		if db, err= n.OpenDB(addrAndWeight[0]);err != nil{
-		    return err
+		if db, err = n.OpenDB(addrAndWeight[0]); err != nil {
+			return err
 		}
 		n.Slave = append(n.Slave, db)
 	}
