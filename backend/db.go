@@ -3,7 +3,6 @@ package backend
 import (
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/mysql"
@@ -176,26 +175,11 @@ func (db *DB) PopConn() (*Conn, error) {
 	if conns == nil {
 		return nil, errors.ErrDatabaseClose
 	}
-
-	for {
-		select {
-		case co = <-conns:
-			if co == nil {
-				return nil, errors.ErrConnIsNil
-			}
-			if err = co.Ping(); err == nil {
-				if err = db.tryReuse(co); err == nil {
-					return co, nil
-				}
-			}
-			db.closeConn(co)
-			return nil, errors.ErrConnIsNil
-		case <-time.After(time.Millisecond * DefaultWait):
-			db.Lock()
-			if db.maxConnNum <= int(db.connNum) {
-				db.Unlock()
-				break
-			}
+	if 0 < len(conns) {
+		co = <-conns
+	} else {
+		db.Lock()
+		if int(db.connNum) < db.maxConnNum {
 			db.connNum++
 			db.Unlock()
 			co, err = db.newConn()
@@ -204,9 +188,21 @@ func (db *DB) PopConn() (*Conn, error) {
 				return nil, err
 			}
 			return co, nil
+		} else {
+			db.Unlock()
+			co = <-conns
 		}
 	}
 
+	if co == nil {
+		return nil, errors.ErrConnIsNil
+	}
+	if err = co.Ping(); err == nil {
+		if err = db.tryReuse(co); err == nil {
+			return co, nil
+		}
+	}
+	db.closeConn(co)
 	return nil, errors.ErrPopConnFail
 }
 
