@@ -15,7 +15,9 @@ var (
 	ErrMasterDown    = errors.New("master is down")
 	ErrSlaveDown     = errors.New("slave is down")
 	ErrDatabaseClose = errors.New("database is close")
-    ErrDBPoolInit    = errors.New("not able to fill the pool")
+	ErrDBPoolInit    = errors.New("not able to fill the pool")
+	ErrConnIsNil     = errors.New("connection is nil")
+	ErrPopConnFail   = errors.New("pop connection fail")
 
 	ErrAddressNull     = errors.New("address is nil")
 	ErrInvalidArgument = errors.New("argument is invalid")
