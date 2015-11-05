@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)](https://travis-ci.org/flike/kingshard)
+[![Join the chat at https://gitter.im/flike/kingshard](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/flike/kingshard?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # kingshard简介
 
