@@ -363,6 +363,8 @@ func (c *ClientConn) GetExecNode(tokens []string,
 
 							if _, ok := rules[tableName]; ok {
 								return nil, false, nil
+							} else {
+								fromSlave = true
 							}
 						}
 					}
