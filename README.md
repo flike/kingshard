@@ -1,6 +1,8 @@
 [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)](https://travis-ci.org/flike/kingshard)
 
 # Overview
+
+[![Join the chat at https://gitter.im/flike/kingshard](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/flike/kingshard?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 kingshard is a high-performance proxy for MySQL powered by Go. Just like other mysql proxies, you can use it to split the read/write sqls. Now it supports basic SQL statements (select, insert, update, replace, delete). The most important feature is the sharding function. Kingshard aims to simplify the sharding solution of MySQL. **The Performance of kingshard is about 75% compared to connecting to MySQL directly.**
 
 # Feature
