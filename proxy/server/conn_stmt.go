@@ -95,8 +95,9 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 }
 
 func (c *ClientConn) writePrepare(s *Stmt) error {
+	var err error
 	data := make([]byte, 4, 128)
-
+	total := make([]byte, 0, 1024)
 	//status ok
 	data = append(data, 0)
 	//stmt id
@@ -110,7 +111,8 @@ func (c *ClientConn) writePrepare(s *Stmt) error {
 	//warning count
 	data = append(data, 0, 0)
 
-	if err := c.writePacket(data); err != nil {
+	total, err = c.writePacketBatch(total, data, false)
+	if err != nil {
 		return err
 	}
 
@@ -119,12 +121,14 @@ func (c *ClientConn) writePrepare(s *Stmt) error {
 			data = data[0:4]
 			data = append(data, []byte(paramFieldData)...)
 
-			if err := c.writePacket(data); err != nil {
+			total, err = c.writePacketBatch(total, data, false)
+			if err != nil {
 				return err
 			}
 		}
 
-		if err := c.writeEOF(c.status); err != nil {
+		total, err = c.writeEOFBatch(total, c.status, false)
+		if err != nil {
 			return err
 		}
 	}
@@ -134,15 +138,22 @@ func (c *ClientConn) writePrepare(s *Stmt) error {
 			data = data[0:4]
 			data = append(data, []byte(columnFieldData)...)
 
-			if err := c.writePacket(data); err != nil {
+			total, err = c.writePacketBatch(total, data, false)
+			if err != nil {
 				return err
 			}
 		}
 
-		if err := c.writeEOF(c.status); err != nil {
+		total, err = c.writeEOFBatch(total, c.status, false)
+		if err != nil {
 			return err
 		}
 
+	}
+	total, err = c.writePacketBatch(total, nil, true)
+	total = nil
+	if err != nil {
+		return err
 	}
 	return nil
 }

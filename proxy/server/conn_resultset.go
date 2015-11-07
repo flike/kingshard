@@ -124,37 +124,44 @@ func (c *ClientConn) buildResultset(fields []*mysql.Field, names []string, value
 
 func (c *ClientConn) writeResultset(status uint16, r *mysql.Resultset) error {
 	c.affectedRows = int64(-1)
+	total := make([]byte, 0, 1024)
+	data := make([]byte, 4, 512)
+	var err error
 
 	columnLen := mysql.PutLengthEncodedInt(uint64(len(r.Fields)))
 
-	data := make([]byte, 4, 1024)
-
 	data = append(data, columnLen...)
-	if err := c.writePacket(data); err != nil {
+	total, err = c.writePacketBatch(total, data, false)
+	if err != nil {
 		return err
 	}
 
 	for _, v := range r.Fields {
 		data = data[0:4]
 		data = append(data, v.Dump()...)
-		if err := c.writePacket(data); err != nil {
+		total, err = c.writePacketBatch(total, data, false)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
+	total, err = c.writeEOFBatch(total, status, false)
+	if err != nil {
 		return err
 	}
 
 	for _, v := range r.RowDatas {
 		data = data[0:4]
 		data = append(data, v...)
-		if err := c.writePacket(data); err != nil {
+		total, err = c.writePacketBatch(total, data, false)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
+	total, err = c.writeEOFBatch(total, status, true)
+	total = nil
+	if err != nil {
 		return err
 	}
 

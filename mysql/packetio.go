@@ -100,3 +100,51 @@ func (p *PacketIO) WritePacket(data []byte) error {
 		return nil
 	}
 }
+
+func (p *PacketIO) WritePacketBatch(total, data []byte, direct bool) ([]byte, error) {
+	if data == nil {
+		//only flush the buffer
+		if direct == true {
+			n, err := p.wb.Write(total)
+			if err != nil {
+				return nil, ErrBadConn
+			}
+			if n != len(total) {
+				return nil, ErrBadConn
+			}
+		}
+		return total, nil
+	}
+
+	length := len(data) - 4
+	for length >= MaxPayloadLen {
+
+		data[0] = 0xff
+		data[1] = 0xff
+		data[2] = 0xff
+
+		data[3] = p.Sequence
+		total = append(total, data[:4+MaxPayloadLen]...)
+
+		p.Sequence++
+		length -= MaxPayloadLen
+		data = data[MaxPayloadLen:]
+	}
+
+	data[0] = byte(length)
+	data[1] = byte(length >> 8)
+	data[2] = byte(length >> 16)
+	data[3] = p.Sequence
+
+	total = append(total, data...)
+	p.Sequence++
+
+	if direct {
+		if n, err := p.wb.Write(total); err != nil {
+			return nil, ErrBadConn
+		} else if n != len(total) {
+			return nil, ErrBadConn
+		}
+	}
+	return total, nil
+}
