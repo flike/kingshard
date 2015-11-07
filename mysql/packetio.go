@@ -102,8 +102,18 @@ func (p *PacketIO) WritePacket(data []byte) error {
 }
 
 func (p *PacketIO) WritePacketBatch(total, data []byte, direct bool) ([]byte, error) {
-	if total == nil || data == nil {
-		return nil, fmt.Errorf("invalid args")
+	if data == nil {
+		//only flush the buffer
+		if direct == true {
+			n, err := p.wb.Write(total)
+			if err != nil {
+				return nil, ErrBadConn
+			}
+			if n != len(total) {
+				return nil, ErrBadConn
+			}
+		}
+		return total, nil
 	}
 
 	length := len(data) - 4

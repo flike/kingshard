@@ -60,21 +60,21 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 
 func (c *ClientConn) writeFieldList(status uint16, fs []*mysql.Field) error {
 	c.affectedRows = int64(-1)
-
-	data := make([]byte, 4, 1024)
+	var err error
+	total := make([]byte, 0, 1024)
+	data := make([]byte, 4, 512)
 
 	for _, v := range fs {
 		data = data[0:4]
 		data = append(data, v.Dump()...)
-		if err := c.writePacket(data); err != nil {
+		total, err = c.writePacketBatch(total, data, false)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
-		return err
-	}
-	return nil
+	_, err = c.writeEOFBatch(total, status, true)
+	return err
 }
 
 /////
