@@ -175,6 +175,10 @@ func (c *ClientConn) writePacket(data []byte) error {
 	return c.pkg.WritePacket(data)
 }
 
+func (c *ClientConn) writePacketBatch(total, data []byte, direct bool) ([]byte, error) {
+	return c.pkg.WritePacketBatch(total, data, direct)
+}
+
 func (c *ClientConn) readHandshakeResponse() error {
 	data, err := c.readPacket()
 
@@ -368,4 +372,16 @@ func (c *ClientConn) writeEOF(status uint16) error {
 	}
 
 	return c.writePacket(data)
+}
+
+func (c *ClientConn) writeEOFBatch(total []byte, status uint16, direct bool) ([]byte, error) {
+	data := make([]byte, 4, 9)
+
+	data = append(data, mysql.EOF_HEADER)
+	if c.capability&mysql.CLIENT_PROTOCOL_41 > 0 {
+		data = append(data, 0, 0)
+		data = append(data, byte(status), byte(status>>8))
+	}
+
+	return c.writePacketBatch(total, data, direct)
 }
