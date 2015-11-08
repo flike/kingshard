@@ -112,10 +112,11 @@ var keywords = map[string]int{
 	"names":   NAMES,
 	"replace": REPLACE,
 
-	//for kingshard admin
+	//for kingshard
 	"admin":       ADMIN,
 	"start":       START,
 	"transaction": TRANSACTION,
+	"collate":     COLLATE,
 }
 
 // Lex returns the next token form the Tokenizer.

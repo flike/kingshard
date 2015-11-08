@@ -95,6 +95,8 @@ var (
 
 // admin
 %token <empty> ADMIN
+//collate
+%token <empty> COLLATE
 
 // DDL Tokens
 %token <empty> CREATE ALTER DROP RENAME
@@ -252,6 +254,20 @@ set_statement:
 | SET comment_opt NAMES value_expression 
   {
     $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: $4}}}
+  }
+| SET comment_opt NAMES value_expression COLLATE value_expression
+  {
+    $$ = &Set{
+	       Comments: Comments($2), 
+	       Exprs: UpdateExprs{
+	            &UpdateExpr{
+	               Name: &ColName{Name:[]byte("names")}, Expr: $4,
+				  },
+				&UpdateExpr{
+	               Name: &ColName{Name:[]byte("collate")}, Expr: $6,
+				  },
+	       },
+	    }
   }
 
 begin_statement:
