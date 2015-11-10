@@ -31,6 +31,7 @@ type DB struct {
 	InitConnNum int
 	connNum     int32
 	idleConns   chan *Conn
+	checkConn   *Conn
 }
 
 func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB, error) {
@@ -41,7 +42,12 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 	db.db = dbName
 	if 0 < maxConnNum {
 		db.maxConnNum = maxConnNum
-		db.InitConnNum = db.maxConnNum / 4
+		if db.maxConnNum < 16 {
+			db.InitConnNum = db.maxConnNum
+		} else {
+			db.InitConnNum = db.maxConnNum / 4
+		}
+
 	} else {
 		db.maxConnNum = DefaultMaxConnNum
 		db.InitConnNum = InitConnCount
@@ -60,6 +66,7 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 		}
 		db.idleConns <- conn
 	}
+	db.checkConn = <-db.idleConns
 
 	return db, nil
 }
@@ -112,13 +119,14 @@ func (db *DB) getConns() chan *Conn {
 }
 
 func (db *DB) Ping() error {
-	c, err := db.PopConn()
-	if err != nil {
-		return err
+	var err error
+	if db.checkConn == nil {
+		db.checkConn, err = db.newConn()
+		if err != nil {
+			return err
+		}
 	}
-
-	err = c.Ping()
-	db.PushConn(c, err)
+	err = db.checkConn.Ping()
 	return err
 }
 
