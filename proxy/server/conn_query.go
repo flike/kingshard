@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/flike/kingshard/backend"
 	"github.com/flike/kingshard/core/errors"
@@ -166,14 +167,17 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 
 func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args []interface{}) ([]*mysql.Result, error) {
 	var state string
+	startTime := time.Now().UnixNano()
 	r, err := conn.Execute(sql, args...)
 	if err != nil {
 		state = "ERROR"
 	} else {
 		state = "INFO"
 	}
+	execTime := float64(time.Now().UnixNano()-startTime) / float64(time.Millisecond)
 	if strings.ToLower(c.proxy.cfg.LogSql) != golog.LogSqlOff {
-		golog.OutputSql(state, "%s->%s:%s",
+		golog.OutputSql(state, "%.1fms - %s->%s:%s",
+			execTime,
 			c.c.RemoteAddr(),
 			conn.GetAddr(),
 			sql,
@@ -214,6 +218,7 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 	f := func(rs []interface{}, i int, execSqls []string, co *backend.BackendConn) {
 		var state string
 		for _, v := range execSqls {
+			startTime := time.Now().UnixNano()
 			r, err := co.Execute(v, args...)
 			if err != nil {
 				state = "ERROR"
@@ -222,8 +227,10 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 				state = "INFO"
 				rs[i] = r
 			}
+			execTime := float64(time.Now().UnixNano()-startTime) / float64(time.Millisecond)
 			if c.proxy.cfg.LogSql != golog.LogSqlOff {
-				golog.OutputSql(state, "%s->%s:%s",
+				golog.OutputSql(state, "%.1fms - %s->%s:%s",
+					execTime,
 					c.c.RemoteAddr(),
 					co.GetAddr(),
 					v,
