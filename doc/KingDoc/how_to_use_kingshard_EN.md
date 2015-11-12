@@ -33,6 +33,8 @@ log_path : /Users/flike/log
 log_level : debug
 #if set log_sql(on|off) off,the sql log will not output
 log_sql: off 
+#only log the query that take more than slow_log_time ms
+#slow_log_time : 100
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
 

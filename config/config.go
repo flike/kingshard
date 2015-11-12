@@ -8,16 +8,15 @@ import (
 
 //整个config文件对应的结构
 type Config struct {
-	Addr     string `yaml:"addr"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	LogPath  string `yaml:"log_path"`
-	LogLevel string `yaml:"log_level"`
-
-	AllowIps string `yaml:"allow_ips"`
-	LogSql   string `yaml:"log_sql"`
-
-	Nodes []NodeConfig `yaml:"nodes"`
+	Addr        string       `yaml:"addr"`
+	User        string       `yaml:"user"`
+	Password    string       `yaml:"password"`
+	LogPath     string       `yaml:"log_path"`
+	LogLevel    string       `yaml:"log_level"`
+	LogSql      string       `yaml:"log_sql"`
+	SlowLogTime int          `yaml:"slow_log_time"`
+	AllowIps    string       `yaml:"allow_ips"`
+	Nodes       []NodeConfig `yaml:"nodes"`
 
 	Schemas []SchemaConfig `yaml:"schemas"`
 }

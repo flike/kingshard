@@ -23,6 +23,8 @@ password : kingshard
 log_level : debug
 # 打开SQL日志，设置为on;关闭SQL日志，设置为off
 log_sql : on
+#如果设置了该项，则只输出SQL执行时间超过slow_log_time(单位毫秒)的SQL日志，不设置则输出全部SQL日志
+slow_log_time : 100
 #日志文件路径，如果不配置则会输出到终端。
 log_path : /Users/flike/log
 # 只允许下面的IP列表连接kingshard，如果不配置则对连接kingshard的IP不做限制。

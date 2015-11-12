@@ -83,7 +83,7 @@ func (n *Node) GetSlaveConn() (*BackendConn, error) {
 	}
 
 	if db == nil {
-		return nil, errors.ErrNoSlaveDb
+		return nil, errors.ErrNoSlaveDB
 	}
 	if atomic.LoadInt32(&(db.state)) == Down {
 		return nil, errors.ErrSlaveDown
@@ -184,7 +184,7 @@ func (n *Node) DeleteSlave(addr string) error {
 	defer n.Unlock()
 	slaveCount := len(n.Slave)
 	if slaveCount == 0 {
-		return errors.ErrNoSlaveDb
+		return errors.ErrNoSlaveDB
 	} else if slaveCount == 1 {
 		n.Slave = nil
 		n.SlaveWeights = nil
@@ -260,7 +260,7 @@ func (n *Node) UpSlave(addr string) error {
 func (n *Node) DownMaster(addr string) error {
 	db := n.Master
 	if db == nil || db.addr != addr {
-		return errors.ErrNoMasterDb
+		return errors.ErrNoMasterDB
 	}
 	db.Close()
 	atomic.StoreInt32(&(db.state), Down)
@@ -271,7 +271,7 @@ func (n *Node) DownSlave(addr string) error {
 	n.Lock()
 	if n.Slave == nil {
 		n.Unlock()
-		return errors.ErrNoSlaveDb
+		return errors.ErrNoSlaveDB
 	}
 	slaves := make([]*DB, len(n.Slave))
 	copy(slaves, n.Slave)
@@ -291,7 +291,7 @@ func (n *Node) DownSlave(addr string) error {
 func (n *Node) ParseMaster(masterStr string) error {
 	var err error
 	if len(masterStr) == 0 {
-		return errors.ErrNoMasterDb
+		return errors.ErrNoMasterDB
 	}
 
 	n.Master, err = n.OpenDB(masterStr)

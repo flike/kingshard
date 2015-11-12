@@ -8,8 +8,8 @@ var (
 	ErrNoMasterConn  = errors.New("no master connection")
 	ErrNoSlaveConn   = errors.New("no slave connection")
 	ErrNoDefaultNode = errors.New("no default node")
-	ErrNoMasterDb    = errors.New("no master database")
-	ErrNoSlaveDb     = errors.New("no slave database")
+	ErrNoMasterDB    = errors.New("no master database")
+	ErrNoSlaveDB     = errors.New("no slave database")
 	ErrNoDatabase    = errors.New("no database")
 
 	ErrMasterDown    = errors.New("master is down")
