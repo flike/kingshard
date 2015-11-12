@@ -277,8 +277,7 @@ func (p *BackendConn) Close() {
 		if p.Conn.pkgErr != nil {
 			p.db.closeConn(p.Conn)
 		} else {
-			p.db.PushConn(p.Conn, p.Conn.pkgErr)
-			p.Conn = nil
+			p.db.PushConn(p.Conn, nil)
 		}
 	}
 }

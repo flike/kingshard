@@ -116,7 +116,6 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 			c.Unlock()
 		}
 	}
-
 	//todo, set conn charset, etc...
 	if err = co.UseDB(c.db); err != nil {
 		return
@@ -462,9 +461,9 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	if execNode == nil {
 		return false, nil
 	}
-
 	//execute in Master DB
 	conn, err := c.getBackendConn(execNode, fromSlave)
+	defer c.closeConn(conn, err != nil)
 	if err != nil {
 		return false, err
 	}
@@ -472,7 +471,6 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	c.closeConn(conn, false)
 
 	if len(rs) == 0 {
 		msg := fmt.Sprintf("result is empty")
@@ -485,6 +483,7 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	} else {
 		err = c.writeOK(rs[0])
 	}
+
 	if err != nil {
 		return false, err
 	}
@@ -498,6 +497,7 @@ func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) er
 		return err
 	}
 	conns, err := c.getShardConns(false, plan)
+	defer c.closeShardConns(conns, err != nil)
 	if err != nil {
 		golog.Error("ClientConn", "handleExec", err.Error(), c.connectionId)
 		return err
@@ -520,7 +520,6 @@ func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) er
 	}
 
 	rs, err = c.executeInMultiNodes(conns, plan.RewrittenSqls, args)
-	c.closeShardConns(conns, err != nil)
 	if err == nil {
 		err = c.mergeExecResult(rs)
 	}
