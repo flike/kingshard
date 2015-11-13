@@ -22,7 +22,7 @@ const (
 type Node struct {
 	Cfg config.NodeConfig
 
-	sync.Mutex
+	sync.RWMutex
 	Master *DB
 
 	Slave          []*DB
@@ -75,9 +75,9 @@ func (n *Node) GetMasterConn() (*BackendConn, error) {
 }
 
 func (n *Node) GetSlaveConn() (*BackendConn, error) {
-	n.Lock()
+	n.RLock()
 	db, err := n.GetNextSlave()
-	n.Unlock()
+	n.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -119,14 +119,14 @@ func (n *Node) checkMaster() {
 }
 
 func (n *Node) checkSlave() {
-	n.Lock()
+	n.RLock()
 	if n.Slave == nil {
-		n.Unlock()
+		n.RUnlock()
 		return
 	}
 	slaves := make([]*DB, len(n.Slave))
 	copy(slaves, n.Slave)
-	n.Unlock()
+	n.RUnlock()
 
 	for i := 0; i < len(slaves); i++ {
 		if atomic.LoadInt32(&(slaves[i].state)) == Down {
@@ -268,14 +268,14 @@ func (n *Node) DownMaster(addr string) error {
 }
 
 func (n *Node) DownSlave(addr string) error {
-	n.Lock()
+	n.RLock()
 	if n.Slave == nil {
-		n.Unlock()
+		n.RUnlock()
 		return errors.ErrNoSlaveDB
 	}
 	slaves := make([]*DB, len(n.Slave))
 	copy(slaves, n.Slave)
-	n.Unlock()
+	n.RUnlock()
 
 	//slave is *DB
 	for _, slave := range slaves {

@@ -18,7 +18,7 @@ const (
 )
 
 type DB struct {
-	sync.Mutex
+	sync.RWMutex
 
 	addr     string
 	user     string
@@ -98,8 +98,8 @@ func (db *DB) State() string {
 }
 
 func (db *DB) IdleConnCount() int {
-	db.Lock()
-	defer db.Unlock()
+	db.RLock()
+	defer db.RUnlock()
 	return len(db.cacheConns)
 }
 
@@ -123,24 +123,24 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) getConns() (chan *Conn, chan *Conn) {
-	db.Lock()
+	db.RLock()
 	cacheConns := db.cacheConns
 	idleConns := db.idleConns
-	db.Unlock()
+	db.RUnlock()
 	return cacheConns, idleConns
 }
 
 func (db *DB) getCacheConns() chan *Conn {
-	db.Lock()
+	db.RLock()
 	conns := db.cacheConns
-	db.Unlock()
+	db.RUnlock()
 	return conns
 }
 
 func (db *DB) getIdleConns() chan *Conn {
-	db.Lock()
+	db.RLock()
 	conns := db.idleConns
-	db.Unlock()
+	db.RUnlock()
 	return conns
 }
 
@@ -268,7 +268,6 @@ func (db *DB) PushConn(co *Conn, err error) {
 
 type BackendConn struct {
 	*Conn
-
 	db *DB
 }
 
