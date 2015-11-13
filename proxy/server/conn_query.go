@@ -403,6 +403,18 @@ func (c *ClientConn) GetExecNode(tokens []string,
 						}
 					}
 				}
+			case mysql.TK_ID_SET:
+				if len(tokens) < 2 {
+					break
+				}
+				secondWord := strings.ToLower(tokens[1])
+				if secondWord == mysql.TK_STR_NAMES ||
+					secondWord == mysql.TK_STR_RESULTS ||
+					secondWord == mysql.TK_STR_CLIENT ||
+					secondWord == mysql.TK_STR_CONNECTION ||
+					secondWord == mysql.TK_STR_AUTOCOMMIT {
+					return nil, false, nil
+				}
 			default:
 				return nil, false, nil
 			}
