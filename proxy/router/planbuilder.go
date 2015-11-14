@@ -204,6 +204,8 @@ func (plan *Plan) getValueType(valExpr sqlparser.ValExpr) int {
 	switch node := valExpr.(type) {
 	case *sqlparser.ColName:
 		if string(node.Name) == plan.Rule.Key {
+			//remove table name
+			node.Qualifier = nil
 			return EID_NODE //表示这是分片id对应的node
 		}
 	case sqlparser.ValTuple:
