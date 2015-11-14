@@ -62,23 +62,23 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 
 	n := c.proxy.GetNode(defaultRule.Nodes[0])
 
-	if co, err := n.GetMasterConn(); err != nil {
+	co, err := n.GetMasterConn()
+	defer c.closeConn(co, err != nil)
+	if err != nil {
 		return fmt.Errorf("prepare error %s", err)
-	} else {
-		defer co.Close()
-
-		if err = co.UseDB(c.schema.db); err != nil {
-			return fmt.Errorf("parepre error %s", err)
-		}
-
-		if t, err := co.Prepare(sql); err != nil {
-			return fmt.Errorf("parepre error %s", err)
-		} else {
-
-			s.params = t.ParamNum()
-			s.columns = t.ColumnNum()
-		}
 	}
+
+	err = co.UseDB(c.schema.db)
+	if err != nil {
+		return fmt.Errorf("parepre error %s", err)
+	}
+
+	t, err := co.Prepare(sql)
+	if err != nil {
+		return fmt.Errorf("parepre error %s", err)
+	}
+	s.params = t.ParamNum()
+	s.columns = t.ColumnNum()
 
 	s.id = c.stmtId
 	c.stmtId++
@@ -246,6 +246,7 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 
 	//execute in Master DB
 	conn, err := c.getBackendConn(defaultNode, false)
+	defer c.closeConn(conn, err != nil)
 	if err != nil {
 		return err
 	}
@@ -258,7 +259,6 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 	var rs []*mysql.Result
 	rs, err = c.executeInNode(conn, sql, args)
 
-	c.closeConn(conn, false)
 	if err != nil {
 		golog.Error("ClientConn", "handlePrepareSelect", err.Error(), c.connectionId)
 		return err
@@ -281,6 +281,7 @@ func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, arg
 
 	//execute in Master DB
 	conn, err := c.getBackendConn(defaultNode, false)
+	defer c.closeConn(conn, err != nil)
 	if err != nil {
 		return err
 	}

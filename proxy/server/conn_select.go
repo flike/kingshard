@@ -42,10 +42,10 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 	n := c.proxy.GetNode(nodeName)
 
 	co, err := n.GetMasterConn()
+	defer c.closeConn(co, err != nil)
 	if err != nil {
 		return err
 	}
-	defer co.Close()
 
 	if err = co.UseDB(c.db); err != nil {
 		return err

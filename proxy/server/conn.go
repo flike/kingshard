@@ -310,6 +310,7 @@ func (c *ClientConn) dispatch(data []byte) error {
 		return c.handleStmtReset(data)
 	default:
 		msg := fmt.Sprintf("command %d not supported now", cmd)
+		golog.Error("ClientConn", "dispatch", msg, 0)
 		return mysql.NewError(mysql.ER_UNKNOWN_ERROR, msg)
 	}
 
@@ -317,6 +318,22 @@ func (c *ClientConn) dispatch(data []byte) error {
 }
 
 func (c *ClientConn) useDB(db string) error {
+	if c.schema == nil {
+		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
+	}
+
+	nodeName := c.schema.rule.DefaultRule.Nodes[0]
+
+	n := c.proxy.GetNode(nodeName)
+	co, err := n.GetMasterConn()
+	defer c.closeConn(co, err != nil)
+	if err != nil {
+		return err
+	}
+
+	if err = co.UseDB(db); err != nil {
+		return err
+	}
 	c.db = db
 	return nil
 }
