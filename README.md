@@ -37,7 +37,7 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
 
 # License
 
-kingshard is under the MIT license. See the [LICENSE](./doc/License) directory for details.
+kingshard is under the Apache 2.0 license. See the [LICENSE](./doc/License) directory for details.
 
 # Other language version
 

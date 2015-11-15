@@ -45,7 +45,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 
 ## License
 
-kingshard采用MIT协议，相关协议请参看[目录](./doc/License)
+kingshard采用Apache 2.0协议，相关协议请参看[目录](./doc/License)
 
 ## 鸣谢
 - 感谢[mixer](https://github.com/siddontang/mixer)作者siddontang, kingshard最初的版本正是基于mixer开发而来的。
