@@ -58,17 +58,13 @@ func (n *Node) CheckNode() {
 	n.checkMaster()
 	n.checkSlave()
 
-	t := time.NewTicker(30 * time.Second)
-	defer t.Stop()
-
 	n.LastMasterPing = time.Now().Unix()
 	n.LastSlavePing = n.LastMasterPing
+
 	for {
-		select {
-		case <-t.C:
-			n.checkMaster()
-			n.checkSlave()
-		}
+		n.checkMaster()
+		n.checkSlave()
+		time.Sleep(16 * time.Second)
 	}
 }
 
@@ -112,13 +108,14 @@ func (n *Node) checkMaster() {
 		golog.Error("Node", "checkMaster", "Master is no alive", 0)
 		return
 	}
-	if atomic.LoadInt32(&(db.state)) == Down {
-		return
-	}
 
 	if err := db.Ping(); err != nil {
 		golog.Error("Node", "checkMaster", "Ping", 0, "db.Addr", db.Addr(), "error", err.Error())
 	} else {
+		if atomic.LoadInt32(&(db.state)) == Down {
+			golog.Info("Node", "checkMaster", "Master up", 0, "db.Addr", db.Addr())
+			n.UpMaster(db.addr)
+		}
 		n.LastMasterPing = time.Now().Unix()
 		atomic.StoreInt32(&(db.state), Up)
 		return
@@ -143,12 +140,13 @@ func (n *Node) checkSlave() {
 	n.RUnlock()
 
 	for i := 0; i < len(slaves); i++ {
-		if atomic.LoadInt32(&(slaves[i].state)) == Down {
-			continue
-		}
 		if err := slaves[i].Ping(); err != nil {
 			golog.Error("Node", "checkSlave", "Ping", 0, "db.Addr", slaves[i].Addr(), "error", err.Error())
 		} else {
+			if atomic.LoadInt32(&(slaves[i].state)) == Down {
+				golog.Info("Node", "checkSlave", "Slave up", 0, "db.Addr", slaves[i].Addr())
+				n.UpSlave(slaves[i].addr)
+			}
 			n.LastSlavePing = time.Now().Unix()
 			atomic.StoreInt32(&(slaves[i].state), Up)
 			continue
@@ -276,6 +274,7 @@ func (n *Node) DownMaster(addr string) error {
 	if db == nil || db.addr != addr {
 		return errors.ErrNoMasterDB
 	}
+
 	db.Close()
 	atomic.StoreInt32(&(db.state), Down)
 	return nil
@@ -296,7 +295,7 @@ func (n *Node) DownSlave(addr string) error {
 		if slave.addr == addr {
 			slave.Close()
 			atomic.StoreInt32(&(slave.state), Down)
-			return nil
+			break
 		}
 	}
 	return nil

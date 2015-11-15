@@ -77,7 +77,7 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 	n := c.proxy.GetNode(defaultRule.Nodes[0])
 
 	co, err := n.GetMasterConn()
-	defer c.closeConn(co, err != nil)
+	defer c.closeConn(co, false)
 	if err != nil {
 		return fmt.Errorf("prepare error %s", err)
 	}
@@ -260,7 +260,7 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 
 	//execute in Master DB
 	conn, err := c.getBackendConn(defaultNode, false)
-	defer c.closeConn(conn, err != nil)
+	defer c.closeConn(conn, false)
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, arg
 
 	//execute in Master DB
 	conn, err := c.getBackendConn(defaultNode, false)
-	defer c.closeConn(conn, err != nil)
+	defer c.closeConn(conn, false)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, arg
 
 	var rs []*mysql.Result
 	rs, err = c.executeInNode(conn, sql, args)
-	c.closeConn(conn, err != nil)
+	c.closeConn(conn, false)
 
 	if err == nil {
 		err = c.mergeExecResult(rs)

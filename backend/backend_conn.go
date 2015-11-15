@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	pingPeriod = int64(time.Second * 30)
+	pingPeriod = int64(time.Second * 16)
 )
 
 //proxy <-> mysql server

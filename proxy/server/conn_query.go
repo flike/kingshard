@@ -491,7 +491,7 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	}
 	//execute in Master DB
 	conn, err := c.getBackendConn(execNode, fromSlave)
-	defer c.closeConn(conn, err != nil)
+	defer c.closeConn(conn, false)
 	if err != nil {
 		return false, err
 	}

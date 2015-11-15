@@ -279,9 +279,7 @@ func (c *ClientConn) Run() {
 			golog.Error("server", "Run",
 				err.Error(), c.connectionId,
 			)
-			if err != mysql.ErrBadConn {
-				c.writeError(err)
-			}
+			c.writeError(err)
 		}
 
 		if c.closed {
@@ -340,7 +338,7 @@ func (c *ClientConn) useDB(db string) error {
 
 	n := c.proxy.GetNode(nodeName)
 	co, err := n.GetMasterConn()
-	defer c.closeConn(co, err != nil)
+	defer c.closeConn(co, false)
 	if err != nil {
 		return err
 	}

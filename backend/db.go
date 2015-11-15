@@ -82,7 +82,7 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 			conn, err := db.newConn()
 			if err != nil {
 				db.Close()
-				return nil, errors.ErrDBPoolInit
+				return nil, errors.ErrDatabaseClose
 			}
 			db.cacheConns <- conn
 		} else {
@@ -133,6 +133,7 @@ func (db *DB) Close() error {
 		db.closeConn(conn)
 	}
 	close(idleChannel)
+
 	return nil
 }
 
@@ -163,11 +164,18 @@ func (db *DB) Ping() error {
 	if db.checkConn == nil {
 		db.checkConn, err = db.newConn()
 		if err != nil {
+			db.closeConn(db.checkConn)
+			db.checkConn = nil
 			return err
 		}
 	}
 	err = db.checkConn.Ping()
-	return err
+	if err != nil {
+		db.closeConn(db.checkConn)
+		db.checkConn = nil
+		return err
+	}
+	return nil
 }
 
 func (db *DB) newConn() (*Conn, error) {
@@ -184,7 +192,9 @@ func (db *DB) closeConn(co *Conn) error {
 	if co != nil {
 		co.Close()
 		conns := db.getIdleConns()
-		conns <- co
+		if conns != nil {
+			conns <- co
+		}
 	}
 	return nil
 }
@@ -286,7 +296,7 @@ type BackendConn struct {
 }
 
 func (p *BackendConn) Close() {
-	if p.Conn != nil {
+	if p != nil && p.Conn != nil {
 		if p.Conn.pkgErr != nil {
 			p.db.closeConn(p.Conn)
 		} else {

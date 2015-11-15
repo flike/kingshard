@@ -12,7 +12,7 @@ password : kingshard
 # log level[debug|info|warn|error],default error
 log_level : debug
 #if set log_sql(on|off) off,the sql log will not output
-log_sql: off 
+#log_sql: off 
 #only log the query that take more than slow_log_time ms
 #slow_log_time : 100
 # only allow this ip list ip to connect kingshard
@@ -36,7 +36,7 @@ nodes :
     # slave represents a real mysql salve server,and the number after '@' is 
     # read load weight of this slave.
     slave : 
-    down_after_noalive : 100
+    down_after_noalive : 32
 - 
     name : node2 
 
@@ -55,7 +55,7 @@ nodes :
 
     # down mysql after N seconds noalive
     # 0 will no down
-    down_after_noalive: 100
+    down_after_noalive: 32
 
 # schema defines which db can be used by client and this db's sql will be executed in which nodes
 schemas :
