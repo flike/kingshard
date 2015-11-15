@@ -23,25 +23,25 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 	14. 支持到后端DB的最大连接数限制。
 	15. 支持SQL日志及慢日志输出。
 	
-## kinshard详细说明
+## kinshard相关文档
+
+### kingshard安装和使用
 
 [1.安装kingshard](./doc/KingDoc/kingshard_install_document.md)
 
 [2.如何利用一个数据库中间件扩展MySQL集群——kingshard使用指南](./doc/KingDoc/how_to_use_kingshard.md)
 
-[3.kingshard架构设计和功能实现](./doc/KingDoc/architecture_of_kingshard_CN.md)
+[3.kingshard sharding介绍](./doc/KingDoc/kingshard_sharding_introduce.md)
 
-[4.kingshard性能优化之网络篇](./doc/KingDoc/kingshard_performance_profiling.md)
+[4.kingshard 快速入门](./doc/KingDoc/kingshard_quick_try.md)
 
-[5.kingshard sharding介绍](./doc/KingDoc/kingshard_sharding_introduce.md)
+[5.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
 
-[6.kingshard 快速入门](./doc/KingDoc/kingshard_quick_try.md)
+### kingshard架构与设计
 
-[7.功能FAQ](./doc/KingDoc/function_FAQ.md)
+[1.kingshard架构设计和功能实现](./doc/KingDoc/architecture_of_kingshard_CN.md)
 
-[8.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
-
-[9.ChangeLog](./doc/KingDoc/change_log_CN.md)
+[2.kingshard性能优化之网络篇](./doc/KingDoc/kingshard_performance_profiling.md)
 
 ## License
 
@@ -52,4 +52,4 @@ kingshard采用Apache 2.0协议，相关协议请参看[目录](./doc/License)
 - 感谢以下[开源爱好者](https://github.com/flike/kingshard/graphs/contributors)为kingshard做出的贡献。
 
 ## 反馈
-kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。 **目前已有2家公司在生产环境使用kingshard作为MySQL代理。** 如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至hiflike#gmail.com与作者取得联系，或者加入QQ群(147926796)交流。
+kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。 **目前已有几家公司在生产环境使用kingshard作为MySQL代理。** 如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至hiflike#gmail.com与作者取得联系，或者加入QQ群(147926796)交流。
