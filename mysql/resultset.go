@@ -232,6 +232,15 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 	return data, nil
 }
 
+type Result struct {
+	Status uint16
+
+	InsertId     uint64
+	AffectedRows uint64
+
+	*Resultset
+}
+
 type Resultset struct {
 	Fields     []*Field
 	FieldNames map[string]int

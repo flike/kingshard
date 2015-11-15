@@ -19,6 +19,8 @@
 package router
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"hash/crc32"
 	"strconv"
@@ -42,6 +44,15 @@ func handleError(err *error) {
 	if x := recover(); x != nil {
 		*err = x.(KeyError)
 	}
+}
+
+// Uint64Key is a uint64 that can be converted into a KeyspaceId.
+type Uint64Key uint64
+
+func (i Uint64Key) String() string {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, uint64(i))
+	return buf.String()
 }
 
 func EncodeValue(value interface{}) string {
@@ -141,30 +152,6 @@ func (s *NumRangeShard) EqualStart(key interface{}, index int) bool {
 }
 func (s *NumRangeShard) EqualStop(key interface{}, index int) bool {
 	v := NumValue(key)
-	return s.Shards[index].End == v
-}
-
-type KeyRangeShard struct {
-	Shards []KeyRange
-}
-
-func (s *KeyRangeShard) FindForKey(key interface{}) (int, error) {
-	v := KeyspaceId(EncodeValue(key))
-	for i, r := range s.Shards {
-		if r.Contains(v) {
-			return i, nil
-		}
-	}
-
-	return -1, errors.ErrKeyOutOfRange
-}
-
-func (s *KeyRangeShard) EqualStart(key interface{}, index int) bool {
-	v := KeyspaceId(EncodeValue(key)) //KeyspaceId type is string
-	return s.Shards[index].Start == v
-}
-func (s *KeyRangeShard) EqualStop(key interface{}, index int) bool {
-	v := KeyspaceId(EncodeValue(key))
 	return s.Shards[index].End == v
 }
 
