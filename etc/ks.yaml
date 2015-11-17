@@ -58,8 +58,7 @@ nodes :
     down_after_noalive: 32
 
 # schema defines which db can be used by client and this db's sql will be executed in which nodes
-schemas :
--
+schema :
     db : kingshard
     nodes: [node1,node2]
     rules:

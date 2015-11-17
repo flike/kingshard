@@ -363,7 +363,7 @@ func (c *ClientConn) GetExecNode(tokens []string,
 	var execNode *backend.Node
 	var fromSlave bool
 
-	schema := c.proxy.schemas[c.proxy.db]
+	schema := c.proxy.schema
 	rules := schema.rule.Rules
 
 	tokensLen := len(tokens)

@@ -43,7 +43,7 @@ nodes :
     master : 127.0.0.1:3306
     slave : 
 
-schemas :
+schema :
 -
     db : kingshard 
     nodes: [node1]

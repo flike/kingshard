@@ -25,7 +25,7 @@ import (
 
 func TestParseRule(t *testing.T) {
 	var s = `
-schemas:
+schema:
 -
   db: kingshard
   nodes: [node1, node2, node3]
@@ -51,7 +51,7 @@ schemas:
 		t.Fatal(err)
 	}
 
-	rt, err := NewRouter(&cfg.Schemas[0])
+	rt, err := NewRouter(&cfg.schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ schemas:
 
 func newTestRouter() *Router {
 	var s = `
-schemas :
+schema :
 -
   db : kingshard
   nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
@@ -132,7 +132,7 @@ schemas :
 
 	var r *Router
 
-	r, err = NewRouter(&cfg.Schemas[0])
+	r, err = NewRouter(&cfg.schema)
 	if err != nil {
 		println(err.Error())
 		panic(err)
@@ -143,7 +143,7 @@ schemas :
 
 func newTestDBRule() *Router {
 	var s = `
-schemas :
+schema :
 -
   db : kingshard
   nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
@@ -174,7 +174,7 @@ schemas :
 
 	var r *Router
 
-	r, err = NewRouter(&cfg.Schemas[0])
+	r, err = NewRouter(&cfg.schema)
 	if err != nil {
 		println(err.Error())
 		panic(err)

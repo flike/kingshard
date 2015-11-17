@@ -377,11 +377,7 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 		},
 	)
 
-	//shard rule
-	if len(c.proxy.cfg.Schemas) != 1 {
-		return nil, errors.ErrCmdUnsupport
-	}
-	schemaConfig := c.proxy.cfg.Schemas[0]
+	schemaConfig := c.proxy.cfg.Schema
 	shardRule := schemaConfig.RulesConfig.ShardRule
 
 	for _, r := range shardRule {

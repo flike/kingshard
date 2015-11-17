@@ -32,7 +32,7 @@ type Config struct {
 	AllowIps    string       `yaml:"allow_ips"`
 	Nodes       []NodeConfig `yaml:"nodes"`
 
-	Schemas []SchemaConfig `yaml:"schemas"`
+	Schema SchemaConfig `yaml:"schema"`
 }
 
 //node节点对应的配置

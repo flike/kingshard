@@ -45,16 +45,13 @@ type Server struct {
 	user     string
 	password string
 	db       string
-
-	running bool
-
-	listener net.Listener
-
 	allowips []net.IP
 
-	nodes map[string]*backend.Node
+	nodes  map[string]*backend.Node
+	schema *Schema
 
-	schemas map[string]*Schema
+	listener net.Listener
+	running  bool
 }
 
 func (s *Server) parseAllowIps() error {
@@ -110,46 +107,36 @@ func (s *Server) parseNodes() error {
 	return nil
 }
 
-func (s *Server) parseSchemas() error {
-	s.schemas = make(map[string]*Schema)
-
-	if len(s.cfg.Schemas) != 1 {
-		return fmt.Errorf("must have only one schema.")
+func (s *Server) parseSchema() error {
+	schemaCfg := s.cfg.Schema
+	if len(schemaCfg.Nodes) == 0 {
+		return fmt.Errorf("schema [%s] must have a node.", schemaCfg.DB)
 	}
 
-	for _, schemaCfg := range s.cfg.Schemas {
-		if _, ok := s.schemas[schemaCfg.DB]; ok {
-			return fmt.Errorf("duplicate schema [%s].", schemaCfg.DB)
-		}
-		if len(schemaCfg.Nodes) == 0 {
-			return fmt.Errorf("schema [%s] must have a node.", schemaCfg.DB)
+	nodes := make(map[string]*backend.Node)
+	for _, n := range schemaCfg.Nodes {
+		if s.GetNode(n) == nil {
+			return fmt.Errorf("schema [%s] node [%s] config is not exists.", schemaCfg.DB, n)
 		}
 
-		nodes := make(map[string]*backend.Node)
-		for _, n := range schemaCfg.Nodes {
-			if s.GetNode(n) == nil {
-				return fmt.Errorf("schema [%s] node [%s] config is not exists.", schemaCfg.DB, n)
-			}
-
-			if _, ok := nodes[n]; ok {
-				return fmt.Errorf("schema [%s] node [%s] duplicate.", schemaCfg.DB, n)
-			}
-
-			nodes[n] = s.GetNode(n)
+		if _, ok := nodes[n]; ok {
+			return fmt.Errorf("schema [%s] node [%s] duplicate.", schemaCfg.DB, n)
 		}
 
-		rule, err := router.NewRouter(&schemaCfg)
-		if err != nil {
-			return err
-		}
-
-		s.schemas[schemaCfg.DB] = &Schema{
-			db:    schemaCfg.DB,
-			nodes: nodes,
-			rule:  rule,
-		}
-		s.db = schemaCfg.DB
+		nodes[n] = s.GetNode(n)
 	}
+
+	rule, err := router.NewRouter(&schemaCfg)
+	if err != nil {
+		return err
+	}
+
+	s.schema = &Schema{
+		db:    schemaCfg.DB,
+		nodes: nodes,
+		rule:  rule,
+	}
+	s.db = schemaCfg.DB
 
 	return nil
 }
@@ -171,7 +158,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
-	if err := s.parseSchemas(); err != nil {
+	if err := s.parseSchema(); err != nil {
 		return nil, err
 	}
 
@@ -203,7 +190,7 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 	tcpConn.SetNoDelay(false)
 	c.c = tcpConn
 
-	c.schema = s.GetSchema(s.db)
+	c.schema = s.GetSchema()
 
 	c.pkg = mysql.NewPacketIO(tcpConn)
 	c.proxy = s
@@ -341,6 +328,6 @@ func (s *Server) GetNode(name string) *backend.Node {
 	return s.nodes[name]
 }
 
-func (s *Server) GetSchema(db string) *Schema {
-	return s.schemas[db]
+func (s *Server) GetSchema() *Schema {
+	return s.schema
 }
