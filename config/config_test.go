@@ -53,22 +53,21 @@ nodes :
 schema :
   db : kingshard 
   nodes: [node1, node2, node3]
-  rules:
-    default: node1
-    shard:
-      -   
-        table: test_shard_hash
-        key: id
-        nodes: [node1, node2, node3]
-        type: hash
-        locations: [4,4,4]
-      -   
-        table: test_shard_range
-        key: id
-        type: range
-        nodes: [node2, node3]
-        locations: [4,4]
-        table_row_limit: 10000
+  default: node1
+  shard:
+    -   
+      table: test_shard_hash
+      key: id
+      nodes: [node1, node2, node3]
+      type: hash
+      locations: [4,4,4]
+    -   
+      table: test_shard_range
+      key: id
+      type: range
+      nodes: [node2, node3]
+      locations: [4,4]
+      table_row_limit: 10000
 `)
 
 	cfg, err := ParseConfigData(testConfigData)
@@ -115,8 +114,8 @@ schema :
 		Type:          "hash",
 		TableRowLimit: 0,
 	}
-	if !reflect.DeepEqual(cfg.Schema.RulesConfig.ShardRule[0], testShard_1) {
-		fmt.Printf("%v\n", cfg.Schema.RulesConfig.ShardRule[0])
+	if !reflect.DeepEqual(cfg.Schema.ShardRule[0], testShard_1) {
+		fmt.Printf("%v\n", cfg.Schema.ShardRule[0])
 		t.Fatal("ShardConfig0 must equal")
 	}
 
@@ -128,27 +127,20 @@ schema :
 		Locations:     []int{4, 4},
 		TableRowLimit: 10000,
 	}
-	if !reflect.DeepEqual(cfg.Schema.RulesConfig.ShardRule[1], testShard_2) {
-		fmt.Printf("%v\n", cfg.Schema.RulesConfig.ShardRule[1])
+	if !reflect.DeepEqual(cfg.Schema.ShardRule[1], testShard_2) {
+		fmt.Printf("%v\n", cfg.Schema.ShardRule[1])
 		t.Fatal("ShardConfig1 must equal")
 	}
 
-	if 2 != len(cfg.Schema.RulesConfig.ShardRule) {
+	if 2 != len(cfg.Schema.ShardRule) {
 		t.Fatal("ShardRule must 2")
 	}
 
-	testRules := RulesConfig{
+	testSchema := SchemaConfig{
+		DB:        "kingshard",
+		Nodes:     []string{"node1", "node2", "node3"},
 		Default:   "node1",
 		ShardRule: []ShardConfig{testShard_1, testShard_2},
-	}
-	if !reflect.DeepEqual(cfg.Schema.RulesConfig, testRules) {
-		t.Fatal("RulesConfig must equal")
-	}
-
-	testSchema := SchemaConfig{
-		DB:          "kingshard",
-		Nodes:       []string{"node1", "node2", "node3"},
-		RulesConfig: testRules,
 	}
 
 	if !reflect.DeepEqual(cfg.Schema, testSchema) {

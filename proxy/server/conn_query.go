@@ -185,7 +185,7 @@ func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args [
 	if err != nil {
 		state = "ERROR"
 	} else {
-		state = "INFO"
+		state = "OK"
 	}
 	execTime := float64(time.Now().UnixNano()-startTime) / float64(time.Millisecond)
 	if strings.ToLower(c.proxy.cfg.LogSql) != golog.LogSqlOff &&
@@ -238,7 +238,7 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 				state = "ERROR"
 				rs[i] = err
 			} else {
-				state = "INFO"
+				state = "OK"
 				rs[i] = r
 			}
 			execTime := float64(time.Now().UnixNano()-startTime) / float64(time.Millisecond)

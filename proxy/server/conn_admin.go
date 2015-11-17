@@ -378,7 +378,7 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 	)
 
 	schemaConfig := c.proxy.cfg.Schema
-	shardRule := schemaConfig.RulesConfig.ShardRule
+	shardRule := schemaConfig.ShardRule
 
 	for _, r := range shardRule {
 		rows = append(

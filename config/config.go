@@ -50,13 +50,8 @@ type NodeConfig struct {
 
 //schema对应的结构体
 type SchemaConfig struct {
-	DB          string      `yaml:"db"`
-	Nodes       []string    `yaml:"nodes"`
-	RulesConfig RulesConfig `yaml:"rules"`
-}
-
-//路由规则
-type RulesConfig struct {
+	DB        string        `yaml:"db"`
+	Nodes     []string      `yaml:"nodes"`
 	Default   string        `yaml:"default"` //默认路由规则
 	ShardRule []ShardConfig `yaml:"shard"`   //range或hash路由规则
 }

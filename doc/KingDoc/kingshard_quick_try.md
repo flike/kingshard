@@ -79,6 +79,8 @@
 
 配置如下
 
+```
+
     # server listen addr
     addr : 127.0.0.1:9696
     
@@ -136,8 +138,7 @@
     -
         db : kingshard
         nodes: [node1,node2]
-        rules:
-            default: node1
+		default: node1
             shard:
             -   
                 table: test_shard_hash
@@ -153,6 +154,8 @@
                 nodes: [node1, node2]
                 locations: [4,4]
                 table_row_limit: 10000
+				
+```
     
 ##设置mysql实例信息
 

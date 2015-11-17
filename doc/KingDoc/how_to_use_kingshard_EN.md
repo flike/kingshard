@@ -27,12 +27,12 @@ password : kingshard
 
 #if set log_path, the sql log will write into log_path/sql.log,the system log
 #will write into log_path/sys.log
-log_path : /Users/flike/log
+#log_path : /Users/flike/log
 
 # log level[debug|info|warn|error],default error
 log_level : debug
 #if set log_sql(on|off) off,the sql log will not output
-log_sql: off 
+#log_sql: off 
 #only log the query that take more than slow_log_time ms
 #slow_log_time : 100
 # only allow this ip list ip to connect kingshard
@@ -56,7 +56,7 @@ nodes :
     # slave represents a real mysql salve server,and the number after '@' is 
     # read load weight of this slave.
     slave : 
-    down_after_noalive : 100
+    down_after_noalive : 32
 - 
     name : node2 
 
@@ -75,36 +75,29 @@ nodes :
 
     # down mysql after N seconds noalive
     # 0 will no down
-    down_after_noalive: 100
+    down_after_noalive: 32
 
 # schema defines which db can be used by client and this db's sql will be executed in which nodes
-schemas :
--
+schema :
     db : kingshard
     nodes: [node1,node2]
-    rules:
-    		#all sqls that operate the unshard tables will send to the default node.
-        default: node1
-        shard:
-        -   
-            #shard table
-            table: test_shard_hash
-            #shard key
-            key: id
-            #shard node
-            nodes: [node1, node2]
-            #shard type
-            type: hash
-            #sub table counts,means that 4 sub tables in node1, and 4 sub-tables in node2.
-            locations: [4,4]
+    default: node1      
+    shard:
+    -   
+        table: test_shard_hash
+        key: id
+        nodes: [node1, node2]
+        type: hash
+        locations: [4,4]
 
-        -   
-            table: test_shard_range
-            key: id
-            type: range
-            nodes: [node1, node2]
-            locations: [4,4]
-            table_row_limit: 10000
+    -   
+        table: test_shard_range
+        key: id
+        type: range
+        nodes: [node1, node2]
+        locations: [4,4]
+        table_row_limit: 10000
+
 
 ```
 

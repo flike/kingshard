@@ -81,7 +81,7 @@ func (r *Rule) FindTableIndex(key interface{}) (int, error) {
 	return r.Shard.FindForKey(key)
 }
 
-/*UpdateExprs对应set后面的表达式*/
+//UpdateExprs is the expression after set
 func (r *Rule) checkUpdateExprs(exprs sqlparser.UpdateExprs) error {
 	if r.Type == DefaultRuleType {
 		return nil
@@ -97,24 +97,21 @@ func (r *Rule) checkUpdateExprs(exprs sqlparser.UpdateExprs) error {
 	return nil
 }
 
-//router相关
-/*根据配置文件建立路由规则*/
+//build router according to the config file
 func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
-	//default节点是否是节点列表中的一个
-	if !includeNode(schemaConfig.Nodes, schemaConfig.RulesConfig.Default) {
+	if !includeNode(schemaConfig.Nodes, schemaConfig.Default) {
 		return nil, fmt.Errorf("default node[%s] not in the nodes list.",
-			schemaConfig.RulesConfig.Default)
+			schemaConfig.Default)
 	}
 
 	rt := new(Router)
 	rt.DB = schemaConfig.DB       //对应schema中的db
 	rt.Nodes = schemaConfig.Nodes //对应schema中的nodes
-	rt.Rules = make(map[string]*Rule, len(schemaConfig.RulesConfig.ShardRule))
-	rt.DefaultRule = NewDefaultRule(rt.DB, schemaConfig.RulesConfig.Default)
+	rt.Rules = make(map[string]*Rule, len(schemaConfig.ShardRule))
+	rt.DefaultRule = NewDefaultRule(rt.DB, schemaConfig.Default)
 
-	for _, shard := range schemaConfig.RulesConfig.ShardRule {
-		//rc := &RuleConfig{shard}
-		for _, node := range shard.Nodes { //rules中的nodes是不是都在schema中的nodes
+	for _, shard := range schemaConfig.ShardRule {
+		for _, node := range shard.Nodes {
 			if !includeNode(rt.Nodes, node) {
 				return nil, fmt.Errorf("shard table[%s] node[%s] not in the schema.nodes list:[%s].",
 					shard.Table, node, strings.Join(shard.Nodes, ","))
@@ -208,7 +205,7 @@ func includeNode(nodes []string, node string) bool {
 	return false
 }
 
-/*生成一个route plan*/
+//build a router plan
 func (r *Router) BuildPlan(statement sqlparser.Statement) (*Plan, error) {
 	//因为实现Statement接口的方法都是指针类型，所以type对应类型也是指针类型
 	switch stmt := statement.(type) {
@@ -248,7 +245,7 @@ func (r *Router) buildSelectPlan(statement sqlparser.Statement) (*Plan, error) {
 	where = stmt.Where
 
 	if where != nil {
-		plan.Criteria = where.Expr /*路由条件*/
+		plan.Criteria = where.Expr //路由条件
 	} else {
 		plan.Rule = r.DefaultRule
 	}
@@ -278,7 +275,7 @@ func (r *Router) buildInsertPlan(statement sqlparser.Statement) (*Plan, error) {
 	if _, ok := stmt.Rows.(sqlparser.SelectStatement); ok {
 		return nil, errors.ErrSelectInInsert
 	}
-	/*根据sql语句的表，获得对应的分片规则*/
+	//根据sql语句的表，获得对应的分片规则
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
 
 	if stmt.OnDup != nil {
@@ -317,7 +314,7 @@ func (r *Router) buildUpdatePlan(statement sqlparser.Statement) (*Plan, error) {
 
 	where = stmt.Where
 	if where != nil {
-		plan.Criteria = where.Expr /*路由条件*/
+		plan.Criteria = where.Expr //路由条件
 	} else {
 		plan.Rule = r.DefaultRule
 	}
@@ -351,7 +348,7 @@ func (r *Router) buildDeletePlan(statement sqlparser.Statement) (*Plan, error) {
 	where = stmt.Where
 
 	if where != nil {
-		plan.Criteria = where.Expr /*路由条件*/
+		plan.Criteria = where.Expr //路由条件
 	} else {
 		plan.Rule = r.DefaultRule
 	}

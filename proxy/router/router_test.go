@@ -26,19 +26,17 @@ import (
 func TestParseRule(t *testing.T) {
 	var s = `
 schema:
--
   db: kingshard
   nodes: [node1, node2, node3]
-  rules:
-    default: node1
-    shard:      
-     -
+  default: node1
+  shard:      
+    -
       table: test_shard_hash
       key: id
       nodes: [node2, node3]
       locations: [16,16]
       type: hash
-     -
+    -
       table: test_shard_range
       key: id
       type: range
@@ -51,7 +49,7 @@ schema:
 		t.Fatal(err)
 	}
 
-	rt, err := NewRouter(&cfg.schema)
+	rt, err := NewRouter(&cfg.Schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,26 +100,24 @@ schema:
 func newTestRouter() *Router {
 	var s = `
 schema :
--
   db : kingshard
   nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
-  rules:
-    default: node1
-    shard:
-      -
-        table: test1
-        key: id
-        nodes: [node1,node2,node3]
-        locations: [4,4,4]
-        type: hash
+  default: node1
+  shard:
+    -
+      table: test1
+      key: id
+      nodes: [node1,node2,node3]
+      locations: [4,4,4]
+      type: hash
 
-      -
-        table: test2
-        key: id
-        type: range
-        nodes: [node1,node2,node3]
-        locations: [4,4,4]
-        table_row_limit: 10000
+    -
+      table: test2
+      key: id
+      type: range
+      nodes: [node1,node2,node3]
+      locations: [4,4,4]
+      table_row_limit: 10000
 `
 
 	cfg, err := config.ParseConfigData([]byte(s))
@@ -132,7 +128,7 @@ schema :
 
 	var r *Router
 
-	r, err = NewRouter(&cfg.schema)
+	r, err = NewRouter(&cfg.Schema)
 	if err != nil {
 		println(err.Error())
 		panic(err)
@@ -144,26 +140,24 @@ schema :
 func newTestDBRule() *Router {
 	var s = `
 schema :
--
   db : kingshard
   nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
-  rules:
-    default: node1
-    shard:
-      -
-        table: test1
-        key: id
-        nodes: [node1,node2,node3]
-        locations: [1,2,3]
-        type: hash
+  default: node1
+  shard:
+    -
+      table: test1
+      key: id
+      nodes: [node1,node2,node3]
+      locations: [1,2,3]
+      type: hash
 
-      -
-        table: test2
-        key: id
-        type: range
-        nodes: [node1,node2,node3]
-        locations: [8,8,8]
-        table_row_limit: 100
+    -
+      table: test2
+      key: id
+      type: range
+      nodes: [node1,node2,node3]
+      locations: [8,8,8]
+      table_row_limit: 100
 `
 
 	cfg, err := config.ParseConfigData([]byte(s))
@@ -174,7 +168,7 @@ schema :
 
 	var r *Router
 
-	r, err = NewRouter(&cfg.schema)
+	r, err = NewRouter(&cfg.Schema)
 	if err != nil {
 		println(err.Error())
 		panic(err)

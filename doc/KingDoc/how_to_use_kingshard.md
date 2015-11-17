@@ -41,6 +41,7 @@ allow_ips: 127.0.0.1
 
 # 一个node节点表示mysql集群的一个数据分片，包括一主多从（可以不配置从库）
 nodes :
+-
     #node节点名字
     name : node1 
 
@@ -70,43 +71,41 @@ nodes :
 
 # 分表规则
 schemas :
--
     #分表使用的db，所有的分表必须都在这个db中。
     db : kingshard
     #分表分布的node名字
     nodes: [node1,node2]
-    rules:
-        #所有未分表的SQL，都会发往默认node。
-        default: node1
-        shard:
-        -
-            #分表名字
-            table: test_shard_hash
-            #分表字段
-            key: id
-            #分表分布的node
-            nodes: [node1, node2]
-            #分表类型
-            type: hash
-            #子表个数分布，表示node1有4个子表，
-			#node2有4个子表。
-            locations: [4,4]
+	#所有未分表的SQL，都会发往默认node。
+    default: node1
+    shard:
+    -
+        #分表名字
+        table: test_shard_hash
+        #分表字段
+        key: id
+        #分表分布的node
+        nodes: [node1, node2]
+        #分表类型
+        type: hash
+        #子表个数分布，表示node1有4个子表，
+        #node2有4个子表。
+        locations: [4,4]
 
-        -
-		    #分表名字
-            table: test_shard_range
-			#分表字段
-            key: id
-			#分表类型
-            type: range
-			#分表分布的node
-            nodes: [node1, node2]
-			#子表个数分布，表示node1有4个子表，
-			#node2有4个子表。
-            locations: [4,4]
-            #表示每个子表包含的最大记录数，也就是说每
-			#个子表最多包好10000条记录。即子表1对应的id为[0,10000),子表2[10000,20000)....
-            table_row_limit: 10000
+    -
+		#分表名字
+        table: test_shard_range
+	    #分表字段
+        key: id
+		#分表类型
+        type: range
+	    #分表分布的node
+        nodes: [node1, node2]
+		#子表个数分布，表示node1有4个子表，
+		#node2有4个子表。
+        locations: [4,4]
+        #表示每个子表包含的最大记录数，也就是说每
+	    #个子表最多包好10000条记录。即子表1对应的id为[0,10000),子表2[10000,20000)....
+        table_row_limit: 10000
 
 ```
 这里着重说一下分表的配置规则：

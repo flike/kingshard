@@ -61,20 +61,19 @@ nodes :
 schema :
     db : kingshard
     nodes: [node1,node2]
-    rules:
-        default: node1
-        shard:
-        -   
-            table: test_shard_hash
-            key: id
-            nodes: [node1, node2]
-            type: hash
-            locations: [4,4]
+    default: node1      
+    shard:
+    -   
+        table: test_shard_hash
+        key: id
+        nodes: [node1, node2]
+        type: hash
+        locations: [4,4]
 
-        -   
-            table: test_shard_range
-            key: id
-            type: range
-            nodes: [node1, node2]
-            locations: [4,4]
-            table_row_limit: 10000
+    -   
+        table: test_shard_range
+        key: id
+        type: range
+        nodes: [node1, node2]
+        locations: [4,4]
+        table_row_limit: 10000
