@@ -90,6 +90,7 @@ func (c *Conn) ReConnect() error {
 	// meaning that data is sent as soon as possible after a Write.
 	//I set this option false.
 	tcpConn.SetNoDelay(false)
+	tcpConn.SetKeepAlive(true)
 	c.conn = tcpConn
 	c.pkg = mysql.NewPacketIO(tcpConn)
 

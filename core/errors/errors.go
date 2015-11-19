@@ -30,7 +30,6 @@ var (
 	ErrSlaveDown     = errors.New("slave is down")
 	ErrDatabaseClose = errors.New("database is close")
 	ErrConnIsNil     = errors.New("connection is nil")
-	ErrPopConnFail   = errors.New("pop connection fail")
 
 	ErrAddressNull     = errors.New("address is nil")
 	ErrInvalidArgument = errors.New("argument is invalid")
