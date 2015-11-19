@@ -386,7 +386,9 @@ func (c *ClientConn) GetExecNode(tokens []string,
 							if _, ok := rules[tableName]; ok {
 								return nil, false, nil
 							} else {
-								fromSlave = true
+								if tokenId == mysql.TK_ID_SELECT {
+									fromSlave = true
+								}
 							}
 						}
 					}
