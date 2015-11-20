@@ -29,7 +29,7 @@ var testDBOnce sync.Once
 var testDB *backend.DB
 
 var testConfigData = []byte(`
-addr : 127.0.0.1:3601
+addr : 127.0.0.1:9696
 user : root
 password : 
 
@@ -44,11 +44,10 @@ nodes :
     slave : 
 
 schema :
--
-    db : kingshard 
+    db : kingshard
+    default: node1  
     nodes: [node1]
     rules:
-        default: node1 
         shard:
             -
 `)

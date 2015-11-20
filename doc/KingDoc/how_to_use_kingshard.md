@@ -43,34 +43,34 @@ allow_ips: 127.0.0.1
 nodes :
 -
     #node节点名字
-    name : node1 
+    name : node1
 
     # 连接池中最大的空闲连接数，也就是kingshard最多与后端DB建立max_conns_limit个连接
     max_conns_limit : 16
 
     # kingshard连接该node中mysql的用户名和密码，master和slave的用户名和密码必须一致
-    user :  kingshard 
+    user :  kingshard
     password : kingshard
 
-    # master的地址和端口 
+    # master的地址和端口
     master : 127.0.0.1:3306
 
     # slave的地址和端口，可不配置
     #slave : 192.168.0.12@2,192.168.0.13@3
     #kingshard在300秒内都连接不上mysql，kingshard则会下线该mysql
     down_after_noalive : 300
-- 
-    name : node2 
+-
+    name : node2
     max_conns_limit : 16
-    user :  kingshard 
+    user :  kingshard
     password : kingshard
 
     master : 192.168.59.103:3307
-    slave : 
+    slave :
     down_after_noalive: 100
 
 # 分表规则
-schemas :
+schema :
     #分表使用的db，所有的分表必须都在这个db中。
     db : kingshard
     #分表分布的node名字
@@ -122,7 +122,7 @@ schemas :
 4. source ./dev.sh
 5. make
 6. 设置配置文件
-7. 运行kingshard。./bin/kingshard -config=etc/ks.yaml 
+7. 运行kingshard。./bin/kingshard -config=etc/ks.yaml
 
 **注意：kingshard会响应SIGINT,SIGTERM,SIGQUIT这三个信号，平滑退出。在部署kingshard机器上应避免产生这三个信号，以免造成kingshard非正常退出！后台运行kingshard建议使用supervisor工具**
 
@@ -422,5 +422,3 @@ kingshard的管理接口，目前还是命令行的方式。后续有时间打�
 
 ## 7. 总结
 kingshard开源两个月以来，得到了很多开发者的关注。这足以证明，大家对数据库中间件是有需求的，希望出现一款简单好用的MySQL Proxy。kingshard经过这两个月的迭代开发，也比较稳定了。据了解，有几个公司正在对其进行尝试。后续作者的主要精力会放在优化kingshard的性能上，同时完善kingshard已有的功能。如果大家对kingshard有什么想法或建议，可以发邮件联系我（flikecn#126.com)，非常乐意和大家交流。
-
-

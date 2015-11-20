@@ -33,34 +33,34 @@ allow_ips: 127.0.0.1
 # 一个node节点表示mysql集群的一个数据分片，包括一主多从（可以不配置从库）
 nodes :
     #node节点名字
-    name : node1 
+    name : node1
 
     # 连接池中最大空闲连接数，也就是最多与后端DB建立max_conns_limit个连接
     max_conns_limit : 16
 
     # kingshard连接该node中mysql的用户名和密码，master和slave的用户名和密码必须一致
-    user :  kingshard 
+    user :  kingshard
     password : kingshard
 
-    # master的地址和端口 
+    # master的地址和端口
     master : 127.0.0.1:3306
 
     # slave的地址、端口和读权重，@后面的表示该slave的读权重。可不配置slave
     #slave : 192.168.0.12@2,192.168.0.13@3
     #kingshard在300秒内都连接不上mysql，kingshard则会下线该mysql
     down_after_noalive : 300
-- 
-    name : node2 
+-
+    name : node2
     max_conns_limit : 16
-    user :  kingshard 
+    user :  kingshard
     password : kingshard
 
     master : 192.168.59.103:3307
-    slave : 
+    slave :
     down_after_noalive: 100
 
 # 分表规则
-schemas :
+schema :
     #分表使用的db，所有的分表必须都在这个db中。
     db : kingshard
     #分表分布的node名字

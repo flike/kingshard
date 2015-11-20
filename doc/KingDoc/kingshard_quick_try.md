@@ -28,7 +28,7 @@
     mysqladmin = /usr/bin/mysqladmin
     user       = multi_admin
     password   = my_password
-    
+
     [mysqld2]
     socket     = /var/lib/mysql2/mysql.sock2
     port       = 3307
@@ -36,7 +36,7 @@
     datadir    = /var/lib/mysql2
     #language   = /usr/share/mysql/english
     user       = unix_user1
-    
+
     [mysqld3]
     socket     = /var/lib/mysql3/mysql.sock3
     port       = 3308
@@ -83,58 +83,58 @@
 
     # server listen addr
     addr : 127.0.0.1:9696
-    
+
     # server user and password
     user :  kingshard
     password : kingshard
-    
+
     # log level[debug|info|warn|error],default error
     log_level : debug
     # only allow this ip list ip to connect kingshard
     #allow_ips: 127.0.0.1
-    
+
     # node is an agenda for real remote mysql server.
     nodes :
-    - 
-        name : node1 
-    
+    -
+        name : node1
+
         # default max conns for mysql server
         max_conns_limit : 8
-    
+
         # all mysql in a node must have the same user and password
         user :  root
         password : root
-    
-        # master represents a real mysql master server 
+
+        # master represents a real mysql master server
         master : 127.0.0.1:3307
-    
-        # slave represents a real mysql salve server,and the number after '@' is 
+
+        # slave represents a real mysql salve server,and the number after '@' is
         #read load weight of this slave.
         #slave : 192.168.0.11:3307@2,192.168.0.12:3307@5
-        slave : 
+        slave :
         #down_after_noalive : 300
-    - 
-        name : node2 
-    
+    -
+        name : node2
+
         # default max conns for mysql server
         max_conns_limit : 8
-    
+
         # all mysql in a node must have the same user and password
         user :  root
         password : root
-    
-        # master represents a real mysql master server 
+
+        # master represents a real mysql master server
         master : 127.0.0.1:3308
-    
-        # slave represents a real mysql salve server 
-        slave : 
-    
+
+        # slave represents a real mysql salve server
+        slave :
+
         # down mysql after N seconds noalive
         # 0 will no down
         down_after_noalive: 100
-    
+
     # schema defines which db can be used by client and this db's sql will be executed in which nodes
-    schemas :
+    schema :
     -
         db : kingshard
         nodes: [node1,node2]
@@ -146,7 +146,7 @@
                 nodes: [node1, node2]
                 type: hash
                 locations: [4,4]
-    
+
             -   
                 table: test_shard_range
                 key: id
@@ -154,9 +154,9 @@
                 nodes: [node1, node2]
                 locations: [4,4]
                 table_row_limit: 10000
-				
+
 ```
-    
+
 ##设置mysql实例信息
 
 ###设置用户
@@ -178,7 +178,7 @@
 
 ##测试shard功能
 
-使用test_shard_hash测试 shard　hash分表功能. 
+使用test_shard_hash测试 shard　hash分表功能.
 
 ###创建分表
 
@@ -215,7 +215,7 @@ kingshard日志如下：
     2015/07/29 07:39:15 - INFO - 127.0.0.1:40143->127.0.0.1:3307:insert into test_shard_hash_0001(id, str, f, e, u, i) values (9, 'abc9', 3.14, 'test9', 255, -127)
     2015/07/29 07:39:15 - INFO - 127.0.0.1:40144->127.0.0.1:3307:select @@version_comment limit 1
     2015/07/29 07:39:15 - INFO - 127.0.0.1:40144->127.0.0.1:3307:insert into test_shard_hash_0002(id, str, f, e, u, i) values (10, 'abc10', 3.14, 'test10', 255, -127)
-    
+
 
 通过kingshard的日志可以看到数据插入时根据不同的hash值，插入到不同的子表里面去了。
 
