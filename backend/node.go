@@ -85,9 +85,9 @@ func (n *Node) GetMasterConn() (*BackendConn, error) {
 }
 
 func (n *Node) GetSlaveConn() (*BackendConn, error) {
-	n.RLock()
+	n.Lock()
 	db, err := n.GetNextSlave()
-	n.RUnlock()
+	n.Unlock()
 	if err != nil {
 		return nil, err
 	}
