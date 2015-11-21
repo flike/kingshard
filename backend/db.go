@@ -193,7 +193,12 @@ func (db *DB) closeConn(co *Conn) error {
 		co.Close()
 		conns := db.getIdleConns()
 		if conns != nil {
-			conns <- co
+			select {
+			case conns <- co:
+				return nil
+			default:
+				co.Close()
+			}
 		}
 	}
 	return nil
@@ -302,6 +307,7 @@ func (p *BackendConn) Close() {
 		} else {
 			p.db.PushConn(p.Conn, nil)
 		}
+		p.Conn = nil
 	}
 }
 

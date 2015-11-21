@@ -84,12 +84,12 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 
 	err = co.UseDB(c.schema.db)
 	if err != nil {
-		return fmt.Errorf("parepre error %s", err)
+		return fmt.Errorf("prepare error %s", err)
 	}
 
 	t, err := co.Prepare(sql)
 	if err != nil {
-		return fmt.Errorf("parepre error %s", err)
+		return fmt.Errorf("prepare error %s", err)
 	}
 	s.params = t.ParamNum()
 	s.columns = t.ColumnNum()
