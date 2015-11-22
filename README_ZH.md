@@ -3,9 +3,9 @@
 
 # kingshard简介
 
-kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作；能够让DBA通过kingshard轻松平滑地实现MySQL数据库扩容。 **kingshard的性能大约是直连MySQL性能的75%左右**。
+kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作；能够让DBA通过kingshard轻松平滑地实现MySQL数据库扩容。 **kingshard的性能大约是直连MySQL性能的80%以上**。
 
-## 主要功能：	
+## 主要功能：
 
 	1. 读写分离。
 	2. 跨节点分表。
@@ -22,7 +22,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 	13. 支持主流语言（java,php,python,C/C++,Go)SDK的mysql的prepare特性。
 	14. 支持到后端DB的最大连接数限制。
 	15. 支持SQL日志及慢日志输出。
-	
+
 ## kinshard相关文档
 
 ### kingshard安装和使用
@@ -37,7 +37,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 
 [5.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
 
-[6.kingshard性能测试](./doc/KingDoc/kingshard_performance_test.md)
+[6.kingshard性能测试报告](./doc/KingDoc/kingshard_performance_test.md)
 
 ### kingshard架构与设计
 
@@ -51,6 +51,7 @@ kingshard采用Apache 2.0协议，相关协议请参看[目录](./doc/License)
 
 ## 鸣谢
 - 感谢[mixer](https://github.com/siddontang/mixer)作者siddontang, kingshard最初的版本正是基于mixer开发而来的。
+- 感谢[bigpyer](https://github.com/bigpyer)，他对kingshard做了详细的性能测试，并撰写了一份非常详细的测试报告。
 - 感谢以下[开源爱好者](https://github.com/flike/kingshard/graphs/contributors)为kingshard做出的贡献。
 
 ## 反馈

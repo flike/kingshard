@@ -1,4 +1,4 @@
-# kingshard的性能测试
+# kingshard的性能测试报告
 ## 1.测试环境
 ### 1.1服务器配置
 
@@ -183,7 +183,7 @@ QPS的对比是连接kingshard与直连DB性能对比的真实的反应，网络
 
 **从以上几个表个的比例数据来看，通过kingshard转发select请求时的QPS是直连DB时80%左右，
 而update和insert请求对应的QPS则更高一些，相当于直连DB时的85%左右,甚至在并发更高的情况下直连mysql的性能低于通过kingshards转发的性能。
-由此看来利用kingshard转发SQL请求带来的性能下降虽有下降，但完全可以接受，甚至高并发场景下kingshard的性能优于直连DB的性能。**
+由此看来利用kingshard转发SQL请求带来的性能下降虽有下降，但完全可以接受，甚至高并发场景下kingshard的性能优于直连DB的性能。这也是得益于kingshard在高并发的时候，充分利用了连接池的作用，降低了高并发带来的竞争消耗。**
 
 **sysbench并发线程高于512的数据并没有给出，因为直连DB已经不能正常完成测试，但是kingshard可以完成。**
 
