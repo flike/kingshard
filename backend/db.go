@@ -25,6 +25,7 @@ import (
 const (
 	Up = iota
 	Down
+	ManualDown
 	Unknown
 
 	InitConnCount     = 16
@@ -103,7 +104,7 @@ func (db *DB) State() string {
 	switch db.state {
 	case Up:
 		state = "up"
-	case Down:
+	case Down, ManualDown:
 		state = "down"
 	case Unknown:
 		state = "unknow"

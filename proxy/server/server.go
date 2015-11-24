@@ -313,7 +313,7 @@ func (s *Server) DownMaster(node, masterAddr string) error {
 	if n == nil {
 		return fmt.Errorf("invalid node %s", node)
 	}
-	return n.DownMaster(masterAddr)
+	return n.DownMaster(masterAddr, backend.ManualDown)
 }
 
 func (s *Server) DownSlave(node, slaveAddr string) error {
@@ -321,7 +321,7 @@ func (s *Server) DownSlave(node, slaveAddr string) error {
 	if n == nil {
 		return fmt.Errorf("invalid node [%s].", node)
 	}
-	return n.DownSlave(slaveAddr)
+	return n.DownSlave(slaveAddr, backend.ManualDown)
 }
 
 func (s *Server) GetNode(name string) *backend.Node {
