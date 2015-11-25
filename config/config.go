@@ -64,6 +64,8 @@ type ShardConfig struct {
 	Locations     []int    `yaml:"locations"`
 	Type          string   `yaml:"type"`
 	TableRowLimit int      `yaml:"table_row_limit"`
+	Seps		  []string `yaml:"seps"`
+	KeyType		  string   `yaml:"key_type"`
 }
 
 func ParseConfigData(data []byte) (*Config, error) {
