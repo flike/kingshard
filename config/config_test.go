@@ -68,6 +68,14 @@ schema :
       nodes: [node2, node3]
       locations: [4,4]
       table_row_limit: 10000
+    -
+      table: test_shard_sep_range
+      key: recdate
+      type: sep_range
+      nodes: [node1, node3]
+      locations: [2,2]
+      seps: [2015-09-01, 2015-10-01, 2015-11-01]
+      key_type: string
 `)
 
 	cfg, err := ParseConfigData(testConfigData)
@@ -132,7 +140,21 @@ schema :
 		t.Fatal("ShardConfig1 must equal")
 	}
 
-	if 2 != len(cfg.Schema.ShardRule) {
+	testShard_3 := ShardConfig{
+		Table:     "test_shard_sep_range",
+		Key:       "recdate",
+		Nodes:     []string{"node1", "node3"},
+		Type:      "sep_range",
+		Locations: []int{2, 2},
+		Seps:      []string{"2015-09-01", "2015-10-01", "2015-11-01"},
+		KeyType:   "string",
+	}
+	if !reflect.DeepEqual(cfg.Schema.ShardRule[2], testShard_3) {
+		fmt.Printf("%v\n", cfg.Schema.ShardRule[2])
+		t.Fatal("ShardConfig2 must equal")
+	}
+
+	if 3 != len(cfg.Schema.ShardRule) {
 		t.Fatal("ShardRule must 2")
 	}
 

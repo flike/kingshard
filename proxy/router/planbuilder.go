@@ -108,7 +108,7 @@ func (plan *Plan) getTableIndexs(expr sqlparser.BoolExpr) ([]int, error) {
 		case "in":
 			return plan.getTableIndexsByTuple(criteria.Right)
 		case "not in":
-			if plan.Rule.Type == RangeRuleType {
+			if plan.Rule.Type == RangeRuleType || plan.Rule.Type == SepRangeRuleType {
 				return plan.TableIndexs, nil
 			}
 

@@ -25,15 +25,15 @@ import (
 )
 
 var (
-	DefaultRuleType 	= "default"
-	HashRuleType    	= "hash"
-	RangeRuleType   	= "range"
-	SepRangeRuleType 	= "sep_range"
+	DefaultRuleType  = "default"
+	HashRuleType     = "hash"
+	RangeRuleType    = "range"
+	SepRangeRuleType = "sep_range"
 )
 
 var (
-	StrKeyType	= "string"
-	IntKeyType	= "int"
+	StrKeyType = "string"
+	IntKeyType = "int"
 )
 
 type Rule struct {
@@ -197,7 +197,7 @@ func parseShard(r *Rule, cfg *config.ShardConfig) error {
 		r.Shard = &NumRangeShard{Shards: rs}
 	} else if r.Type == SepRangeRuleType {
 		seps := cfg.Seps
-		if len(seps) + 1 != len(r.TableToNode) {
+		if len(seps)+1 != len(r.TableToNode) {
 			return fmt.Errorf("seps %d not equal tables %d", len(seps), len(r.TableToNode))
 		}
 

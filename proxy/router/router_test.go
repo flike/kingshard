@@ -43,6 +43,14 @@ schema:
       nodes: [node2, node3]
       locations: [16,16]
       table_row_limit: 10000
+    -
+      table: test_shard_sep_range
+      key: recdate
+      type: sep_range
+      nodes: [node1, node3]
+      locations: [2,2]
+      seps: [2015-09-01, 2015-10-01, 2015-11-01]
+      key_type: string
 `
 	var cfg config.Config
 	if err := yaml.Unmarshal([]byte(s), &cfg); err != nil {
@@ -76,6 +84,19 @@ schema:
 	}
 
 	if n, _ := rangeRule.FindNode(10000 - 1); n != "node2" {
+		t.Fatal(n)
+	}
+
+	sepRangeRule := rt.GetRule("test_shard_sep_range")
+	if sepRangeRule.Type != SepRangeRuleType {
+		t.Fatal(sepRangeRule.Type)
+	}
+
+	if len(sepRangeRule.Nodes) != 2 || sepRangeRule.Nodes[0] != "node1" || sepRangeRule.Nodes[1] != "node3" {
+		t.Fatal("parse nodes not correct.")
+	}
+
+	if n, _ := sepRangeRule.FindNode("2015-09-30"); n != "node1" {
 		t.Fatal(n)
 	}
 
@@ -118,6 +139,15 @@ schema :
       nodes: [node1,node2,node3]
       locations: [4,4,4]
       table_row_limit: 10000
+
+    -
+      table: test3
+      key: recdate
+      type: sep_range
+      nodes: [node1,node2,node3]
+      locations: [2,2,2]
+      seps: [2015-01-01, 2015-02-01, 2015-03-01, 2015-04-01, 2015-05-01]
+      key_type: string
 `
 
 	cfg, err := config.ParseConfigData([]byte(s))
@@ -158,6 +188,15 @@ schema :
       nodes: [node1,node2,node3]
       locations: [8,8,8]
       table_row_limit: 100
+
+    -
+      table: test3
+      key: recdate
+      type: sep_range
+      nodes: [node1,node2,node3]
+      locations: [2,2,2]
+      seps: [2015-01-01, 2015-02-01, 2015-03-01, 2015-04-01, 2015-05-01]
+      key_type: string
 `
 
 	cfg, err := config.ParseConfigData([]byte(s))
@@ -312,6 +351,39 @@ func TestSelectPlan(t *testing.T) {
 
 	sql = "select * from test2 where id not in (1, 10000)"
 	checkPlan(t, sql, makeList(0, 12), []int{0, 1, 2})
+
+	sql = "select * from test3 where recdate = '2015-01-10'"
+	checkPlan(t, sql, []int{1}, []int{0})
+
+	sql = "select * from test3 where recdate between '2015-02-10' and '2015-04-10'"
+	checkPlan(t, sql, []int{2, 3, 4}, []int{1, 2})
+
+	sql = "select * from test3 where recdate not between '2015-02-10' and '2015-04-10'"
+	checkPlan(t, sql, []int{0, 1, 2, 4, 5}, []int{0, 1, 2})
+
+	sql = "select * from test3 where recdate > '2015-05-10'"
+	checkPlan(t, sql, []int{5}, []int{2})
+
+	sql = "select * from test3 where recdate >= '2015-04-30'"
+	checkPlan(t, sql, []int{4, 5}, []int{2})
+
+	sql = "select * from test3 where recdate < '2015-01-31'"
+	checkPlan(t, sql, []int{0, 1}, []int{0})
+
+	sql = "select * from test3 where recdate <= '2015-02-01'"
+	checkPlan(t, sql, []int{0, 1, 2}, []int{0, 1})
+
+	sql = "select * from test3 where recdate >= '2015-01-01' and recdate <= '2015-02-01'"
+	checkPlan(t, sql, []int{1, 2}, []int{0, 1})
+
+	sql = "select * from test3 where (recdate >= '2015-01-01' and recdate <= '2015-02-01') or recdate > '2015-05-01'"
+	checkPlan(t, sql, []int{1, 2, 5}, []int{0, 1, 2})
+
+	sql = "select * from test3 where recdate in('2015-01-01')"
+	checkPlan(t, sql, []int{1}, []int{0})
+
+	sql = "select * from test3 where recdate not in('2015-01-01', '2015-05-01')"
+	checkPlan(t, sql, []int{0, 1, 2, 3, 4, 5}, []int{0, 1, 2})
 }
 
 func TestValueSharding(t *testing.T) {
@@ -326,14 +398,23 @@ func TestValueSharding(t *testing.T) {
 	sql = "insert into test2 (id) values (20000)"
 	checkPlan(t, sql, []int{2}, []int{0})
 
+	sql = "insert into test3 (recdate) values('2015-02-10')"
+	checkPlan(t, sql, []int{2}, []int{1})
+
 	sql = "update test1 set a =10 where id =12"
 	checkPlan(t, sql, []int{0}, []int{0})
 
 	sql = "update test2 set a =10 where id < 30000 and 10000< id"
 	checkPlan(t, sql, []int{1, 2}, []int{0})
 
+	sql = "update test3 set a = 10 where recdate between '2014-12-01' and '2015-01-31'"
+	checkPlan(t, sql, []int{0, 1}, []int{0})
+
 	sql = "delete from test2 where id < 30000 and 10000< id"
 	checkPlan(t, sql, []int{1, 2}, []int{0})
+
+	sql = "delete from test3 where recdate = '2015-02-10'"
+	checkPlan(t, sql, []int{2}, []int{1})
 
 	sql = "replace into test1(id) values(5)"
 	checkPlan(t, sql, []int{5}, []int{1})

@@ -2,7 +2,6 @@ package router
 
 import (
 	"strconv"
-	"strings"
 )
 
 func StrValue(value interface{}) string {
@@ -27,15 +26,28 @@ type StrSepRangeShard struct {
 
 func (s *StrSepRangeShard) FindForKey(key interface{}) (int, error) {
 	v := StrValue(key)
-	for i, sep := range s.Seps  {
-		switch strings.Compare(v, sep) {
-		case 0:
+	for i, sep := range s.Seps {
+		switch {
+		case v == sep:
 			return i + 1, nil
-		case -1:
+		case v < sep:
 			return i, nil
 		}
 	}
 	return len(s.Seps), nil
+}
+
+func (s *StrSepRangeShard) EqualStart(key interface{}, index int) bool {
+	if index == 0 {
+		return false
+	}
+
+	v := StrValue(key)
+	return s.Seps[index-1] == v
+}
+
+func (s *StrSepRangeShard) EqualStop(key interface{}, index int) bool {
+	return false
 }
 
 type IntSepRangeShard struct {
@@ -44,14 +56,32 @@ type IntSepRangeShard struct {
 
 func (s *IntSepRangeShard) FindForKey(key interface{}) (int, error) {
 	v := NumValue(key)
-	for i, sep := range s.Seps  {
-		if (sep == v) {
+	for i, sep := range s.Seps {
+		if sep == v {
 			return i + 1, nil
-		} else if (sep > v) {
+		} else if sep > v {
 			return i, nil
 		}
 	}
 	return len(s.Seps), nil
+}
+
+func (s *IntSepRangeShard) EqualStart(key interface{}, index int) bool {
+	if index == 0 {
+		return false
+	}
+
+	v := NumValue(key)
+	return s.Seps[index-1] == v
+}
+
+func (s *IntSepRangeShard) EqualStop(key interface{}, index int) bool {
+	if index == len(s.Seps) {
+		return false
+	}
+
+	v := NumValue(key)
+	return s.Seps[index+1]-1 == v
 }
 
 func ParseIntSepSharding(Seps []string) ([]int64, error) {
