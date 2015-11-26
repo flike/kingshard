@@ -1,0 +1,47 @@
+# server listen addr
+addr : 0.0.0.0:9696
+
+# server user and password
+user :  kingshard
+password : kingshard
+
+#if set log_path, the sql log will write into log_path/sql.log,the system log
+#will write into log_path/sys.log
+#log_path : /Users/flike/log
+
+# log level[debug|info|warn|error],default error
+log_level : debug
+#if set log_sql(on|off) off,the sql log will not output
+log_sql: off
+#only log the query that take more than slow_log_time ms
+#slow_log_time : 100
+# only allow this ip list ip to connect kingshard
+#allow_ips: 127.0.0.1
+
+# node is an agenda for real remote mysql server.
+nodes :
+-
+    name : node1
+
+    # default max conns for mysql server
+    max_conns_limit : 8
+
+    # all mysql in a node must have the same user and password
+    user :  kingshard
+    password : kingshard
+
+    # master represents a real mysql master server
+    master : 127.0.0.1:3306
+
+    # slave represents a real mysql salve server,and the number after '@' is
+    # read load weight of this slave.
+    slave :
+    down_after_noalive : 32
+
+# schema defines which db can be used by client and this db's sql will be executed in which nodes
+schema :
+    db : kingshard
+    nodes: [node1]
+    default: node1
+    shard:
+    -
