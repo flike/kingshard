@@ -162,7 +162,7 @@ schema :
 		DB:        "kingshard",
 		Nodes:     []string{"node1", "node2", "node3"},
 		Default:   "node1",
-		ShardRule: []ShardConfig{testShard_1, testShard_2},
+		ShardRule: []ShardConfig{testShard_1, testShard_2, testShard_3},
 	}
 
 	if !reflect.DeepEqual(cfg.Schema, testSchema) {
