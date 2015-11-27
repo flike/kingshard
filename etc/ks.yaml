@@ -77,3 +77,17 @@ schema :
         nodes: [node1, node2]
         locations: [4,4]
         table_row_limit: 10000
+
+    -
+        #create table test_shard_sep_range(
+        #   recdate date not null,
+        #   userid int not null,
+        #   primary key(recdate, userid)
+        #)engine=innodb default charset=utf8
+        table: test_shard_sep_range
+        key: recdate
+        nodes: [node1, node2]
+        locations: [2, 2]
+        seps: [2015-09-01, 2015-10-01, 2015-11-01]
+        #key type string or int
+        key_type: string
