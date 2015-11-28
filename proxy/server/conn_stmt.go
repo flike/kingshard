@@ -272,18 +272,15 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 
 	var rs []*mysql.Result
 	rs, err = c.executeInNode(conn, sql, args)
-
 	if err != nil {
 		golog.Error("ClientConn", "handlePrepareSelect", err.Error(), c.connectionId)
 		return err
 	}
 
-	err = c.mergeSelectResult(rs, stmt)
-	if err != nil {
-		golog.Error("ClientConn", "handlePrepareSelect", err.Error(), c.connectionId)
-	}
+	r := rs[0].Resultset
+	status := c.status | rs[0].Status
 
-	return err
+	return c.writeResultset(status, r)
 }
 
 func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
@@ -308,11 +305,15 @@ func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, arg
 	rs, err = c.executeInNode(conn, sql, args)
 	c.closeConn(conn, false)
 
-	if err == nil {
-		err = c.mergeExecResult(rs)
+	if err != nil {
+		golog.Error("ClientConn", "handlePrepareExec", err.Error(), c.connectionId)
+		return err
 	}
 
-	return err
+	r := rs[0].Resultset
+	status := c.status | rs[0].Status
+
+	return c.writeResultset(status, r)
 }
 
 func (c *ClientConn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte) error {
