@@ -400,6 +400,10 @@ func (c *Conn) Execute(command string, args ...interface{}) (*mysql.Result, erro
 	}
 }
 
+func (c *Conn) ClosePrepare(id uint32) error {
+	return c.writeCommandUint32(mysql.COM_STMT_CLOSE, id)
+}
+
 func (c *Conn) Begin() error {
 	_, err := c.exec("begin")
 	return err

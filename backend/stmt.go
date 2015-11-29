@@ -39,6 +39,10 @@ func (s *Stmt) ColumnNum() int {
 	return s.columns
 }
 
+func (s *Stmt) GetId() uint32 {
+	return s.id
+}
+
 func (s *Stmt) Execute(args ...interface{}) (*mysql.Result, error) {
 	if err := s.write(args...); err != nil {
 		return nil, err
