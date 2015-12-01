@@ -281,10 +281,15 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 		return err
 	}
 
-	r := rs[0].Resultset
 	status := c.status | rs[0].Status
+	if rs[0].Resultset != nil {
+		err = c.writeResultset(status, rs[0].Resultset)
+	} else {
+		r := c.newEmptyResultset(stmt)
+		err = c.writeResultset(status, r)
+	}
 
-	return c.writeResultset(status, r)
+	return err
 }
 
 func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
@@ -314,10 +319,14 @@ func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, arg
 		return err
 	}
 
-	r := rs[0].Resultset
 	status := c.status | rs[0].Status
+	if rs[0].Resultset != nil {
+		err = c.writeResultset(status, rs[0].Resultset)
+	} else {
+		err = c.writeOK(rs[0])
+	}
 
-	return c.writeResultset(status, r)
+	return err
 }
 
 func (c *ClientConn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte) error {
