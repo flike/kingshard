@@ -77,7 +77,7 @@ nodes :
     # 0 will no down
     down_after_noalive: 32
 
-# schema defines which db can be used by client and this db's sql will be executed in which nodes
+# schema defines which db can be used by client and this db's sql will be executed in which nodes, the db is also the default database
 schema :
     db : kingshard
     nodes: [node1,node2]
