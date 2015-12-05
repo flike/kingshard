@@ -61,7 +61,7 @@ nodes :
 
 # 分表规则
 schema :
-    #分表使用的db，所有的分表必须都在这个db中。
+    #分表使用的db，所有的分表必须都在这个db中，连接ks时如果没有指定database默认使用该db。
     db : kingshard
     #分表分布的node名字
     nodes: [node1,node2]

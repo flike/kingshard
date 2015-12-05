@@ -244,6 +244,11 @@ func (c *ClientConn) readHandshakeResponse() error {
 		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
 		pos += len(c.db) + 1
 
+		//if db name is "", use default db
+		if db == "" {
+			db = c.proxy.schema.db
+		}
+
 		if err := c.useDB(db); err != nil {
 			return err
 		}
