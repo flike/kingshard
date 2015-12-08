@@ -231,7 +231,7 @@ func (c *ClientConn) readHandshakeResponse() error {
 			"auth", auth,
 			"checkAuth", checkAuth,
 			"passworld", c.proxy.cfg.Password)
-		return mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes")
+		return mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.user, c.c.RemoteAddr().String(), "Yes")
 	}
 
 	pos += authLen
