@@ -236,22 +236,22 @@ func (c *ClientConn) readHandshakeResponse() error {
 
 	pos += authLen
 
+	var db string
 	if c.capability&mysql.CLIENT_CONNECT_WITH_DB > 0 {
 		if len(data[pos:]) == 0 {
 			return nil
 		}
 
-		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
+		db = string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
 		pos += len(c.db) + 1
 
-		//if db name is "", use default db
-		if db == "" {
-			db = c.proxy.schema.db
-		}
+	} else {
+		//if connect without database, use default db
+		db = c.proxy.schema.db
+	}
 
-		if err := c.useDB(db); err != nil {
-			return err
-		}
+	if err := c.useDB(db); err != nil {
+		return err
 	}
 
 	return nil
