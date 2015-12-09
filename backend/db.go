@@ -17,6 +17,7 @@ package backend
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/mysql"
@@ -28,8 +29,9 @@ const (
 	ManualDown
 	Unknown
 
-	InitConnCount     = 16
-	DefaultMaxConnNum = 1024
+	InitConnCount           = 16
+	DefaultMaxConnNum       = 1024
+	PingPeroid        int64 = 4
 )
 
 type DB struct {
@@ -85,6 +87,7 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 				db.Close()
 				return nil, errors.ErrDatabaseClose
 			}
+			conn.pushTimestamp = time.Now().Unix()
 			db.cacheConns <- conn
 		} else {
 			conn := new(Conn)
@@ -244,32 +247,65 @@ func (db *DB) PopConn() (*Conn, error) {
 	if cacheConns == nil || idleConns == nil {
 		return nil, errors.ErrDatabaseClose
 	}
-
-	if 0 < len(cacheConns) {
-		co = <-cacheConns
-	} else {
-		select {
-		case co = <-idleConns:
-			err = co.Connect(db.addr, db.user, db.password, db.db)
-			if err != nil {
-				db.closeConn(co)
-				return nil, err
-			}
-			return co, nil
-		case co = <-cacheConns:
-			break
+	co = db.GetConnFromCache(cacheConns)
+	if co == nil {
+		co, err = db.GetConnFromIdle(cacheConns, idleConns)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	if co == nil {
-		return nil, errors.ErrConnIsNil
-	}
 	err = db.tryReuse(co)
 	if err != nil {
 		db.closeConn(co)
 		return nil, err
 	}
 
+	return co, nil
+}
+
+func (db *DB) GetConnFromCache(cacheConns chan *Conn) *Conn {
+	var co *Conn
+	var err error
+	for 0 < len(cacheConns) {
+		co = <-cacheConns
+		if co != nil && PingPeroid < time.Now().Unix()-co.pushTimestamp {
+			err = co.Ping()
+			if err != nil {
+				db.closeConn(co)
+				co = nil
+			}
+		}
+		if co != nil {
+			break
+		}
+	}
+	return co
+}
+
+func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
+	var co *Conn
+	var err error
+	select {
+	case co = <-idleConns:
+		err = co.Connect(db.addr, db.user, db.password, db.db)
+		if err != nil {
+			db.closeConn(co)
+			return nil, err
+		}
+		return co, nil
+	case co = <-cacheConns:
+		if co == nil {
+			return nil, errors.ErrConnIsNil
+		}
+		if co != nil && PingPeroid < time.Now().Unix()-co.pushTimestamp {
+			err = co.Ping()
+			if err != nil {
+				db.closeConn(co)
+				return nil, errors.ErrBadConn
+			}
+		}
+	}
 	return co, nil
 }
 
@@ -286,7 +322,7 @@ func (db *DB) PushConn(co *Conn, err error) {
 		db.closeConn(co)
 		return
 	}
-
+	co.pushTimestamp = time.Now().Unix()
 	select {
 	case conns <- co:
 		return
