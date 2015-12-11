@@ -466,12 +466,11 @@ func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
 					plan.RouteTableIndexs[i],
 				)
 			}
-			buf.Fprintf("%v%v%v%v%v%s",
+			buf.Fprintf("%v%v%v%v%s",
 				node.Where,
 				node.GroupBy,
 				node.Having,
 				node.OrderBy,
-				node.Limit,
 				node.Lock,
 			)
 

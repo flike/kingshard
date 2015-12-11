@@ -109,6 +109,8 @@ var (
 
 // admin
 %token <empty> ADMIN
+//offset
+%token <empty> OFFSET
 //collate
 %token <empty> COLLATE
 
@@ -983,6 +985,10 @@ limit_opt:
 | LIMIT value_expression ',' value_expression
   {
     $$ = &Limit{Offset: $2, Rowcount: $4}
+  }
+| LIMIT value_expression OFFSET value_expression
+  {
+	$$ = &Limit{Offset: $4, Rowcount: $2}
   }
 
 lock_opt:

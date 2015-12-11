@@ -201,7 +201,7 @@ func (db *DB) closeConn(co *Conn) error {
 			case conns <- co:
 				return nil
 			default:
-				co.Close()
+				return nil
 			}
 		}
 	}

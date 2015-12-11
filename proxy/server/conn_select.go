@@ -438,10 +438,8 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 
 //build values of resultset
 func (c *ClientConn) buildFuncExprValues(
-	rs []*mysql.Result,
-	funcExprs map[int]string,
-	funcExprValues map[int]interface{},
-	status *uint16,
+	rs []*mysql.Result, funcExprs map[int]string,
+	funcExprValues map[int]interface{}, status *uint16,
 ) ([][]interface{}, error) {
 	var rowEmpty bool
 

@@ -126,6 +126,8 @@ func (c *Conn) Close() error {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
+		c.salt = nil
+		c.pkgErr = nil
 	}
 
 	return nil
@@ -144,7 +146,6 @@ func (c *Conn) writePacket(data []byte) error {
 }
 
 func (c *Conn) readInitialHandshake() error {
-	c.salt = nil
 	data, err := c.readPacket()
 	if err != nil {
 		return err
