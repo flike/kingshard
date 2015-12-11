@@ -144,6 +144,7 @@ func (c *Conn) writePacket(data []byte) error {
 }
 
 func (c *Conn) readInitialHandshake() error {
+	c.salt = nil
 	data, err := c.readPacket()
 	if err != nil {
 		return err
