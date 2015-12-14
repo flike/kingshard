@@ -139,6 +139,10 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 		return
 	}
 
+	if err = co.SetAutoCommit(c.status); err != nil {
+		return
+	}
+
 	return
 }
 

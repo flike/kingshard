@@ -431,6 +431,24 @@ func (c *Conn) SetCharset(charset string) error {
 	}
 }
 
+func (c *Conn) SetAutoCommit(status uint16) error {
+	if c.status == status {
+		return nil
+	}
+
+	if status&mysql.SERVER_STATUS_AUTOCOMMIT > 0 {
+		if _, err := c.exec("set autocommit = 1"); err != nil {
+			return err
+		}
+	} else {
+		if _, err := c.exec("set autocommit = 0"); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *Conn) FieldList(table string, wildcard string) ([]*mysql.Field, error) {
 	if err := c.writeCommandStrStr(mysql.COM_FIELD_LIST, table, wildcard); err != nil {
 		return nil, err
