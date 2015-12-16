@@ -164,3 +164,16 @@ func TestConn_SetCharset(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestConn_SetAutoCommit(t *testing.T) {
+	c := newTestConn()
+	defer c.Close()
+
+	if err := c.SetAutoCommit(0); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := c.SetAutoCommit(1); err != nil {
+		t.Fatal(err)
+	}
+}

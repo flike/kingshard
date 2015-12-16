@@ -58,9 +58,8 @@ func (c *ClientConn) commit() (err error) {
 		}
 		co.Close()
 	}
-	c.Lock()
+
 	c.txConns = make(map[*backend.Node]*backend.BackendConn)
-	c.Unlock()
 	return
 }
 
@@ -73,8 +72,7 @@ func (c *ClientConn) rollback() (err error) {
 		}
 		co.Close()
 	}
-	c.Lock()
+
 	c.txConns = make(map[*backend.Node]*backend.BackendConn)
-	c.Unlock()
 	return
 }

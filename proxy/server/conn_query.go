@@ -112,22 +112,24 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 		}
 	} else {
 		var ok bool
-		c.Lock()
 		co, ok = c.txConns[n]
-		c.Unlock()
 
 		if !ok {
 			if co, err = n.GetMasterConn(); err != nil {
 				return
 			}
 
-			if err = co.Begin(); err != nil {
-				return
+			if !c.isAutoCommit() {
+				if err = co.SetAutoCommit(0); err != nil {
+					return
+				}
+			} else {
+				if err = co.Begin(); err != nil {
+					return
+				}
 			}
 
-			c.Lock()
 			c.txConns[n] = co
-			c.Unlock()
 		}
 	}
 	//todo, set conn charset, etc...
@@ -136,10 +138,6 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 	}
 
 	if err = co.SetCharset(c.charset); err != nil {
-		return
-	}
-
-	if err = co.SetAutoCommit(c.status); err != nil {
 		return
 	}
 

@@ -412,6 +412,23 @@ func (c *Conn) Rollback() error {
 	return err
 }
 
+func (c *Conn) SetAutoCommit(n uint8) error {
+	if n == 0 {
+		if _, err := c.exec("set autocommit = 0"); err != nil {
+			c.conn.Close()
+
+			return err
+		}
+	} else {
+		if _, err := c.exec("set autocommit = 1"); err != nil {
+			c.conn.Close()
+
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *Conn) SetCharset(charset string) error {
 	charset = strings.Trim(charset, "\"'`")
 	if c.charset == charset {
@@ -429,24 +446,6 @@ func (c *Conn) SetCharset(charset string) error {
 		c.collation = cid
 		return nil
 	}
-}
-
-func (c *Conn) SetAutoCommit(status uint16) error {
-	if c.status == status {
-		return nil
-	}
-
-	if status&mysql.SERVER_STATUS_AUTOCOMMIT > 0 {
-		if _, err := c.exec("set autocommit = 1"); err != nil {
-			return err
-		}
-	} else {
-		if _, err := c.exec("set autocommit = 0"); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (c *Conn) FieldList(table string, wildcard string) ([]*mysql.Field, error) {
