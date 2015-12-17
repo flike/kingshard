@@ -425,7 +425,9 @@ func (c *ClientConn) GetExecNode(tokens []string,
 				if len(tokens) < 2 {
 					break
 				}
-				secondWord := strings.ToLower(tokens[1])
+				tmp1 := strings.Split(sql, "=")
+				tmp2 := strings.Split(tmp1[0], " ")
+				secondWord := strings.ToLower(tmp2[1])
 				if secondWord == mysql.TK_STR_NAMES ||
 					secondWord == mysql.TK_STR_RESULTS ||
 					secondWord == mysql.TK_STR_CLIENT ||
