@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/flike/kingshard/backend"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
@@ -56,6 +57,14 @@ func (c *ClientConn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 		c.status |= mysql.SERVER_STATUS_AUTOCOMMIT
 		if c.status&mysql.SERVER_STATUS_IN_TRANS > 0 {
 			c.status &= ^mysql.SERVER_STATUS_IN_TRANS
+
+			for _, co := range c.txConns {
+				if e := co.SetAutoCommit(1); e != nil {
+					return fmt.Errorf("set autocommit error, %v", e)
+				}
+				co.Close()
+			}
+			c.txConns = make(map[*backend.Node]*backend.BackendConn)
 		}
 	case '0':
 		c.status &= ^mysql.SERVER_STATUS_AUTOCOMMIT
