@@ -537,7 +537,6 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}
 			sqls[nodeName] = append(sqls[nodeName], buf.String())
-			fmt.Println("In insert general sql ", nodeName, buf.String())
 		}
 
 	}
