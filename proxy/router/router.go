@@ -278,6 +278,11 @@ func (r *Router) buildInsertPlan(statement sqlparser.Statement) (*Plan, error) {
 	if _, ok := stmt.Rows.(sqlparser.SelectStatement); ok {
 		return nil, errors.ErrSelectInInsert
 	}
+
+	if stmt.Columns == nil {
+		return nil, errors.ErrIRNoColumns
+	}
+
 	//根据sql语句的表，获得对应的分片规则
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
 
@@ -382,6 +387,10 @@ func (r *Router) buildReplacePlan(statement sqlparser.Statement) (*Plan, error) 
 	stmt := statement.(*sqlparser.Replace)
 	if _, ok := stmt.Rows.(sqlparser.SelectStatement); ok {
 		panic(sqlparser.NewParserError("select in replace not allowed"))
+	}
+
+	if stmt.Columns == nil {
+		return nil, errors.ErrIRNoColumns
 	}
 
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
@@ -528,6 +537,7 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}
 			sqls[nodeName] = append(sqls[nodeName], buf.String())
+			fmt.Println("In insert general sql ", nodeName, buf.String())
 		}
 
 	}
