@@ -54,4 +54,5 @@ var (
 	ErrConnNotEqual  = errors.New("the length of conns not equal sqls")
 	ErrKeyOutOfRange = errors.New("shard key not in key range")
 	ErrMultiShard    = errors.New("insert or replace has multiple shard targets")
+	ErrIRNoColumns   = errors.New("insert or replace must specify columns")
 )
