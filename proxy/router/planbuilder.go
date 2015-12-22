@@ -314,8 +314,12 @@ func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) (int, error) {
 	index := -1
 
 	for i := 0; i < len(vals); i++ {
-		first_value_expression := vals[i].(sqlparser.ValTuple)[plan.keyIndex]
-		newIndex, err := plan.getTableIndexByValue(first_value_expression)
+		first_value_expression := vals[i].(sqlparser.ValTuple)
+		if len(first_value_expression) < (plan.keyIndex + 1) {
+			return 0, errors.ErrColsLenNotMatch
+		}
+
+		newIndex, err := plan.getTableIndexByValue(first_value_expression[plan.keyIndex])
 		if err != nil {
 			return -1, err
 		}

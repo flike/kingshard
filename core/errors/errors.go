@@ -56,4 +56,5 @@ var (
 	ErrMultiShard      = errors.New("insert or replace has multiple shard targets")
 	ErrIRNoColumns     = errors.New("insert or replace must specify columns")
 	ErrIRNoShardingKey = errors.New("insert or replace not contain sharding key")
+	ErrColsLenNotMatch = errors.New("insert or replace cols and values length not match")
 )

@@ -286,10 +286,9 @@ func (r *Router) buildInsertPlan(statement sqlparser.Statement) (*Plan, error) {
 	//根据sql语句的表，获得对应的分片规则
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
 
-	generateKeyIndex(plan, stmt.Columns)
-
-	if plan.keyIndex == -1 {
-		return nil, errors.ErrIRNoShardingKey
+	err := generateKeyIndex(plan, stmt.Columns)
+	if err != nil {
+		return nil, err
 	}
 
 	if stmt.OnDup != nil {
@@ -302,7 +301,7 @@ func (r *Router) buildInsertPlan(statement sqlparser.Statement) (*Plan, error) {
 	plan.Criteria = plan.checkValuesType(stmt.Rows.(sqlparser.Values))
 	plan.TableIndexs = makeList(0, len(plan.Rule.TableToNode))
 
-	err := plan.calRouteIndexs()
+	err = plan.calRouteIndexs()
 	if err != nil {
 		golog.Error("Route", "BuildInsertPlan", err.Error(), 0)
 		return nil, err
@@ -401,17 +400,16 @@ func (r *Router) buildReplacePlan(statement sqlparser.Statement) (*Plan, error) 
 
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
 
-	generateKeyIndex(plan, stmt.Columns)
-
-	if plan.keyIndex == -1 {
-		return nil, errors.ErrIRNoShardingKey
+	err := generateKeyIndex(plan, stmt.Columns)
+	if err != nil {
+		return nil, err
 	}
 
 	plan.Criteria = plan.checkValuesType(stmt.Rows.(sqlparser.Values))
 
 	plan.TableIndexs = makeList(0, len(plan.Rule.TableToNode))
 
-	err := plan.calRouteIndexs()
+	err = plan.calRouteIndexs()
 	if err != nil {
 		golog.Error("Route", "BuildReplacePlan", err.Error(), 0)
 		return nil, err
@@ -701,7 +699,7 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 
 // find shard key index
 // plan.Rule cols must not nill
-func generateKeyIndex(plan *Plan, cols sqlparser.Columns) {
+func generateKeyIndex(plan *Plan, cols sqlparser.Columns) error {
 	plan.keyIndex = -1
 	for i, _ := range cols {
 		colname := string(cols[i].(*sqlparser.NonStarExpr).Expr.(*sqlparser.ColName).Name)
@@ -711,4 +709,8 @@ func generateKeyIndex(plan *Plan, cols sqlparser.Columns) {
 			break
 		}
 	}
+	if plan.keyIndex == -1 {
+		return errors.ErrIRNoShardingKey
+	}
+	return nil
 }
