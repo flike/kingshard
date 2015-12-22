@@ -34,6 +34,7 @@ type Plan struct {
 	Rule *Rule
 
 	Criteria sqlparser.SQLNode
+	keyIndex int //used for insert/replace to find shard key idx
 
 	TableIndexs      []int //value is table index
 	RouteTableIndexs []int
@@ -311,8 +312,9 @@ func (plan *Plan) getTableIndexsByTuple(valExpr sqlparser.ValExpr) ([]int, error
 
 func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) (int, error) {
 	index := -1
+
 	for i := 0; i < len(vals); i++ {
-		first_value_expression := vals[i].(sqlparser.ValTuple)[0]
+		first_value_expression := vals[i].(sqlparser.ValTuple)[plan.keyIndex]
 		newIndex, err := plan.getTableIndexByValue(first_value_expression)
 		if err != nil {
 			return -1, err
