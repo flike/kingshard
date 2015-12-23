@@ -262,8 +262,8 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 	}
 	defaultNode := c.proxy.GetNode(defaultRule.Nodes[0])
 
-	//execute in Master DB
-	conn, err := c.getBackendConn(defaultNode, false)
+	//choose connection in slave DB first
+	conn, err := c.getBackendConn(defaultNode, true)
 	defer c.closeConn(conn, false)
 	if err != nil {
 		return err
