@@ -6,6 +6,7 @@
 - 很多MySQL Proxy调研用户都比较关心kingshard的稳定性，从反馈情况来看，目前kingshard已经较为稳定，
 Bug出现的次数越来月收敛了。对于想生产环境使用kingshard的用户来说，为保证安全起见，还是需要自己利用kingshard部署一套
 测试环境，自行测试一下。如果遇到BUG，可以在github的issue中提出，但希望用户在描述问题的时候，尽量详细，以便开发者快速定位问题。
+- 很多用户利用kingshard的跨平台特性，在windows的开发环境部署kingshard用于开发调试。待开发稳定后将业务代码和kingshard都部署Linux服务器上。
 
 **2. kingshard可以用来做什么？**
 
