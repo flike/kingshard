@@ -48,6 +48,7 @@ var (
 	ErrTransInMulti   = errors.New("transaction in multi node")
 
 	ErrNoPlan          = errors.New("statement have no plan")
+	ErrNoPlanRule      = errors.New("statement have no plan rule")
 	ErrUpdateKey       = errors.New("routing key in update expression")
 	ErrStmtConvert     = errors.New("statement fail to convert")
 	ErrExprConvert     = errors.New("expr fail to convert")

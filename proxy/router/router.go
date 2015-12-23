@@ -286,7 +286,7 @@ func (r *Router) buildInsertPlan(statement sqlparser.Statement) (*Plan, error) {
 	//根据sql语句的表，获得对应的分片规则
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
 
-	err := generateKeyIndex(plan, stmt.Columns)
+	err := plan.GetIRKeyIndex(stmt.Columns)
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +400,7 @@ func (r *Router) buildReplacePlan(statement sqlparser.Statement) (*Plan, error) 
 
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
 
-	err := generateKeyIndex(plan, stmt.Columns)
+	err := plan.GetIRKeyIndex(stmt.Columns)
 	if err != nil {
 		return nil, err
 	}
@@ -694,23 +694,5 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 
 	}
 	plan.RewrittenSqls = sqls
-	return nil
-}
-
-// find shard key index
-// plan.Rule cols must not nill
-func generateKeyIndex(plan *Plan, cols sqlparser.Columns) error {
-	plan.keyIndex = -1
-	for i, _ := range cols {
-		colname := string(cols[i].(*sqlparser.NonStarExpr).Expr.(*sqlparser.ColName).Name)
-
-		if colname == plan.Rule.Key {
-			plan.keyIndex = i
-			break
-		}
-	}
-	if plan.keyIndex == -1 {
-		return errors.ErrIRNoShardingKey
-	}
 	return nil
 }

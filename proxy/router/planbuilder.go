@@ -332,6 +332,27 @@ func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) (int, error) {
 	return index, nil
 }
 
+// find shard key index in insert or replace SQL
+// plan.Rule cols must not nil
+func (plan *Plan) GetIRKeyIndex(cols sqlparser.Columns) error {
+	if plan.Rule == nil {
+		return errors.ErrNoPlanRule
+	}
+	plan.keyIndex = -1
+	for i, _ := range cols {
+		colname := string(cols[i].(*sqlparser.NonStarExpr).Expr.(*sqlparser.ColName).Name)
+
+		if colname == plan.Rule.Key {
+			plan.keyIndex = i
+			break
+		}
+	}
+	if plan.keyIndex == -1 {
+		return errors.ErrIRNoShardingKey
+	}
+	return nil
+}
+
 func (plan *Plan) getTableIndexByValue(valExpr sqlparser.ValExpr) (int, error) {
 	value := plan.getBoundValue(valExpr)
 	return plan.Rule.FindTableIndex(value)
