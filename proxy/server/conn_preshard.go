@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/flike/golog"
 	"github.com/flike/kingshard/backend"
 	"github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
 )
