@@ -146,13 +146,14 @@ func (c *ClientConn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Selec
 			}
 		}
 	} else {
-		r, err = c.buildFuncExprResult(stmt, rs, funcExprs, &status)
+		//result only one row, status doesn't need set
+		r, err = c.buildFuncExprResult(stmt, rs, funcExprs)
 		if err != nil {
 			return err
 		}
 	}
 
-	//to do order by, group by, limit offset
+	//group by
 	c.sortSelectResult(r, stmt)
 	//to do, add log here, sort may error because order by key not exist in resultset fields
 
@@ -218,7 +219,7 @@ func (c *ClientConn) limitSelectResult(r *mysql.Resultset, stmt *sqlparser.Selec
 }
 
 func (c *ClientConn) buildFuncExprResult(stmt *sqlparser.Select,
-	rs []*mysql.Result, funcExprs map[int]string, status *uint16) (*mysql.Resultset, error) {
+	rs []*mysql.Result, funcExprs map[int]string) (*mysql.Resultset, error) {
 
 	var names []string
 	var err error
@@ -237,7 +238,7 @@ func (c *ClientConn) buildFuncExprResult(stmt *sqlparser.Select,
 		funcExprValues[index] = funcExprValue
 	}
 
-	r.Values, err = c.buildFuncExprValues(rs, funcExprs, funcExprValues, status)
+	r.Values, err = c.buildFuncExprValues(rs, funcExprValues)
 
 	if 0 < len(r.Values) {
 		for _, field := range rs[0].Fields {
@@ -436,44 +437,28 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 	return nil, nil
 }
 
-//build values of resultset
-func (c *ClientConn) buildFuncExprValues(
-	rs []*mysql.Result, funcExprs map[int]string,
-	funcExprValues map[int]interface{}, status *uint16,
-) ([][]interface{}, error) {
-	var rowEmpty bool
-
-	values := make([][]interface{}, 0, len(rs))
-	for i := 0; i < len(rs); i++ {
-		*status |= rs[i].Status
-		//iterate every row in the resultset(rs[i])
+//build values of resultset,only build one row
+func (c *ClientConn) buildFuncExprValues(rs []*mysql.Result,
+	funcExprValues map[int]interface{}) ([][]interface{}, error) {
+	values := make([][]interface{}, 0, 1)
+	//build a row in one result
+	for i := range rs {
 		for j := range rs[i].Values {
-			//ignore the empty row
-			rowEmpty = true
-			for k := range funcExprs {
-				rs[i].Values[j][k] = nil
-			}
-			for valueIndex := range rs[i].Values[j] {
-				if rs[i].Values[j][valueIndex] != nil {
-					rowEmpty = false
-					break
-				}
-			}
-			if rowEmpty {
-				continue
-			}
-			//set fucExpr value for every non-empty row
-			for k := range funcExprs {
+			for k := range funcExprValues {
 				rs[i].Values[j][k] = funcExprValues[k]
 			}
 			values = append(values, rs[i].Values[j])
+			if len(values) == 1 {
+				break
+			}
 		}
+		break
 	}
 
 	//generate one row just for sum or count
 	if len(values) == 0 {
 		value := make([]interface{}, len(rs[0].Fields))
-		for k := range funcExprs {
+		for k := range funcExprValues {
 			value[k] = funcExprValues[k]
 		}
 		values = append(values, value)
