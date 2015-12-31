@@ -107,6 +107,9 @@ func (c *ClientConn) GetTransExecDB(tokens []string, sql string) (*ExecuteDB, er
 		if err != nil {
 			return nil, err
 		}
+		if executeDB == nil {
+			return nil, nil
+		}
 		//transaction execute in master db
 		executeDB.IsSlave = false
 		return executeDB, nil
