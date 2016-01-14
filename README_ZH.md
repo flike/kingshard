@@ -1,5 +1,4 @@
 [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)](https://travis-ci.org/flike/kingshard)
-[![Join the chat at https://gitter.im/flike/kingshard](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/flike/kingshard?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # kingshard简介
 
@@ -18,7 +17,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 	9. 支持在单个node上执行事务，不支持跨多个node执行事务。
 	10. 支持跨node的count,sum,max和min等函数。
 	11. 支持单个分表的join操作，即支持分表和另一张不分表的join操作。
-	12. 支持order by,limit等操作。
+	12. 支持order by,group by,limit等操作。
 	13. 支持主流语言（java,php,python,C/C++,Go)SDK的mysql的prepare特性。
 	14. 支持到后端DB的最大连接数限制。
 	15. 支持SQL日志及慢日志输出。

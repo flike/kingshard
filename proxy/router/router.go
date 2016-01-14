@@ -422,6 +422,77 @@ func (r *Router) buildReplacePlan(statement sqlparser.Statement) (*Plan, error) 
 	return plan, nil
 }
 
+//rewrite select sql
+func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex int) string {
+	buf := sqlparser.NewTrackedBuffer(nil)
+	buf.Fprintf("select %v%s%v",
+		node.Comments,
+		node.Distinct,
+		node.SelectExprs,
+	)
+	//insert the group columns in the first of select cloumns
+	if len(node.GroupBy) != 0 {
+		prefix := ","
+		for _, n := range node.GroupBy {
+			buf.Fprintf("%s%v", prefix, n)
+		}
+	}
+	buf.Fprintf(" from ")
+
+	switch v := (node.From[0]).(type) {
+	case *sqlparser.AliasedTableExpr:
+		if len(v.As) != 0 {
+			fmt.Fprintf(buf, "%s_%04d AS %s",
+				sqlparser.String(v.Expr),
+				tableIndex,
+				string(v.As),
+			)
+		} else {
+			fmt.Fprintf(buf, "%s_%04d",
+				sqlparser.String(v.Expr),
+				tableIndex,
+			)
+		}
+	case *sqlparser.JoinTableExpr:
+		if ate, ok := (v.LeftExpr).(*sqlparser.AliasedTableExpr); ok {
+			if len(ate.As) != 0 {
+				fmt.Fprintf(buf, "%s_%04d AS %s",
+					sqlparser.String(ate.Expr),
+					tableIndex,
+					string(ate.As),
+				)
+			} else {
+				fmt.Fprintf(buf, "%s_%04d",
+					sqlparser.String(ate.Expr),
+					tableIndex,
+				)
+			}
+		} else {
+			fmt.Fprintf(buf, "%s_%04d",
+				sqlparser.String(v.LeftExpr),
+				tableIndex,
+			)
+		}
+		buf.Fprintf(" %s %v", v.Join, v.RightExpr)
+		if v.On != nil {
+			buf.Fprintf(" on %v", v.On)
+		}
+	default:
+		fmt.Fprintf(buf, "%s_%04d",
+			sqlparser.String(node.From[0]),
+			tableIndex,
+		)
+	}
+	buf.Fprintf("%v%v%v%v%s",
+		node.Where,
+		node.GroupBy,
+		node.Having,
+		node.OrderBy,
+		node.Lock,
+	)
+	return buf.String()
+}
+
 func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
 	sqls := make(map[string][]string)
 	node, ok := stmt.(*sqlparser.Select)
@@ -439,73 +510,15 @@ func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
 	} else {
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
-			buf := sqlparser.NewTrackedBuffer(nil)
-			buf.Fprintf("select %v%s%v from ",
-				node.Comments,
-				node.Distinct,
-				node.SelectExprs,
-			)
-			switch v := (node.From[0]).(type) {
-			case *sqlparser.AliasedTableExpr:
-				if len(v.As) != 0 {
-					fmt.Fprintf(buf, "%s_%04d AS %s",
-						sqlparser.String(v.Expr),
-						plan.RouteTableIndexs[i],
-						string(v.As),
-					)
-				} else {
-					fmt.Fprintf(buf, "%s_%04d",
-						sqlparser.String(v.Expr),
-						plan.RouteTableIndexs[i],
-					)
-				}
-			case *sqlparser.JoinTableExpr:
-				if ate, ok := (v.LeftExpr).(*sqlparser.AliasedTableExpr); ok {
-					if len(ate.As) != 0 {
-						fmt.Fprintf(buf, "%s_%04d AS %s",
-							sqlparser.String(ate.Expr),
-							plan.RouteTableIndexs[i],
-							string(ate.As),
-						)
-					} else {
-						fmt.Fprintf(buf, "%s_%04d",
-							sqlparser.String(ate.Expr),
-							plan.RouteTableIndexs[i],
-						)
-					}
-				} else {
-					fmt.Fprintf(buf, "%s_%04d",
-						sqlparser.String(v.LeftExpr),
-						plan.RouteTableIndexs[i],
-					)
-				}
-				buf.Fprintf(" %s %v", v.Join, v.RightExpr)
-				if v.On != nil {
-					buf.Fprintf(" on %v", v.On)
-				}
-			default:
-				fmt.Fprintf(buf, "%s_%04d",
-					sqlparser.String(node.From[0]),
-					plan.RouteTableIndexs[i],
-				)
-			}
-			buf.Fprintf("%v%v%v%v%s",
-				node.Where,
-				node.GroupBy,
-				node.Having,
-				node.OrderBy,
-				node.Lock,
-			)
-
 			tableIndex := plan.RouteTableIndexs[i]
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
 			nodeName := r.Nodes[nodeIndex]
+			selectSql := r.rewriteSelectSql(plan, node, tableIndex)
 			if _, ok := sqls[nodeName]; ok == false {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}
-			sqls[nodeName] = append(sqls[nodeName], buf.String())
+			sqls[nodeName] = append(sqls[nodeName], selectSql)
 		}
-
 	}
 	plan.RewrittenSqls = sqls
 	return nil

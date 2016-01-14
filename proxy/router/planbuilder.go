@@ -156,7 +156,7 @@ func (plan *Plan) getTableIndexs(expr sqlparser.BoolExpr) ([]int, error) {
 	return plan.RouteTableIndexs, nil
 }
 
-/*计算表下标和node下标 */
+//计算表下标和node下标
 func (plan *Plan) calRouteIndexs() error {
 	var err error
 	nodesCount := len(plan.Rule.Nodes)
