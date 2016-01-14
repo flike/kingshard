@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/mysql"
@@ -132,6 +133,227 @@ func (c *ClientConn) handleSelect(stmt *sqlparser.Select, args []interface{}) er
 }
 
 func (c *ClientConn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Select) error {
+	var r *mysql.Result
+	var err error
+
+	if len(stmt.GroupBy) == 0 {
+		r, err = c.buildSelectOnlyResult(rs, stmt)
+	} else {
+		//group by
+		r, err = c.buildSelectGroupByResult(rs, stmt)
+	}
+	if err != nil {
+		return err
+	}
+
+	c.sortSelectResult(r.Resultset, stmt)
+	//to do, add log here, sort may error because order by key not exist in resultset fields
+
+	if err := c.limitSelectResult(r.Resultset, stmt); err != nil {
+		return err
+	}
+
+	return c.writeResultset(r.Status, r.Resultset)
+}
+
+//build select result with group by opt
+func (c *ClientConn) buildSelectGroupByResult(rs []*mysql.Result,
+	stmt *sqlparser.Select) (*mysql.Result, error) {
+	var err error
+	var r *mysql.Result
+	var groupByIndexs []int
+
+	fieldLen := len(rs[0].Fields)
+	startIndex := fieldLen - len(stmt.GroupBy)
+	for startIndex < fieldLen {
+		groupByIndexs = append(groupByIndexs, startIndex)
+		startIndex++
+	}
+
+	funcExprs := c.getFuncExprs(stmt)
+	if len(funcExprs) == 0 {
+		r, err = c.mergeGroupByWithoutFunc(rs, groupByIndexs)
+	} else {
+		r, err = c.mergeGroupByWithFunc(rs, groupByIndexs, funcExprs)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	//build result
+	names := make([]string, 0, 2)
+	if 0 < len(r.Values) {
+		r.Fields = r.Fields[:groupByIndexs[0]]
+		for i := 0; i < len(r.Fields) && i < groupByIndexs[0]; i++ {
+			names = append(names, string(r.Fields[i].Name))
+		}
+		//delete group by columns in Values
+		for i := 0; i < len(r.Values); i++ {
+			r.Values[i] = r.Values[i][:groupByIndexs[0]]
+		}
+		r.Resultset, err = c.buildResultset(r.Fields, names, r.Values)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		r.Resultset = c.newEmptyResultset(stmt)
+	}
+
+	return r, nil
+}
+
+//only merge result with aggregate function in group by opt
+func (c *ClientConn) mergeGroupByWithFunc(rs []*mysql.Result, groupByIndexs []int,
+	funcExprs map[int]string) (*mysql.Result, error) {
+	r := rs[0]
+	//load rs into a map, in order to make group
+	resultMap, err := c.loadResultWithFuncIntoMap(rs, groupByIndexs, funcExprs)
+	if err != nil {
+		return nil, err
+	}
+
+	//set status
+	status := c.status
+	for i := 0; i < len(rs); i++ {
+		status = status | rs[i].Status
+	}
+
+	//change map into Resultset
+	r.Values = nil
+	r.RowDatas = nil
+	for _, v := range resultMap {
+		r.Values = append(r.Values, v.Value)
+		r.RowDatas = append(r.RowDatas, v.RowData)
+	}
+	r.Status = status
+
+	return r, nil
+}
+
+//only merge result without aggregate function in group by opt
+func (c *ClientConn) mergeGroupByWithoutFunc(rs []*mysql.Result,
+	groupByIndexs []int) (*mysql.Result, error) {
+	r := rs[0]
+	//load rs into a map
+	resultMap, err := c.loadResultIntoMap(rs, groupByIndexs)
+	if err != nil {
+		return nil, err
+	}
+
+	//set status
+	status := c.status
+	for i := 0; i < len(rs); i++ {
+		status = status | rs[i].Status
+	}
+
+	//load map into Resultset
+	r.Values = nil
+	r.RowDatas = nil
+	for _, v := range resultMap {
+		r.Values = append(r.Values, v.Value)
+		r.RowDatas = append(r.RowDatas, v.RowData)
+	}
+	r.Status = status
+
+	return r, nil
+}
+
+type ResultRow struct {
+	Value   []interface{}
+	RowData mysql.RowData
+}
+
+func (c *ClientConn) generateMapKey(groupColumns []interface{}) (string, error) {
+	bk := make([]byte, 0, 8)
+	separatorBuf, err := formatValue("+")
+	if err != nil {
+		return "", err
+	}
+
+	for _, v := range groupColumns {
+		b, err := formatValue(v)
+		if err != nil {
+			return "", err
+		}
+		bk = append(bk, b...)
+		bk = append(bk, separatorBuf...)
+	}
+
+	return string(bk), nil
+}
+
+func (c *ClientConn) loadResultIntoMap(rs []*mysql.Result,
+	groupByIndexs []int) (map[string]*ResultRow, error) {
+	//load Result into map
+	resultMap := make(map[string]*ResultRow)
+	for _, r := range rs {
+		for i := 0; i < len(r.Values); i++ {
+			keySlice := r.Values[i][groupByIndexs[0]:]
+			mk, err := c.generateMapKey(keySlice)
+			if err != nil {
+				return nil, err
+			}
+
+			resultMap[mk] = &ResultRow{
+				Value:   r.Values[i],
+				RowData: r.RowDatas[i],
+			}
+		}
+	}
+
+	return resultMap, nil
+}
+
+func (c *ClientConn) loadResultWithFuncIntoMap(rs []*mysql.Result,
+	groupByIndexs []int, funcExprs map[int]string) (map[string]*ResultRow, error) {
+
+	resultMap := make(map[string]*ResultRow)
+	rt := new(mysql.Result)
+	rt.Resultset = new(mysql.Resultset)
+	rt.Fields = rs[0].Fields
+
+	//change Result into map
+	for _, r := range rs {
+		for i := 0; i < len(r.Values); i++ {
+			keySlice := r.Values[i][groupByIndexs[0]:]
+			mk, err := c.generateMapKey(keySlice)
+			if err != nil {
+				return nil, err
+			}
+
+			if v, ok := resultMap[mk]; ok {
+				//init rt
+				rt.Values = nil
+				rt.RowDatas = nil
+
+				//append v and r into rt, and calculate the function value
+				rt.Values = append(rt.Values, r.Values[i], v.Value)
+				rt.RowDatas = append(rt.RowDatas, r.RowDatas[i], v.RowData)
+				resultTmp := []*mysql.Result{rt}
+
+				for funcIndex, funcName := range funcExprs {
+					funcValue, err := c.calFuncExprValue(funcName, resultTmp, funcIndex)
+					if err != nil {
+						return nil, err
+					}
+					//set the function value in group by
+					resultMap[mk].Value[funcIndex] = funcValue
+				}
+			} else { //key is not exist
+				resultMap[mk] = &ResultRow{
+					Value:   r.Values[i],
+					RowData: r.RowDatas[i],
+				}
+			}
+		}
+	}
+
+	return resultMap, nil
+}
+
+//build select result without group by opt
+func (c *ClientConn) buildSelectOnlyResult(rs []*mysql.Result,
+	stmt *sqlparser.Select) (*mysql.Result, error) {
 	var err error
 	r := rs[0].Resultset
 	status := c.status | rs[0].Status
@@ -149,19 +371,13 @@ func (c *ClientConn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Selec
 		//result only one row, status doesn't need set
 		r, err = c.buildFuncExprResult(stmt, rs, funcExprs)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-
-	//group by
-	c.sortSelectResult(r, stmt)
-	//to do, add log here, sort may error because order by key not exist in resultset fields
-
-	if err := c.limitSelectResult(r, stmt); err != nil {
-		return err
-	}
-
-	return c.writeResultset(status, r)
+	return &mysql.Result{
+		Status:    status,
+		Resultset: r,
+	}, nil
 }
 
 func (c *ClientConn) sortSelectResult(r *mysql.Resultset, stmt *sqlparser.Select) error {
@@ -255,7 +471,7 @@ func (c *ClientConn) buildFuncExprResult(stmt *sqlparser.Select,
 	return r, nil
 }
 
-//get the index of funcExpr
+//get the index of funcExpr, the value is function name
 func (c *ClientConn) getFuncExprs(stmt *sqlparser.Select) map[int]string {
 	var f *sqlparser.FuncExpr
 	funcExprs := make(map[int]string)
@@ -280,8 +496,59 @@ func (c *ClientConn) getFuncExprs(stmt *sqlparser.Select) map[int]string {
 	return funcExprs
 }
 
-func (c *ClientConn) getMaxFuncExprValue(
-	rs []*mysql.Result, index int) (interface{}, error) {
+func (c *ClientConn) getSumFuncExprValue(rs []*mysql.Result,
+	index int) (interface{}, error) {
+	var sumf float64
+	var sumi int64
+	var IsInt bool
+	var err error
+	var result interface{}
+
+	for _, r := range rs {
+		for k := range r.Values {
+			result, err = r.GetValue(k, index)
+			if err != nil {
+				return nil, err
+			}
+			if result == nil {
+				continue
+			}
+
+			switch v := result.(type) {
+			case int:
+				sumi = sumi + int64(v)
+				IsInt = true
+			case int32:
+				sumi = sumi + int64(v)
+				IsInt = true
+			case int64:
+				sumi = sumi + v
+				IsInt = true
+			case float32:
+				sumf = sumf + float64(v)
+			case float64:
+				sumf = sumf + v
+			case []byte:
+				tmp, err := strconv.ParseFloat(string(v), 64)
+				if err != nil {
+					return nil, err
+				}
+
+				sumf = sumf + tmp
+			default:
+				return nil, errors.ErrSumColumnType
+			}
+		}
+	}
+	if IsInt {
+		return sumi, nil
+	} else {
+		return sumf, nil
+	}
+}
+
+func (c *ClientConn) getMaxFuncExprValue(rs []*mysql.Result,
+	index int) (interface{}, error) {
 	var max interface{}
 	var findNotNull bool
 	if len(rs) == 0 {
@@ -398,7 +665,7 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 
 	var num int64
 	switch strings.ToLower(funcName) {
-	case SumFuncName, CountFuncName:
+	case CountFuncName:
 		if len(rs) == 0 {
 			return nil, nil
 		}
@@ -412,6 +679,8 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 			}
 		}
 		return num, nil
+	case SumFuncName:
+		return c.getSumFuncExprValue(rs, index)
 	case MaxFuncName:
 		return c.getMaxFuncExprValue(rs, index)
 	case MinFuncName:

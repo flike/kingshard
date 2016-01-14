@@ -334,6 +334,7 @@ func (r *Resultset) GetUintByName(row int, name string) (uint64, error) {
 	}
 }
 
+//!!only can get positive integer
 func (r *Resultset) GetInt(row, column int) (int64, error) {
 	v, err := r.GetUint(row, column)
 	if err != nil {

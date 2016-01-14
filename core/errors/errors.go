@@ -39,6 +39,8 @@ var (
 	ErrLocationsCount = errors.New("locations count are not equal")
 	ErrNoCriteria     = errors.New("plan have no criteria")
 	ErrNoRouteNode    = errors.New("no route node")
+	ErrResultNil      = errors.New("result is nil")
+	ErrSumColumnType  = errors.New("sum column type error")
 	ErrSelectInInsert = errors.New("select in insert not allowed")
 	ErrInsertInMulti  = errors.New("insert in multi node")
 	ErrUpdateInMulti  = errors.New("update in multi node")
