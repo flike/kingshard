@@ -163,9 +163,9 @@ func (c *ClientConn) buildSelectGroupByResult(rs []*mysql.Result,
 	var r *mysql.Result
 	var groupByIndexs []int
 
-	startIndex := len(stmt.SelectExprs)
-	endIndex := len(stmt.SelectExprs) + len(stmt.GroupBy)
-	for startIndex < endIndex {
+	fieldLen := len(rs[0].Fields)
+	startIndex := fieldLen - len(stmt.GroupBy)
+	for startIndex < fieldLen {
 		groupByIndexs = append(groupByIndexs, startIndex)
 		startIndex++
 	}
@@ -500,6 +500,7 @@ func (c *ClientConn) getSumFuncExprValue(rs []*mysql.Result,
 	index int) (interface{}, error) {
 	var sumf float64
 	var sumi int64
+	var IsInt bool
 	var err error
 	var result interface{}
 
@@ -512,17 +513,34 @@ func (c *ClientConn) getSumFuncExprValue(rs []*mysql.Result,
 			if result == nil {
 				continue
 			}
+
 			switch v := result.(type) {
+			case int:
+				sumi = sumi + int64(v)
+				IsInt = true
+			case int32:
+				sumi = sumi + int64(v)
+				IsInt = true
 			case int64:
 				sumi = sumi + v
+				IsInt = true
+			case float32:
+				sumf = sumf + float64(v)
 			case float64:
 				sumf = sumf + v
+			case []byte:
+				tmp, err := strconv.ParseFloat(string(v), 64)
+				if err != nil {
+					return nil, err
+				}
+
+				sumf = sumf + tmp
 			default:
 				return nil, errors.ErrSumColumnType
 			}
 		}
 	}
-	if _, ok := result.(int64); ok {
+	if IsInt {
 		return sumi, nil
 	} else {
 		return sumf, nil
