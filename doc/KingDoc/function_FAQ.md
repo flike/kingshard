@@ -61,7 +61,7 @@ mysql -h127.0.0.1 -ukingshard -pkingshard -P9696 -c;
 - 支持跨node的count,sum,max和min等函数。
 - 支持单个分表的join操作，即支持分表和另一张不分表的join操作
 - 支持order by
-- **分表目前不支持group by**
+- 支持group by
 
 **7. etc目录下有两个配置文件(ks.yaml,unshard.yaml),我该使用哪一个？**
 
