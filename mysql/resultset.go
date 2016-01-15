@@ -334,23 +334,36 @@ func (r *Resultset) GetUintByName(row int, name string) (uint64, error) {
 	}
 }
 
-//!!only can get positive integer
-func (r *Resultset) GetInt(row, column int) (int64, error) {
-	v, err := r.GetUint(row, column)
-	if err != nil {
+func (r *Resultset) GetIntByName(row int, name string) (int64, error) {
+	if column, err := r.NameIndex(name); err != nil {
 		return 0, err
+	} else {
+		return r.GetInt(row, column)
 	}
-
-	return int64(v), nil
 }
 
-func (r *Resultset) GetIntByName(row int, name string) (int64, error) {
-	v, err := r.GetUintByName(row, name)
+func (r *Resultset) GetInt(row, column int) (int64, error) {
+	d, err := r.GetValue(row, column)
 	if err != nil {
 		return 0, err
 	}
 
-	return int64(v), nil
+	switch v := d.(type) {
+	case uint64:
+		return int64(v), nil
+	case int64:
+		return v, nil
+	case float64:
+		return int64(v), nil
+	case string:
+		return strconv.ParseInt(v, 10, 64)
+	case []byte:
+		return strconv.ParseInt(string(v), 10, 64)
+	case nil:
+		return 0, nil
+	default:
+		return 0, fmt.Errorf("data type is %T", v)
+	}
 }
 
 func (r *Resultset) GetFloat(row, column int) (float64, error) {
