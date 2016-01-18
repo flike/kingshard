@@ -189,7 +189,6 @@ func (plan *Plan) calRouteIndexs() error {
 			return err
 		}
 		plan.RouteNodeIndexs = plan.TindexsToNindexs(plan.RouteTableIndexs)
-
 		return nil
 	default:
 		plan.RouteTableIndexs = plan.TableIndexs

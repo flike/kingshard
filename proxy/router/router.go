@@ -438,11 +438,10 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		}
 	}
 	buf.Fprintf(" from ")
-
 	switch v := (node.From[0]).(type) {
 	case *sqlparser.AliasedTableExpr:
 		if len(v.As) != 0 {
-			fmt.Fprintf(buf, "%s_%04d AS %s",
+			fmt.Fprintf(buf, "%s_%04d as %s",
 				sqlparser.String(v.Expr),
 				tableIndex,
 				string(v.As),
@@ -456,7 +455,7 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	case *sqlparser.JoinTableExpr:
 		if ate, ok := (v.LeftExpr).(*sqlparser.AliasedTableExpr); ok {
 			if len(ate.As) != 0 {
-				fmt.Fprintf(buf, "%s_%04d AS %s",
+				fmt.Fprintf(buf, "%s_%04d as %s",
 					sqlparser.String(ate.Expr),
 					tableIndex,
 					string(ate.As),
@@ -482,6 +481,11 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 			sqlparser.String(node.From[0]),
 			tableIndex,
 		)
+	}
+	//append other tables
+	prefix := ", "
+	for i := 1; i < len(node.From); i++ {
+		buf.Fprintf("%s%v", prefix, node.From[i])
 	}
 	buf.Fprintf("%v%v%v%v%s",
 		node.Where,
