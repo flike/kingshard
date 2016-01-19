@@ -324,17 +324,19 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 			})
 		//"slave"
 		for _, slave := range node.Slave {
-			rows = append(
-				rows,
-				[]string{
-					name,
-					slave.Addr(),
-					"slave",
-					slave.State(),
-					fmt.Sprintf("%v", time.Unix(node.LastSlavePing, 0)),
-					strconv.Itoa(node.Cfg.MaxConnNum),
-					strconv.Itoa(slave.IdleConnCount()),
-				})
+			if slave != nil {
+				rows = append(
+					rows,
+					[]string{
+						name,
+						slave.Addr(),
+						"slave",
+						slave.State(),
+						fmt.Sprintf("%v", time.Unix(node.LastSlavePing, 0)),
+						strconv.Itoa(node.Cfg.MaxConnNum),
+						strconv.Itoa(slave.IdleConnCount()),
+					})
+			}
 		}
 	}
 	//rows = append(rows, nodeRows...)
