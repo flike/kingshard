@@ -81,20 +81,22 @@ func (n *Node) InitBalancer() {
 
 func (n *Node) GetNextSlave() (*DB, error) {
 	var index int
-	if len(n.RoundRobinQ) == 0 {
+	queueLen := len(n.RoundRobinQ)
+	if queueLen == 0 {
 		return nil, errors.ErrNoDatabase
 	}
-	if len(n.RoundRobinQ) == 1 {
+	if queueLen == 1 {
 		index = n.RoundRobinQ[0]
 		return n.Slave[index], nil
 	}
 
-	queueLen := len(n.RoundRobinQ)
+	n.LastSlaveIndex = n.LastSlaveIndex % queueLen
 	index = n.RoundRobinQ[n.LastSlaveIndex]
+	if len(n.Slave) <= index {
+		return nil, errors.ErrNoDatabase
+	}
 	db := n.Slave[index]
 	n.LastSlaveIndex++
-	if queueLen <= n.LastSlaveIndex {
-		n.LastSlaveIndex = 0
-	}
+	n.LastSlaveIndex = n.LastSlaveIndex % queueLen
 	return db, nil
 }
