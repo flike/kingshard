@@ -284,6 +284,7 @@ func (c *ClientConn) Run() {
 		}
 
 		if err := c.dispatch(data); err != nil {
+			c.proxy.counter.IncrErrorCnt()
 			golog.Error("server", "Run",
 				err.Error(), c.connectionId,
 			)
@@ -299,6 +300,7 @@ func (c *ClientConn) Run() {
 }
 
 func (c *ClientConn) dispatch(data []byte) error {
+	c.proxy.counter.IncrOpCnt()
 	cmd := data[0]
 	data = data[1:]
 
