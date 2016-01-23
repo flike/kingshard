@@ -5,16 +5,23 @@ addr : 0.0.0.0:9696
 user :  kingshard
 password : kingshard
 
-#if set log_path, the sql log will write into log_path/sql.log,the system log
-#will write into log_path/sys.log
+# if set log_path, the sql log will write into log_path/sql.log,the system log
+# will write into log_path/sys.log
 #log_path : /Users/flike/log
 
 # log level[debug|info|warn|error],default error
 log_level : debug
-#if set log_sql(on|off) off,the sql log will not output
+
+# if set log_sql(on|off) off,the sql log will not output
 log_sql: off
-#only log the query that take more than slow_log_time ms
+
+# only log the query that take more than slow_log_time ms
 #slow_log_time : 100
+
+# blacklist sql file path
+# all these sqls in this file will been forbidden by kingshard
+blacklist_sql_file: /Users/flike/blacklist
+
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
 
@@ -38,7 +45,8 @@ nodes :
     slave :
     down_after_noalive : 32
 
-# schema defines which db can be used by client and this db's sql will be executed in which nodes, the db is also the default database
+# schema defines which db can be used by client and this db's sql will be executed in which nodes, 
+# the db is also the default database
 schema :
     db : kingshard
     nodes: [node1]

@@ -15,8 +15,11 @@
 package server
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
+	"os"
 	"runtime"
 	"strings"
 	"sync/atomic"
@@ -38,14 +41,20 @@ type Schema struct {
 	rule *router.Router
 }
 
+type BlacklistSqls struct {
+	sqls    map[string]string
+	sqlsLen int
+}
+
 type Server struct {
 	cfg *config.Config
 
-	addr     string
-	user     string
-	password string
-	db       string
-	allowips []net.IP
+	addr          string
+	user          string
+	password      string
+	db            string
+	blacklistSqls *BlacklistSqls
+	allowips      []net.IP
 
 	nodes  map[string]*backend.Node
 	schema *Schema
@@ -64,6 +73,41 @@ func (s *Server) parseAllowIps() error {
 	for _, ip := range ipVec {
 		s.allowips = append(s.allowips, net.ParseIP(strings.TrimSpace(ip)))
 	}
+	return nil
+}
+
+//parse the blacklist sql file
+func (s *Server) parseBlackListSqls() error {
+	bs := new(BlacklistSqls)
+	bs.sqls = make(map[string]string)
+	if len(s.cfg.BlsFile) != 0 {
+		file, err := os.Open(s.cfg.BlsFile)
+		if err != nil {
+			return err
+		}
+
+		defer file.Close()
+		rd := bufio.NewReader(file)
+		for {
+			line, err := rd.ReadString('\n')
+			//end of file
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return err
+			}
+			line = strings.TrimSpace(line)
+			if len(line) != 0 {
+				fingerPrint := mysql.GetFingerprint(line)
+				md5 := mysql.GetMd5(fingerPrint)
+				bs.sqls[md5] = fingerPrint
+			}
+		}
+	}
+	bs.sqlsLen = len(bs.sqls)
+	s.blacklistSqls = bs
+
 	return nil
 }
 
@@ -149,6 +193,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s.addr = cfg.Addr
 	s.user = cfg.User
 	s.password = cfg.Password
+
+	if err := s.parseBlackListSqls(); err != nil {
+		return nil, err
+	}
 
 	if err := s.parseAllowIps(); err != nil {
 		return nil, err
