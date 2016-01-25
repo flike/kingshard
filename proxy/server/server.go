@@ -41,6 +41,8 @@ type Schema struct {
 type Server struct {
 	cfg *config.Config
 
+	counter *Counter
+
 	addr     string
 	user     string
 	password string
@@ -145,6 +147,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s := new(Server)
 
 	s.cfg = cfg
+	s.counter = NewCounter()
 
 	s.addr = cfg.Addr
 	s.user = cfg.User
@@ -178,6 +181,14 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		s.addr)
 	return s, nil
 }
+
+func (s *Server) flushCounter() {
+	for {
+		s.counter.FlushCounter()
+		time.Sleep(1 * time.Second)
+	}
+}
+
 func (s *Server) newClientConn(co net.Conn) *ClientConn {
 	c := new(ClientConn)
 	tcpConn := co.(*net.TCPConn)
@@ -217,6 +228,7 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 }
 
 func (s *Server) onConn(c net.Conn) {
+	s.counter.IncrClientConns()
 	conn := s.newClientConn(c) //新建一个conn
 
 	defer func() {
@@ -232,6 +244,7 @@ func (s *Server) onConn(c net.Conn) {
 		}
 
 		conn.Close()
+		s.counter.DecrClientConns()
 	}()
 
 	if allowConnect := conn.IsAllowConnect(); allowConnect == false {
@@ -251,6 +264,9 @@ func (s *Server) onConn(c net.Conn) {
 
 func (s *Server) Run() error {
 	s.running = true
+
+	// flush counter
+	go s.flushCounter()
 
 	for s.running {
 		conn, err := s.listener.Accept()

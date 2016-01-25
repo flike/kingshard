@@ -277,10 +277,16 @@ func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
 
 	rows = append(rows, []string{"Addr", c.proxy.cfg.Addr})
 	rows = append(rows, []string{"User", c.proxy.cfg.User})
-	rows = append(rows, []string{"Password", c.proxy.cfg.Password})
+	rows = append(rows, []string{"LogPath", c.proxy.cfg.LogPath})
 	rows = append(rows, []string{"LogLevel", c.proxy.cfg.LogLevel})
+	rows = append(rows, []string{"LogSql", c.proxy.cfg.LogSql})
+	rows = append(rows, []string{"SlowLogTime", strconv.Itoa(c.proxy.cfg.SlowLogTime)})
 	rows = append(rows, []string{"Nodes_Count", fmt.Sprintf("%d", len(c.proxy.nodes))})
 	rows = append(rows, []string{"Nodes_List", strings.Join(nodeNames, ",")})
+	rows = append(rows, []string{"ClientConns", fmt.Sprintf("%d", c.proxy.counter.ClientConns)})
+	rows = append(rows, []string{"ClientQPS", fmt.Sprintf("%d", c.proxy.counter.OldClientQPS)})
+	rows = append(rows, []string{"ErrLogTotal", fmt.Sprintf("%d", c.proxy.counter.OldErrLogTotal)})
+	rows = append(rows, []string{"SlowLogTotal", fmt.Sprintf("%d", c.proxy.counter.OldSlowLogTotal)})
 
 	var values [][]interface{} = make([][]interface{}, len(rows))
 	for i := range rows {
