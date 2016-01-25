@@ -36,6 +36,9 @@ log_sql : on
 slow_log_time : 100
 #日志文件路径，如果不配置则会输出到终端。
 log_path : /Users/flike/log
+# sql黑名单文件路径
+# 所有在该文件中的sql都会被kingshard拒绝转发
+#blacklist_sql_file: /Users/flike/blacklist
 # 只允许下面的IP列表连接kingshard，如果不配置则对连接kingshard的IP不做限制。
 allow_ips: 127.0.0.1
 
@@ -422,3 +425,5 @@ kingshard的管理接口，目前还是命令行的方式。后续有时间打�
 
 ## 7. 总结
 kingshard开源两个月以来，得到了很多开发者的关注。这足以证明，大家对数据库中间件是有需求的，希望出现一款简单好用的MySQL Proxy。kingshard经过这两个月的迭代开发，也比较稳定了。据了解，有几个公司正在对其进行尝试。后续作者的主要精力会放在优化kingshard的性能上，同时完善kingshard已有的功能。如果大家对kingshard有什么想法或建议，可以发邮件联系我（flikecn#126.com)，非常乐意和大家交流。
+
+

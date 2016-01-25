@@ -27,6 +27,9 @@ log_sql : on
 slow_log_time : 100
 #日志文件路径，如果不配置则会输出到终端。
 log_path : /Users/flike/log
+# sql黑名单文件路径
+# 所有在该文件中的sql都会被kingshard拒绝转发
+#blacklist_sql_file: /Users/flike/blacklist
 # 只允许下面的IP列表连接kingshard，如果不配置则对连接kingshard的IP不做限制。
 allow_ips: 127.0.0.1
 
@@ -107,3 +110,5 @@ schema :
 **2. kingshard采用的是yaml方式解析配置文件，需要注意的是yaml配置文件不允许出现tab键，且冒号后面需要跟一个空格。配置文件编写完成后，可以在[yaml lint](http://www.yamllint.com/)网站验证是否有格式错误。**
 
 **3. windows下安装kingshard，参考[文档](https://github.com/flike/kingshard/wiki/%E5%9C%A8window%E4%B8%8B%E5%AE%89%E8%A3%85kingshard)**
+
+
