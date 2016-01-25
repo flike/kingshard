@@ -228,9 +228,7 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 }
 
 func (s *Server) onConn(c net.Conn) {
-	s.counter.IncrConnCnt()
-	defer s.counter.DecrConnCnt()
-
+	s.counter.IncrClientConns()
 	conn := s.newClientConn(c) //新建一个conn
 
 	defer func() {
@@ -246,6 +244,7 @@ func (s *Server) onConn(c net.Conn) {
 		}
 
 		conn.Close()
+		s.counter.DecrClientConns()
 	}()
 
 	if allowConnect := conn.IsAllowConnect(); allowConnect == false {

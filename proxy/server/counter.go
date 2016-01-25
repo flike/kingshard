@@ -19,53 +19,45 @@ import (
 )
 
 type Counter struct {
-	// 上一秒请求总数
-	oldOpCnt int64
-	// 上一秒错误数
-	oldErrorCnt int64
-	// 上一秒慢查询数
-	oldSlowCnt int64
-	// 连接数
-	connCnt int64
-	// 请求总数
-	opCnt int64
-	// 错误数
-	errorCnt int64
-	// 慢查询数
-	slowCnt int64
+	OldClientQPS    int64
+	OldErrLogTotal  int64
+	OldSlowLogTotal int64
+
+	ClientConns  int64
+	ClientQPS    int64
+	ErrLogTotal  int64
+	SlowLogTotal int64
 }
 
 func NewCounter() *Counter {
-	return &Counter{connCnt: 0, opCnt: 0, errorCnt: 0, slowCnt: 0}
+	return &Counter{OldClientQPS: 0, OldErrLogTotal: 0, OldSlowLogTotal: 0, ClientConns: 0, ClientQPS: 0, ErrLogTotal: 0, SlowLogTotal: 0}
 }
 
-func (counter *Counter) IncrConnCnt() {
-	atomic.AddInt64(&counter.connCnt, 1)
+func (counter *Counter) IncrClientConns() {
+	atomic.AddInt64(&counter.ClientConns, 1)
 }
 
-func (counter *Counter) DecrConnCnt() {
-	atomic.AddInt64(&counter.connCnt, -1)
+func (counter *Counter) DecrClientConns() {
+	atomic.AddInt64(&counter.ClientConns, -1)
 }
 
-func (counter *Counter) IncrOpCnt() {
-	atomic.AddInt64(&counter.opCnt, 1)
+func (counter *Counter) IncrClientQPS() {
+	atomic.AddInt64(&counter.ClientQPS, 1)
 }
 
-func (counter *Counter) IncrErrorCnt() {
-	atomic.AddInt64(&counter.errorCnt, 1)
+func (counter *Counter) IncrErrLogTotal() {
+	atomic.AddInt64(&counter.ErrLogTotal, 1)
 }
 
-func (counter *Counter) IncrSlowCnt() {
-	atomic.AddInt64(&counter.slowCnt, 1)
+func (counter *Counter) IncrSlowLogTotal() {
+	atomic.AddInt64(&counter.SlowLogTotal, 1)
 }
 
-//每间隔一秒重置数据
+//每间隔一秒交换、重置数据
 func (counter *Counter) FlushCounter() {
-	atomic.StoreInt64(&counter.oldOpCnt, counter.opCnt)
-	atomic.StoreInt64(&counter.oldErrorCnt, counter.errorCnt)
-	atomic.StoreInt64(&counter.oldSlowCnt, counter.slowCnt)
+	atomic.StoreInt64(&counter.OldClientQPS, counter.ClientQPS)
+	atomic.StoreInt64(&counter.OldErrLogTotal, counter.ErrLogTotal)
+	atomic.StoreInt64(&counter.OldSlowLogTotal, counter.SlowLogTotal)
 
-	atomic.StoreInt64(&counter.opCnt, 0)
-	atomic.StoreInt64(&counter.errorCnt, 0)
-	atomic.StoreInt64(&counter.slowCnt, 0)
+	atomic.StoreInt64(&counter.ClientQPS, 0)
 }
