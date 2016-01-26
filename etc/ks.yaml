@@ -20,7 +20,7 @@ log_sql: off
 
 # the path of blacklist sql file
 # all these sqls in the file will been forbidden by kingshard
-blacklist_sql_file: /Users/flike/blacklist
+#blacklist_sql_file: /Users/flike/blacklist
 
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
