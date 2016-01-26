@@ -30,17 +30,28 @@ admin node(opt,node,k,v) values(‘up’,’node1’,’master’,’127.0.0.1:3
 ```
 #查看kingshard全局配置
 mysql> admin server(opt,k,v) values('show','proxy','config');
-+-------------+----------------+
-| Key         | Value          |
-+-------------+----------------+
-| Addr        | 127.0.0.1:9696 |
-| User        | kingshard      |
-| Password    | kingshard      |
-| LogLevel    | debug          |
-| Nodes_Count | 2              |
-| Nodes_List  | node1,node2    |
-+-------------+----------------+
++--------------+----------------+
+| Key          |   Value        |
++--------------+----------------+
+| Addr         | 127.0.0.1:9696 |
+| User         | kingshard      |
+| LogPath      | ./             |
+| LogLevel     | debug          |
+| LogSql       | on             |
+| SlowLogTime  | 10             |
+| Nodes_Count  | 2              |
+| Nodes_List   | node1,node2    |
+| ClientConns  | 32             |
+| ClientQPS    | 15             |
+| ErrLogTotal  | 12             |
+| SlowLogTotal | 26             |
++--------------+----------------+
 6 rows in set (0.00 sec)
+
+ClientConns:客户端连接数
+ClientQPS:客户端的QPS大小
+ErrLogTotal:kingshard启动以来产生的错误日志个数
+SlowLogTotal:kingshard启动以来产生的慢日志个数
 
 #查看node状态
 mysql> admin server(opt,k,v) values('show','node','config');
