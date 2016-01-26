@@ -31,7 +31,7 @@ nodes :
     name : node1
 
     # default max conns for mysql server
-    max_conns_limit : 8
+    max_conns_limit : 32
 
     # all mysql in a node must have the same user and password
     user :  kingshard
