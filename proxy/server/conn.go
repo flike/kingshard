@@ -157,8 +157,7 @@ func (c *ClientConn) writeInitialHandshake() error {
 	data = append(data, byte(DEFAULT_CAPABILITY), byte(DEFAULT_CAPABILITY>>8))
 
 	//charset, utf-8 default
-	//data = append(data, uint8(mysql.DEFAULT_COLLATION_ID))
-	data = append(data, uint8(mysql.CharsetIds[c.charset]))
+	data = append(data, uint8(mysql.DEFAULT_COLLATION_ID))
 
 	//status
 	data = append(data, byte(c.status), byte(c.status>>8))
