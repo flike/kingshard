@@ -21,6 +21,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 	13. 支持主流语言（java,php,python,C/C++,Go)SDK的mysql的prepare特性。
 	14. 支持到后端DB的最大连接数限制。
 	15. 支持SQL日志及慢日志输出。
+	16. 支持字符集设置。
 
 ## kinshard文档
 

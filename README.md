@@ -17,7 +17,9 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
 - Support reading master database forcely.
 - Support sending sql to the specified node.
 - Support most commonly used functions, such as `max, min, count, sum`, and also support `join, limit, order by,group by`.
-- MySQL HA
+- MySQL HA.
+- Support set the charset of proxy.
+- Support SQL blacklist.
 
 ## Install
 ```

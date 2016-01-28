@@ -27,7 +27,7 @@ log_level : debug
 
 # the charset of kingshard, if you don't set this item
 # the default charset of kingshard is utf8.
-#proxy_charset: utf8mb4
+#proxy_charset: gbk
 
 # node is an agenda for real remote mysql server.
 nodes :
