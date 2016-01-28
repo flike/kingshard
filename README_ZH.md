@@ -22,6 +22,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 	14. 支持到后端DB的最大连接数限制。
 	15. 支持SQL日志及慢日志输出。
 	16. 支持SQL黑名单机制。
+	17. 支持字符集设置。
 
 ## kinshard文档
 
