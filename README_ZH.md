@@ -6,23 +6,28 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 
 ## 主要功能：
 
-	1. 读写分离。
-	2. 跨节点分表。
-	3. 支持透明的MySQL连接池，不必每次新建连接。
-	4. 支持客户端IP访问控制。
-	5. 平滑上线DB或下线DB，前端应用无感知。
-	6. 支持多个slave，slave之间通过权值进行负载均衡。
-	7. 支持强制读主库。
-	8. 支持将sql发送到特定的node。
-	9. 支持在单个node上执行事务，不支持跨多个node执行事务。
-	10. 支持跨node的count,sum,max和min等函数。
-	11. 支持单个分表的join操作，即支持分表和另一张不分表的join操作。
-	12. 支持跨node的order by,group by,limit等操作。
-	13. 支持主流语言（java,php,python,C/C++,Go)SDK的mysql的prepare特性。
-	14. 支持到后端DB的最大连接数限制。
-	15. 支持SQL日志及慢日志输出。
-	16. 支持SQL黑名单机制。
-	17. 支持字符集设置。
+### 1. 基础功能
+
+- 支持SQL读写分离。
+- 支持透明的MySQL连接池，不必每次新建连接。
+- 支持平滑上线DB或下线DB，前端应用无感知。
+- 支持多个slave，slave之间通过权值进行负载均衡。
+- 支持强制读主库。
+- 支持主流语言（java,php,python,C/C++,Go)SDK的mysql的prepare特性。
+- 支持到后端DB的最大连接数限制。
+- 支持SQL日志及慢日志输出。
+- 支持SQL黑名单机制。
+- 支持客户端IP访问白名单机制，只有白名单中的IP才能访问kingshard。
+- 支持字符集设置。
+
+### 2. sharding功能
+
+- 支持跨节点分表，子表可以分布在不同的节点。
+- 支持跨节点的count,sum,max和min等聚合函数。
+- 支持单个分表的join操作，即支持分表和另一张不分表的join操作。
+- 支持跨节点的order by,group by,limit等操作。
+- 支持将sql发送到特定的节点执行。
+- 支持在单个节点上执行事务，不支持跨多节点的分布式事务。
 
 ## kinshard文档
 
@@ -58,7 +63,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 https://github.com/flike/kingshard/blob/master/doc/KingDoc/support.md
 
 ## 反馈
-kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。 **目前已有8家公司在生产环境使用kingshard作为MySQL代理。** 如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至hiflike#gmail.com与作者取得联系，或者加入QQ群(147926796)交流。
+kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。 **目前已有上十家公司在生产环境使用kingshard作为MySQL代理。** 如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至hiflike#gmail.com与作者取得联系，或者加入QQ群(147926796)交流。
 
 ## License
 
