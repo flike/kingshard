@@ -37,6 +37,7 @@ allow_ips: 127.0.0.1
 
 # 一个node节点表示mysql集群的一个数据分片，包括一主多从（可以不配置从库）
 nodes :
+-
     #node节点名字
     name : node1
 
