@@ -41,6 +41,8 @@ log_path : /Users/flike/log
 #blacklist_sql_file: /Users/flike/blacklist
 # 只允许下面的IP列表连接kingshard，如果不配置则对连接kingshard的IP不做限制。
 allow_ips: 127.0.0.1
+# kingshard使用的字符集，如果不设置该选项，则kingshard使用utf8作为默认字符集
+#proxy_charset: utf8mb4
 
 # 一个node节点表示mysql集群的一个数据分片，包括一主多从（可以不配置从库）
 nodes :

@@ -29,6 +29,7 @@ import (
 
 	"github.com/flike/kingshard/backend"
 	"github.com/flike/kingshard/config"
+	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/proxy/router"
 )
@@ -47,11 +48,14 @@ type BlacklistSqls struct {
 }
 
 type Server struct {
-	cfg           *config.Config
-	addr          string
-	user          string
-	password      string
-	db            string
+	cfg       *config.Config
+	addr      string
+	user      string
+	password  string
+	db        string
+	charset   string
+	collation mysql.CollationId
+
 	blacklistSqls *BlacklistSqls
 	allowips      []net.IP
 	counter       *Counter
@@ -189,10 +193,20 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	s.cfg = cfg
 	s.counter = new(Counter)
-
 	s.addr = cfg.Addr
 	s.user = cfg.User
 	s.password = cfg.Password
+	if len(cfg.Charset) != 0 {
+		cid, ok := mysql.CharsetIds[cfg.Charset]
+		if !ok {
+			return nil, errors.ErrInvalidCharset
+		}
+		s.charset = cfg.Charset
+		s.collation = cid
+	} else {
+		s.charset = mysql.DEFAULT_CHARSET
+		s.collation = mysql.DEFAULT_COLLATION_ID
+	}
 
 	if err := s.parseBlackListSqls(); err != nil {
 		return nil, err
@@ -263,8 +277,8 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 
 	c.closed = false
 
-	c.collation = mysql.DEFAULT_COLLATION_ID
-	c.charset = mysql.DEFAULT_CHARSET
+	c.collation = s.collation
+	c.charset = s.charset
 
 	c.stmtId = 0
 	c.stmts = make(map[uint32]*Stmt)

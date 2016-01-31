@@ -2,7 +2,7 @@
 
 **1. kingshard的线上使用情况和稳定性如何？**
 
-- 目前据开发者不完全统计，已经有至少7家公司在生产环境使用。
+- 目前据开发者不完全统计，已经有上十家公司在生产环境使用。
 - 很多MySQL Proxy调研用户都比较关心kingshard的稳定性，从反馈情况来看，目前kingshard已经较为稳定，
 Bug出现的次数越来月收敛了。对于想生产环境使用kingshard的用户来说，为保证安全起见，还是需要自己利用kingshard部署一套
 测试环境，自行测试一下。如果遇到BUG，可以在github的issue中提出，但希望用户在描述问题的时候，尽量详细，以便开发者快速定位问题。
@@ -48,7 +48,12 @@ schema :
 这里的db只针对分表，也就是说所有需要分表的子表只能放在这个db中。但是如果不分表，这你的表可以放在任何db
 中。
 
-**5. `/*node2*/select * from stu`等类似SQL怎么不起作用？**
+**5. 我有两个表需要分表，且这个两个表在两个不同的database中，该怎么设置schema？**
+
+目前在kingshard的schema规则中，所有分表只能落在一个database中。如果存在另一个分表在不同的database中，
+需要启动一个新的kingshard实例来对应这种分表规则。
+
+**6. `/*node2*/select * from stu`等类似SQL怎么不起作用？**
 
 在命令行执行带注释的SQL时，需要加-c参数避免客户端过滤注释。例如：
 
@@ -56,19 +61,19 @@ schema :
 mysql -h127.0.0.1 -ukingshard -pkingshard -P9696 -c;
 ```
 
-**6. 利用kingshard分表应该注意什么？**
+**7. 利用kingshard分表应该注意什么？**
 
 - 支持跨node的count,sum,max和min等函数。
 - 支持单个分表的join操作，即支持分表和另一张不分表的join操作
 - 支持order by
 - 支持group by
 
-**7. etc目录下有两个配置文件(ks.yaml,unshard.yaml),我该使用哪一个？**
+**8. etc目录下有两个配置文件(ks.yaml,unshard.yaml),我该使用哪一个？**
 
 如果你需要分表功能，请基于ks.yaml修改你的配置。如果你不需要分表，请基于unshard.yaml修改你的配置。
 当然你如果能够完全掌握如何配置kingshard，你也可以自己编写配置文件。
 
-**8. 如何给kingshard贡献代码？**
+**9. 如何给kingshard贡献代码？**
 
 kingshard欢迎大家提交pr，对于pr我建议：
 

@@ -25,13 +25,17 @@ log_level : debug
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
 
+# the charset of kingshard, if you don't set this item
+# the default charset of kingshard is utf8.
+#proxy_charset: gbk
+
 # node is an agenda for real remote mysql server.
 nodes :
 -
     name : node1
 
     # default max conns for mysql server
-    max_conns_limit : 8
+    max_conns_limit : 32
 
     # all mysql in a node must have the same user and password
     user :  kingshard

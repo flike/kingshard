@@ -34,6 +34,7 @@ var (
 
 	ErrAddressNull     = errors.New("address is nil")
 	ErrInvalidArgument = errors.New("argument is invalid")
+	ErrInvalidCharset  = errors.New("charset is invalid")
 	ErrCmdUnsupport    = errors.New("command unsupport")
 
 	ErrLocationsCount = errors.New("locations count are not equal")

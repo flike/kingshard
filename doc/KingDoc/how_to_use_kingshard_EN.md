@@ -40,6 +40,8 @@ log_level : debug
 #blacklist_sql_file: /Users/flike/blacklist
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
+# the default charset of kingshard is utf8.
+#proxy_charset: utf8mb4
 
 # node is an agenda for real remote mysql server.
 nodes :
