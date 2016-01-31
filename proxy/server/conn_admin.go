@@ -33,15 +33,22 @@ const (
 	ServerRegion = "server"
 	NodeRegion   = "node"
 
-	ADMIN_OPT_ADD  = "add"
-	ADMIN_OPT_DEL  = "del"
-	ADMIN_OPT_UP   = "up"
-	ADMIN_OPT_DOWN = "down"
-	ADMIN_OPT_SHOW = "show"
+	//op
+	ADMIN_OPT_ADD     = "add"
+	ADMIN_OPT_DEL     = "del"
+	ADMIN_OPT_UP      = "up"
+	ADMIN_OPT_DOWN    = "down"
+	ADMIN_OPT_SHOW    = "show"
+	ADMIN_OPT_CHANGE  = "change"
+	ADMIN_SAVE_CONFIG = "save"
 
-	ADMIN_PROXY  = "proxy"
-	ADMIN_NODE   = "node"
-	ADMIN_SCHEMA = "schema"
+	ADMIN_PROXY         = "proxy"
+	ADMIN_NODE          = "node"
+	ADMIN_SCHEMA        = "schema"
+	ADMIN_LOG_SQL       = "log_sql"
+	ADMIN_SLOW_LOG_TIME = "slow_log_time"
+	ADMIN_ALLOW_IP      = "allow_ip"
+	ADMIN_BLACK_SQL     = "black_sql"
 
 	ADMIN_CONFIG = "config"
 )
@@ -136,6 +143,14 @@ func (c *ClientConn) handleServerCmd(rows sqlparser.InsertRows) (*mysql.Resultse
 	switch strings.ToLower(opt) {
 	case ADMIN_OPT_SHOW:
 		result, err = c.handleAdminShow(k, v)
+	case ADMIN_OPT_CHANGE:
+		err = c.handleAdminChange(k, v)
+	case ADMIN_OPT_ADD:
+		err = c.handleAdminAdd(k, v)
+	case ADMIN_OPT_DEL:
+		err = c.handleAdminDelete(k, v)
+	case ADMIN_SAVE_CONFIG:
+		err = c.handleAdminSave(k, v)
 	default:
 		err = errors.ErrCmdUnsupport
 		golog.Error("ClientConn", "handleNodeCmd", err.Error(),
@@ -261,6 +276,51 @@ func (c *ClientConn) handleAdminShow(k, v string) (*mysql.Resultset, error) {
 	}
 
 	return nil, errors.ErrCmdUnsupport
+}
+
+func (c *ClientConn) handleAdminChange(k, v string) error {
+	if len(k) == 0 || len(v) == 0 {
+		return errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_LOG_SQL {
+		return c.handleChangeLogSql(v)
+	}
+
+	if k == ADMIN_SLOW_LOG_TIME {
+		return c.handleChangeSlowLogTime(v)
+	}
+
+	return errors.ErrCmdUnsupport
+}
+
+func (c *ClientConn) handleAdminAdd(k, v string) error {
+	if len(k) == 0 || len(v) == 0 {
+		return errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_ALLOW_IP {
+		return c.handleAddAllowIP(v)
+	}
+
+	if k == ADMIN_BLACK_SQL {
+		return c.handleAddBlackSql(v)
+	}
+
+	return errors.ErrCmdUnsupport
+}
+
+func (c *ClientConn) handleAdminDelete(k, v string) error {
+	if len(k) == 0 || len(v) == 0 {
+		return errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_ALLOW_IP {
+		return c.handleDelAllowIP(v)
+	}
+
+	if k == ADMIN_BLACK_SQL {
+		return c.handleDelBlackSql(v)
+	}
+
+	return errors.ErrCmdUnsupport
 }
 
 func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
@@ -412,6 +472,49 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 	}
 
 	return c.buildResultset(nil, names, values)
+}
+
+func (c *ClientConn) handleChangeLogSql(v string) error {
+	return c.proxy.changeLogSql(v)
+}
+
+func (c *ClientConn) handleChangeSlowLogTime(v string) error {
+	return c.proxy.changeSlowLogTime(v)
+}
+
+func (c *ClientConn) handleAddAllowIP(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.addAllowIP(v)
+	return err
+}
+
+func (c *ClientConn) handleDelAllowIP(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.delAllowIP(v)
+	return err
+}
+
+func (c *ClientConn) handleAddBlackSql(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.addBlackSql(v)
+	return err
+}
+
+func (c *ClientConn) handleDelBlackSql(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.delBlackSql(v)
+	return err
+}
+
+func (c *ClientConn) handleAdminSave(k string, v string) error {
+	if len(k) == 0 || len(v) == 0 {
+		return errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_PROXY && v == ADMIN_CONFIG {
+		return c.proxy.handleSaveProxyConfig()
+	}
+
+	return errors.ErrCmdUnsupport
 }
 
 func arrayToString(array []int) string {

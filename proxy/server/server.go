@@ -21,7 +21,9 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -48,6 +50,7 @@ type BlacklistSqls struct {
 }
 
 type Server struct {
+	sync.RWMutex
 	cfg       *config.Config
 	addr      string
 	user      string
@@ -319,6 +322,120 @@ func (s *Server) onConn(c net.Conn) {
 	}
 
 	conn.Run()
+}
+
+func (s *Server) changeLogSql(v string) error {
+	s.RLock()
+	defer s.RUnlock()
+	s.cfg.LogSql = v
+	return nil
+}
+
+func (s *Server) changeSlowLogTime(v string) error {
+	tmp, err := strconv.Atoi(v)
+	if err != nil {
+		return err
+	}
+
+	s.RLock()
+	defer s.RUnlock()
+	s.cfg.SlowLogTime = tmp
+	return err
+}
+
+func (s *Server) addAllowIP(v string) error {
+	clientIP := net.ParseIP(v)
+
+	for _, ip := range s.allowips {
+		if ip.Equal(clientIP) {
+			return nil
+		}
+	}
+	s.RLock()
+	defer s.RUnlock()
+
+	s.allowips = append(s.allowips, clientIP)
+	if s.cfg.AllowIps == "" {
+		s.cfg.AllowIps = strings.Join([]string{s.cfg.AllowIps, v}, "")
+	} else {
+		s.cfg.AllowIps = strings.Join([]string{s.cfg.AllowIps, v}, ",")
+	}
+
+	return nil
+}
+
+func (s *Server) delAllowIP(v string) error {
+	clientIP := net.ParseIP(v)
+
+	s.RLock()
+	defer s.RUnlock()
+
+	ipVec1 := s.allowips
+	ipVec2 := strings.Split(s.cfg.AllowIps, ",")
+	for i, ip := range ipVec1 {
+		if ip.Equal(clientIP) {
+			ipVec1[i] = nil
+			for i, ip := range ipVec2 {
+				if ip == v {
+					ipVec2[i] = ""
+					s.cfg.AllowIps = strings.Trim(strings.Join(ipVec2, ","), ",")
+					return nil
+				}
+			}
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) addBlackSql(v string) error {
+	v = strings.TrimSpace(v)
+	fingerPrint := mysql.GetFingerprint(v)
+	md5 := mysql.GetMd5(fingerPrint)
+	s.blacklistSqls.sqls[md5] = v
+
+	return nil
+}
+
+func (s *Server) delBlackSql(v string) error {
+	v = strings.TrimSpace(v)
+	fingerPrint := mysql.GetFingerprint(v)
+	md5 := mysql.GetMd5(fingerPrint)
+	delete(s.blacklistSqls.sqls, md5)
+
+	return nil
+}
+
+func (s *Server) saveBlackSql() error {
+	f, err := os.Create(s.cfg.BlsFile)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range s.blacklistSqls.sqls {
+		v = v + "\n"
+		_, err = f.WriteString(v)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) handleSaveProxyConfig() error {
+	err := config.WriteConfigFile(s.cfg)
+	if err != nil {
+		return err
+	}
+
+	err = s.saveBlackSql()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) Run() error {

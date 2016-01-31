@@ -15,7 +15,10 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
+	"strings"
+	"time"
 
 	"github.com/flike/kingshard/core/yaml"
 )
@@ -83,4 +86,23 @@ func ParseConfigFile(fileName string) (*Config, error) {
 	}
 
 	return ParseConfigData(data)
+}
+
+func WriteConfigFile(cfg *Config) error {
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	y, m, d := time.Now().Date()
+	today := fmt.Sprintf("%d%02d%02d", y, m, d)
+
+	var fileName string
+	fileName = strings.Join([]string{"./ks.yaml", today}, ".")
+	err = ioutil.WriteFile(fileName, data, 0755)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
