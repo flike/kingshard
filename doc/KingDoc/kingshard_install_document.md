@@ -77,6 +77,8 @@ schemas :
             table_row_limit: 10000
 
 ```
-
+**具体配置文件说明请参考：[KingShard快速入门](https://github.com/colincatsu/kingshard/blob/master/doc/KingDoc/kingshard_quick_try.md)**
 ##Tips
 **kingshard采用的是yaml方式解析配置文件，需要注意的是yaml配置文件不允许出现tab键，且冒号后面需要跟一个空格。配置文件编写完成后，可以在[yaml lint](http://www.yamllint.com/)网站验证是否有格式错误。**
+
+
