@@ -325,7 +325,7 @@ mysql> select/*master*/ * from kingshard_test_conn;
 ```
 
 ### 3.4. 跨node的sum和count函数
-在kingshard中，支持sum和count函数，kingshard会将相应的SQL发生到正确的DB，并将结果合并起来再返回给客户的。例如：
+在kingshard中，支持sum和count函数，kingshard会将相应的SQL发送到正确的DB，并将结果合并起来再返回给客户的。例如：
 
 ```
 mysql> select count(id) from test_shard_hash where id > 1;
@@ -420,7 +420,7 @@ ERROR 1105 (HY000): transaction in multi node
 ```
 
 ## 6. kingshard的管理端操作
-kingshard的管理接口，目前还是命令行的方式。后续有时间打算将其改成web方式。管理端具体的命令可以参考[文档](./doc/KingDoc/admin_command_introduce.md)。管理端的命令格式，可以分为两类：
+kingshard的管理接口，目前还是命令行的方式。后续有时间打算将其改成web方式。管理端具体的命令可以参考[文档](./admin_command_introduce.md)。管理端的命令格式，可以分为两类：
 
 * ` admin server(opt,k,v) values(action,k1,v1)`。这种命令是操作整个kingshard的，其中opt表示这个操作的动作；k表示操作的对象，v表示给对象的赋值。
 * `admin node(opt,node,k,v) values(action,nodeName,k1,v1)`,这类命令表示操作node。其中opt表示这个操作的动作；node表示操作哪个node；k表示操作的对象，v表示给对象的赋值。
