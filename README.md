@@ -36,10 +36,6 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
 
 [1.How to use kingshard building a MySQL cluster](./doc/KingDoc/how_to_use_kingshard_EN.md)
 
-## Donate
-
-https://github.com/flike/kingshard/blob/master/doc/KingDoc/support.md
-
 ## License
 
 kingshard is under the Apache 2.0 license. See the [LICENSE](./doc/License) directory for details.
