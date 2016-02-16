@@ -59,9 +59,6 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 - 感谢[bigpyer](https://github.com/bigpyer)，他对kingshard做了详细的性能测试，并撰写了一份非常详细的测试报告。
 - 感谢以下[开源爱好者](https://github.com/flike/kingshard/graphs/contributors)为kingshard做出的贡献。
 
-## 打赏
-https://github.com/flike/kingshard/blob/master/doc/KingDoc/support.md
-
 ## 反馈
 kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。 **目前已有上十家公司在生产环境使用kingshard作为MySQL代理。** 如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至hiflike#gmail.com与作者取得联系，或者加入QQ群(147926796)交流。
 
