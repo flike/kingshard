@@ -73,7 +73,7 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 	db.checkConn, err = db.newConn()
 	if err != nil {
 		db.Close()
-		return nil, errors.ErrDatabaseClose
+		return nil, err
 	}
 
 	db.idleConns = make(chan *Conn, db.maxConnNum)
@@ -85,7 +85,7 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 			conn, err := db.newConn()
 			if err != nil {
 				db.Close()
-				return nil, errors.ErrDatabaseClose
+				return nil, err
 			}
 			conn.pushTimestamp = time.Now().Unix()
 			db.cacheConns <- conn

@@ -275,6 +275,14 @@ func (c *ClientConn) handleAdminShow(k, v string) (*mysql.Resultset, error) {
 		return c.handleShowSchemaConfig()
 	}
 
+	if k == ADMIN_ALLOW_IP && v == ADMIN_CONFIG {
+		return c.handleShowAllowIPConfig()
+	}
+
+	if k == ADMIN_BLACK_SQL && v == ADMIN_CONFIG {
+		return c.handleShowBlackSqlConfig()
+	}
+
 	return nil, errors.ErrCmdUnsupport
 }
 
@@ -461,6 +469,69 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 				strconv.Itoa(r.TableRowLimit),
 			},
 		)
+	}
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(nil, names, values)
+}
+
+func (c *ClientConn) handleShowAllowIPConfig() (*mysql.Resultset, error) {
+	var Column = 1
+	var rows [][]string
+	var names []string = []string{
+		"AllowIP",
+	}
+
+	//allow ips
+	var allowips = c.proxy.allowips
+	if len(allowips) != 0 {
+		for _, v := range allowips {
+			if v == nil {
+				continue
+			}
+			rows = append(rows,
+				[]string{
+					v.String(),
+				})
+		}
+	}
+
+	if len(rows) == 0 {
+		rows = append(rows, []string{""})
+	}
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(nil, names, values)
+}
+
+func (c *ClientConn) handleShowBlackSqlConfig() (*mysql.Resultset, error) {
+	var Column = 1
+	var rows [][]string
+	var names []string = []string{
+		"BlackListSql",
+	}
+
+	//black sql
+	var blackListSqls = c.proxy.blacklistSqls.sqls
+	for _, v := range blackListSqls {
+		rows = append(rows,
+			[]string{
+				v,
+			})
 	}
 
 	var values [][]interface{} = make([][]interface{}, len(rows))

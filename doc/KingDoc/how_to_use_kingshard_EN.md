@@ -461,6 +461,54 @@ mysql> admin server(opt,k,v) values('show','schema','config');
 +-----------+------------------+---------+------+--------------+-----------+---------------+
 3 rows in set (0.00 sec)
 
+#view the config of white list ip
+mysql> admin server(opt,k,v) values('show','allow_ip','config');
++--------------+
+| AllowIP      |
++--------------+
+| 127.0.0.1    |
+| 192.168.10.1 |
++--------------+
+2 rows in set (0.00 sec)
+
+#view the config of black list sql
+mysql> admin server(opt,k,v) values('show','black_sql','config');
++-------------------------------+
+| BlackListSql                  |
++-------------------------------+
+| select * from sbtest1         |
+| select * from sbtest1 limit ? |
++-------------------------------+
+2 rows in set (0.00 sec)
+
+```
+
+### 5.3 Change the config of kingshard
+
+```
+#turn off the sql log
+admin server(opt,k,v) values('change','log_sql','off')
+
+#turn on the sql log
+admin server(opt,k,v) values('change','log_sql','on')
+
+#change the threshold of slow log time
+admin server(opt,k,v) values('change','slow_log_time','50');
+
+#add white list ip
+admin server(opt,k,v) values('add','allow_ip','127.0.0.1');
+
+#delete white list ip
+admin server(opt,k,v) values('del','allow_ip','127.0.0.1');
+
+#add black list sql
+admin server(opt,k,v) values('add','black_sql','select count(*) from sbtest1')
+
+#delete black list sql
+admin server(opt,k,v) values('del','black_sql','select count(*) from sbtest1')
+
+#save config
+admin server(opt,k,v) values('save','proxy','config')
 ```
 
 ## 6.Requirement and feedback
