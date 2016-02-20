@@ -347,8 +347,8 @@ func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
 	rows = append(rows, []string{"User", c.proxy.cfg.User})
 	rows = append(rows, []string{"LogPath", c.proxy.cfg.LogPath})
 	rows = append(rows, []string{"LogLevel", c.proxy.cfg.LogLevel})
-	rows = append(rows, []string{"LogSql", c.proxy.cfg.LogSql})
-	rows = append(rows, []string{"SlowLogTime", strconv.Itoa(c.proxy.cfg.SlowLogTime)})
+	rows = append(rows, []string{"LogSql", c.proxy.logSql[c.proxy.logSqlIndex]})
+	rows = append(rows, []string{"SlowLogTime", strconv.Itoa(c.proxy.slowLogTime[c.proxy.slowLogTimeIndex])})
 	rows = append(rows, []string{"Nodes_Count", fmt.Sprintf("%d", len(c.proxy.nodes))})
 	rows = append(rows, []string{"Nodes_List", strings.Join(nodeNames, ",")})
 	rows = append(rows, []string{"ClientConns", fmt.Sprintf("%d", c.proxy.counter.ClientConns)})
@@ -490,7 +490,7 @@ func (c *ClientConn) handleShowAllowIPConfig() (*mysql.Resultset, error) {
 	}
 
 	//allow ips
-	var allowips = c.proxy.allowips
+	var allowips = c.proxy.allowips[c.proxy.allowipsIndex]
 	if len(allowips) != 0 {
 		for _, v := range allowips {
 			if v == nil {
@@ -526,12 +526,18 @@ func (c *ClientConn) handleShowBlackSqlConfig() (*mysql.Resultset, error) {
 	}
 
 	//black sql
-	var blackListSqls = c.proxy.blacklistSqls.sqls
-	for _, v := range blackListSqls {
-		rows = append(rows,
-			[]string{
-				v,
-			})
+	var blackListSqls = c.proxy.blacklistSqls[c.proxy.blacklistSqlsIndex].sqls
+	if len(blackListSqls) != 0 {
+		for _, v := range blackListSqls {
+			rows = append(rows,
+				[]string{
+					v,
+				})
+		}
+	}
+
+	if len(rows) == 0 {
+		rows = append(rows, []string{""})
 	}
 
 	var values [][]interface{} = make([][]interface{}, len(rows))

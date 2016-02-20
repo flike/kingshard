@@ -33,7 +33,7 @@ type ExecuteDB struct {
 func (c *ClientConn) isBlacklistSql(sql string) bool {
 	fingerprint := mysql.GetFingerprint(sql)
 	md5 := mysql.GetMd5(fingerprint)
-	if _, ok := c.proxy.blacklistSqls.sqls[md5]; ok {
+	if _, ok := c.proxy.blacklistSqls[c.proxy.blacklistSqlsIndex].sqls[md5]; ok {
 		return true
 	}
 	return false
@@ -49,7 +49,7 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 		return false, errors.ErrCmdUnsupport
 	}
 	//filter the blacklist sql
-	if c.proxy.blacklistSqls.sqlsLen != 0 {
+	if c.proxy.blacklistSqls[c.proxy.blacklistSqlsIndex].sqlsLen != 0 {
 		if c.isBlacklistSql(sql) {
 			golog.OutputSql("Forbidden", "%s->%s:%s",
 				c.c.RemoteAddr(),
