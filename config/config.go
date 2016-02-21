@@ -15,10 +15,8 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
-	"strings"
-	"time"
+	"os"
 
 	"github.com/flike/kingshard/core/yaml"
 )
@@ -94,12 +92,13 @@ func WriteConfigFile(cfg *Config) error {
 		return err
 	}
 
-	y, m, d := time.Now().Date()
-	today := fmt.Sprintf("%d%02d%02d", y, m, d)
+	execPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 
-	var fileName string
-	fileName = strings.Join([]string{"./ks.yaml", today}, ".")
-	err = ioutil.WriteFile(fileName, data, 0755)
+	configPath := execPath + "/etc/ks.yaml"
+	err = ioutil.WriteFile(configPath, data, 0755)
 	if err != nil {
 		return err
 	}

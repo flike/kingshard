@@ -87,6 +87,8 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 		return c.handleRollback()
 	case *sqlparser.Admin:
 		return c.handleAdmin(v)
+	case *sqlparser.AdminHelp:
+		return c.handleAdminHelp(v)
 	case *sqlparser.UseDB:
 		return c.handleUseDB(v)
 	default:

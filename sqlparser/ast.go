@@ -940,6 +940,15 @@ func (node *Admin) Format(buf *TrackedBuffer) {
 	buf.Fprintf("admin %v%v %v", node.Region, node.Columns, node.Rows)
 }
 
+type AdminHelp struct {
+}
+
+func (*AdminHelp) IStatement() {}
+
+func (node *AdminHelp) Format(buf *TrackedBuffer) {
+	buf.Fprintf("admin help")
+}
+
 type Show struct {
 	Section     string
 	Key         string

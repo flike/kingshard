@@ -15,7 +15,10 @@
 package server
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -224,6 +227,64 @@ func (c *ClientConn) checkCmdOrder(region string, columns sqlparser.Columns) err
 	}
 
 	return nil
+}
+
+func (c *ClientConn) handleAdminHelp(ah *sqlparser.AdminHelp) error {
+	var Column = 2
+	var rows [][]string
+	var names []string = []string{"command", "description"}
+	relativePath := "/doc/KingDoc/command_help"
+
+	execPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	helpFilePath := execPath + relativePath
+	file, err := os.Open(helpFilePath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+	rd := bufio.NewReader(file)
+	for {
+		line, err := rd.ReadString('\n')
+		//end of file
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		//parse the command description with '|' separating
+		line = strings.TrimSpace(line)
+		if len(line) != 0 {
+			cmdStr := strings.SplitN(line, "|", 2)
+			if len(cmdStr) == 2 {
+				rows = append(rows,
+					[]string{
+						strings.TrimSpace(cmdStr[0]),
+						strings.TrimSpace(cmdStr[1]),
+					},
+				)
+			}
+		}
+	}
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	result, err := c.buildResultset(nil, names, values)
+	if err != nil {
+		return err
+	}
+	return c.writeResultset(c.status, result)
 }
 
 func (c *ClientConn) handleAdmin(admin *sqlparser.Admin) error {

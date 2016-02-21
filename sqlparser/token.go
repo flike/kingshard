@@ -128,6 +128,7 @@ var keywords = map[string]int{
 
 	//for kingshard
 	"admin":       ADMIN,
+	"help":        HELP,
 	"start":       START,
 	"transaction": TRANSACTION,
 	"collate":     COLLATE,

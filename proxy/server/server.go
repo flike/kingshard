@@ -478,8 +478,15 @@ func (s *Server) delBlackSql(v string) error {
 }
 
 func (s *Server) saveBlackSql() error {
+	if len(s.cfg.BlsFile) == 0 {
+		return nil
+	}
 	f, err := os.Create(s.cfg.BlsFile)
 	if err != nil {
+		golog.Error("Server", "saveBlackSql", "create file error", 0,
+			"err", err.Error(),
+			"blacklist_sql_file", s.cfg.BlsFile,
+		)
 		return err
 	}
 
