@@ -78,7 +78,7 @@ func (c *ClientConn) IsAllowConnect() bool {
 	}
 	clientIP := net.ParseIP(clientHost)
 
-	ipVec := c.proxy.allowips
+	ipVec := c.proxy.allowips[c.proxy.allowipsIndex]
 	if ipVecLen := len(ipVec); ipVecLen == 0 {
 		return true
 	}
