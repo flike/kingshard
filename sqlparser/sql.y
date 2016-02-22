@@ -108,7 +108,7 @@ var (
 %token <empty> REPLACE
 
 // admin
-%token <empty> ADMIN
+%token <empty> ADMIN HELP
 //offset
 %token <empty> OFFSET
 //collate
@@ -313,6 +313,10 @@ admin_statement:
   ADMIN dml_table_expression column_list_opt row_list
   {
     $$ = &Admin{Region : $2, Columns : $3,Rows:$4}
+  }
+| ADMIN HELP
+  {
+    $$ = &AdminHelp{}
   }
 
 use_statement:

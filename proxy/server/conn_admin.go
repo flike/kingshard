@@ -15,7 +15,10 @@
 package server
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -33,15 +36,22 @@ const (
 	ServerRegion = "server"
 	NodeRegion   = "node"
 
-	ADMIN_OPT_ADD  = "add"
-	ADMIN_OPT_DEL  = "del"
-	ADMIN_OPT_UP   = "up"
-	ADMIN_OPT_DOWN = "down"
-	ADMIN_OPT_SHOW = "show"
+	//op
+	ADMIN_OPT_ADD     = "add"
+	ADMIN_OPT_DEL     = "del"
+	ADMIN_OPT_UP      = "up"
+	ADMIN_OPT_DOWN    = "down"
+	ADMIN_OPT_SHOW    = "show"
+	ADMIN_OPT_CHANGE  = "change"
+	ADMIN_SAVE_CONFIG = "save"
 
-	ADMIN_PROXY  = "proxy"
-	ADMIN_NODE   = "node"
-	ADMIN_SCHEMA = "schema"
+	ADMIN_PROXY         = "proxy"
+	ADMIN_NODE          = "node"
+	ADMIN_SCHEMA        = "schema"
+	ADMIN_LOG_SQL       = "log_sql"
+	ADMIN_SLOW_LOG_TIME = "slow_log_time"
+	ADMIN_ALLOW_IP      = "allow_ip"
+	ADMIN_BLACK_SQL     = "black_sql"
 
 	ADMIN_CONFIG = "config"
 )
@@ -136,6 +146,14 @@ func (c *ClientConn) handleServerCmd(rows sqlparser.InsertRows) (*mysql.Resultse
 	switch strings.ToLower(opt) {
 	case ADMIN_OPT_SHOW:
 		result, err = c.handleAdminShow(k, v)
+	case ADMIN_OPT_CHANGE:
+		err = c.handleAdminChange(k, v)
+	case ADMIN_OPT_ADD:
+		err = c.handleAdminAdd(k, v)
+	case ADMIN_OPT_DEL:
+		err = c.handleAdminDelete(k, v)
+	case ADMIN_SAVE_CONFIG:
+		err = c.handleAdminSave(k, v)
 	default:
 		err = errors.ErrCmdUnsupport
 		golog.Error("ClientConn", "handleNodeCmd", err.Error(),
@@ -211,6 +229,64 @@ func (c *ClientConn) checkCmdOrder(region string, columns sqlparser.Columns) err
 	return nil
 }
 
+func (c *ClientConn) handleAdminHelp(ah *sqlparser.AdminHelp) error {
+	var Column = 2
+	var rows [][]string
+	var names []string = []string{"command", "description"}
+	relativePath := "/doc/KingDoc/command_help"
+
+	execPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	helpFilePath := execPath + relativePath
+	file, err := os.Open(helpFilePath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+	rd := bufio.NewReader(file)
+	for {
+		line, err := rd.ReadString('\n')
+		//end of file
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		//parse the command description with '|' separating
+		line = strings.TrimSpace(line)
+		if len(line) != 0 {
+			cmdStr := strings.SplitN(line, "|", 2)
+			if len(cmdStr) == 2 {
+				rows = append(rows,
+					[]string{
+						strings.TrimSpace(cmdStr[0]),
+						strings.TrimSpace(cmdStr[1]),
+					},
+				)
+			}
+		}
+	}
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	result, err := c.buildResultset(nil, names, values)
+	if err != nil {
+		return err
+	}
+	return c.writeResultset(c.status, result)
+}
+
 func (c *ClientConn) handleAdmin(admin *sqlparser.Admin) error {
 	var err error
 	var result *mysql.Resultset
@@ -260,7 +336,60 @@ func (c *ClientConn) handleAdminShow(k, v string) (*mysql.Resultset, error) {
 		return c.handleShowSchemaConfig()
 	}
 
+	if k == ADMIN_ALLOW_IP && v == ADMIN_CONFIG {
+		return c.handleShowAllowIPConfig()
+	}
+
+	if k == ADMIN_BLACK_SQL && v == ADMIN_CONFIG {
+		return c.handleShowBlackSqlConfig()
+	}
+
 	return nil, errors.ErrCmdUnsupport
+}
+
+func (c *ClientConn) handleAdminChange(k, v string) error {
+	if len(k) == 0 || len(v) == 0 {
+		return errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_LOG_SQL {
+		return c.handleChangeLogSql(v)
+	}
+
+	if k == ADMIN_SLOW_LOG_TIME {
+		return c.handleChangeSlowLogTime(v)
+	}
+
+	return errors.ErrCmdUnsupport
+}
+
+func (c *ClientConn) handleAdminAdd(k, v string) error {
+	if len(k) == 0 || len(v) == 0 {
+		return errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_ALLOW_IP {
+		return c.handleAddAllowIP(v)
+	}
+
+	if k == ADMIN_BLACK_SQL {
+		return c.handleAddBlackSql(v)
+	}
+
+	return errors.ErrCmdUnsupport
+}
+
+func (c *ClientConn) handleAdminDelete(k, v string) error {
+	if len(k) == 0 || len(v) == 0 {
+		return errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_ALLOW_IP {
+		return c.handleDelAllowIP(v)
+	}
+
+	if k == ADMIN_BLACK_SQL {
+		return c.handleDelBlackSql(v)
+	}
+
+	return errors.ErrCmdUnsupport
 }
 
 func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
@@ -279,8 +408,8 @@ func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
 	rows = append(rows, []string{"User", c.proxy.cfg.User})
 	rows = append(rows, []string{"LogPath", c.proxy.cfg.LogPath})
 	rows = append(rows, []string{"LogLevel", c.proxy.cfg.LogLevel})
-	rows = append(rows, []string{"LogSql", c.proxy.cfg.LogSql})
-	rows = append(rows, []string{"SlowLogTime", strconv.Itoa(c.proxy.cfg.SlowLogTime)})
+	rows = append(rows, []string{"LogSql", c.proxy.logSql[c.proxy.logSqlIndex]})
+	rows = append(rows, []string{"SlowLogTime", strconv.Itoa(c.proxy.slowLogTime[c.proxy.slowLogTimeIndex])})
 	rows = append(rows, []string{"Nodes_Count", fmt.Sprintf("%d", len(c.proxy.nodes))})
 	rows = append(rows, []string{"Nodes_List", strings.Join(nodeNames, ",")})
 	rows = append(rows, []string{"ClientConns", fmt.Sprintf("%d", c.proxy.counter.ClientConns)})
@@ -412,6 +541,118 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 	}
 
 	return c.buildResultset(nil, names, values)
+}
+
+func (c *ClientConn) handleShowAllowIPConfig() (*mysql.Resultset, error) {
+	var Column = 1
+	var rows [][]string
+	var names []string = []string{
+		"AllowIP",
+	}
+
+	//allow ips
+	var allowips = c.proxy.allowips[c.proxy.allowipsIndex]
+	if len(allowips) != 0 {
+		for _, v := range allowips {
+			if v == nil {
+				continue
+			}
+			rows = append(rows,
+				[]string{
+					v.String(),
+				})
+		}
+	}
+
+	if len(rows) == 0 {
+		rows = append(rows, []string{""})
+	}
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(nil, names, values)
+}
+
+func (c *ClientConn) handleShowBlackSqlConfig() (*mysql.Resultset, error) {
+	var Column = 1
+	var rows [][]string
+	var names []string = []string{
+		"BlackListSql",
+	}
+
+	//black sql
+	var blackListSqls = c.proxy.blacklistSqls[c.proxy.blacklistSqlsIndex].sqls
+	if len(blackListSqls) != 0 {
+		for _, v := range blackListSqls {
+			rows = append(rows,
+				[]string{
+					v,
+				})
+		}
+	}
+
+	if len(rows) == 0 {
+		rows = append(rows, []string{""})
+	}
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(nil, names, values)
+}
+
+func (c *ClientConn) handleChangeLogSql(v string) error {
+	return c.proxy.changeLogSql(v)
+}
+
+func (c *ClientConn) handleChangeSlowLogTime(v string) error {
+	return c.proxy.changeSlowLogTime(v)
+}
+
+func (c *ClientConn) handleAddAllowIP(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.addAllowIP(v)
+	return err
+}
+
+func (c *ClientConn) handleDelAllowIP(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.delAllowIP(v)
+	return err
+}
+
+func (c *ClientConn) handleAddBlackSql(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.addBlackSql(v)
+	return err
+}
+
+func (c *ClientConn) handleDelBlackSql(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.delBlackSql(v)
+	return err
+}
+
+func (c *ClientConn) handleAdminSave(k string, v string) error {
+	if len(k) == 0 || len(v) == 0 {
+		return errors.ErrCmdUnsupport
+	}
+	if k == ADMIN_PROXY && v == ADMIN_CONFIG {
+		return c.proxy.handleSaveProxyConfig()
+	}
+
+	return errors.ErrCmdUnsupport
 }
 
 func arrayToString(array []int) string {

@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -48,38 +49,49 @@ type BlacklistSqls struct {
 }
 
 type Server struct {
-	cfg       *config.Config
-	addr      string
-	user      string
-	password  string
-	db        string
-	charset   string
+	cfg      *config.Config
+	addr     string
+	user     string
+	password string
+	db       string
+	charset  string
+
 	collation mysql.CollationId
 
-	blacklistSqls *BlacklistSqls
-	allowips      []net.IP
-	counter       *Counter
-	nodes         map[string]*backend.Node
-	schema        *Schema
+	logSqlIndex        int32
+	logSql             [2]string
+	slowLogTimeIndex   int32
+	slowLogTime        [2]int
+	blacklistSqlsIndex int32
+	blacklistSqls      [2]*BlacklistSqls
+	allowipsIndex      int32
+	allowips           [2][]net.IP
+
+	counter *Counter
+	nodes   map[string]*backend.Node
+	schema  *Schema
 
 	listener net.Listener
 	running  bool
 }
 
+//TODO
 func (s *Server) parseAllowIps() error {
+	atomic.StoreInt32(&s.allowipsIndex, 0)
 	cfg := s.cfg
 	if len(cfg.AllowIps) == 0 {
 		return nil
 	}
 	ipVec := strings.Split(cfg.AllowIps, ",")
-	s.allowips = make([]net.IP, 0, 10)
+	s.allowips[s.allowipsIndex] = make([]net.IP, 0, 10)
+	s.allowips[1] = make([]net.IP, 0, 10)
 	for _, ip := range ipVec {
-		s.allowips = append(s.allowips, net.ParseIP(strings.TrimSpace(ip)))
+		s.allowips[s.allowipsIndex] = append(s.allowips[s.allowipsIndex], net.ParseIP(strings.TrimSpace(ip)))
 	}
 	return nil
 }
 
-//parse the blacklist sql file
+//TODO parse the blacklist sql file
 func (s *Server) parseBlackListSqls() error {
 	bs := new(BlacklistSqls)
 	bs.sqls = make(map[string]string)
@@ -109,7 +121,9 @@ func (s *Server) parseBlackListSqls() error {
 		}
 	}
 	bs.sqlsLen = len(bs.sqls)
-	s.blacklistSqls = bs
+	atomic.StoreInt32(&s.blacklistSqlsIndex, 0)
+	s.blacklistSqls[s.blacklistSqlsIndex] = bs
+	s.blacklistSqls[1] = bs
 
 	return nil
 }
@@ -196,6 +210,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s.addr = cfg.Addr
 	s.user = cfg.User
 	s.password = cfg.Password
+	atomic.StoreInt32(&s.logSqlIndex, 0)
+	s.logSql[s.logSqlIndex] = cfg.LogSql
+	atomic.StoreInt32(&s.slowLogTimeIndex, 0)
+	s.slowLogTime[s.slowLogTimeIndex] = cfg.SlowLogTime
 	if len(cfg.Charset) != 0 {
 		cid, ok := mysql.CharsetIds[cfg.Charset]
 		if !ok {
@@ -319,6 +337,182 @@ func (s *Server) onConn(c net.Conn) {
 	}
 
 	conn.Run()
+}
+
+func (s *Server) changeLogSql(v string) error {
+	if s.logSqlIndex == 0 {
+		s.logSql[1] = v
+		atomic.StoreInt32(&s.logSqlIndex, 1)
+	} else {
+		s.logSql[0] = v
+		atomic.StoreInt32(&s.logSqlIndex, 0)
+	}
+	s.cfg.LogSql = v
+
+	return nil
+}
+
+func (s *Server) changeSlowLogTime(v string) error {
+	tmp, err := strconv.Atoi(v)
+	if err != nil {
+		return err
+	}
+
+	if s.slowLogTimeIndex == 0 {
+		s.slowLogTime[1] = tmp
+		atomic.StoreInt32(&s.slowLogTimeIndex, 1)
+	} else {
+		s.slowLogTime[0] = tmp
+		atomic.StoreInt32(&s.slowLogTimeIndex, 0)
+	}
+	s.cfg.SlowLogTime = tmp
+
+	return err
+}
+
+func (s *Server) addAllowIP(v string) error {
+	clientIP := net.ParseIP(v)
+
+	for _, ip := range s.allowips[s.allowipsIndex] {
+		if ip.Equal(clientIP) {
+			return nil
+		}
+	}
+
+	if s.allowipsIndex == 0 {
+		s.allowips[1] = s.allowips[0]
+		s.allowips[1] = append(s.allowips[1], clientIP)
+		atomic.StoreInt32(&s.allowipsIndex, 1)
+	} else {
+		s.allowips[0] = s.allowips[1]
+		s.allowips[0] = append(s.allowips[0], clientIP)
+		atomic.StoreInt32(&s.allowipsIndex, 0)
+	}
+
+	if s.cfg.AllowIps == "" {
+		s.cfg.AllowIps = strings.Join([]string{s.cfg.AllowIps, v}, "")
+	} else {
+		s.cfg.AllowIps = strings.Join([]string{s.cfg.AllowIps, v}, ",")
+	}
+
+	return nil
+}
+
+func (s *Server) delAllowIP(v string) error {
+	clientIP := net.ParseIP(v)
+
+	if s.allowipsIndex == 0 {
+		s.allowips[1] = s.allowips[0]
+		ipVec2 := strings.Split(s.cfg.AllowIps, ",")
+		for i, ip := range s.allowips[1] {
+			if ip.Equal(clientIP) {
+				s.allowips[1] = append(s.allowips[1][:i], s.allowips[1][i+1:]...)
+				atomic.StoreInt32(&s.allowipsIndex, 1)
+				for i, ip := range ipVec2 {
+					if ip == v {
+						ipVec2 = append(ipVec2[:i], ipVec2[i+1:]...)
+						s.cfg.AllowIps = strings.Trim(strings.Join(ipVec2, ","), ",")
+						return nil
+					}
+				}
+				return nil
+			}
+		}
+	} else {
+		s.allowips[0] = s.allowips[1]
+		ipVec2 := strings.Split(s.cfg.AllowIps, ",")
+		for i, ip := range s.allowips[0] {
+			if ip.Equal(clientIP) {
+				s.allowips[0] = append(s.allowips[0][:i], s.allowips[0][i+1:]...)
+				atomic.StoreInt32(&s.allowipsIndex, 0)
+				for i, ip := range ipVec2 {
+					if ip == v {
+						ipVec2 = append(ipVec2[:i], ipVec2[i+1:]...)
+						s.cfg.AllowIps = strings.Trim(strings.Join(ipVec2, ","), ",")
+						return nil
+					}
+				}
+				return nil
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) addBlackSql(v string) error {
+	v = strings.TrimSpace(v)
+	fingerPrint := mysql.GetFingerprint(v)
+	md5 := mysql.GetMd5(fingerPrint)
+	if s.blacklistSqlsIndex == 0 {
+		s.blacklistSqls[1] = s.blacklistSqls[0]
+		s.blacklistSqls[1].sqls[md5] = v
+		atomic.StoreInt32(&s.blacklistSqlsIndex, 1)
+	} else {
+		s.blacklistSqls[0] = s.blacklistSqls[1]
+		s.blacklistSqls[0].sqls[md5] = v
+		atomic.StoreInt32(&s.blacklistSqlsIndex, 0)
+	}
+
+	return nil
+}
+
+func (s *Server) delBlackSql(v string) error {
+	v = strings.TrimSpace(v)
+	fingerPrint := mysql.GetFingerprint(v)
+	md5 := mysql.GetMd5(fingerPrint)
+
+	if s.blacklistSqlsIndex == 0 {
+		s.blacklistSqls[1] = s.blacklistSqls[0]
+		s.blacklistSqls[1].sqls[md5] = v
+		delete(s.blacklistSqls[1].sqls, md5)
+		atomic.StoreInt32(&s.blacklistSqlsIndex, 1)
+	} else {
+		s.blacklistSqls[0] = s.blacklistSqls[1]
+		s.blacklistSqls[0].sqls[md5] = v
+		delete(s.blacklistSqls[0].sqls, md5)
+		atomic.StoreInt32(&s.blacklistSqlsIndex, 0)
+	}
+
+	return nil
+}
+
+func (s *Server) saveBlackSql() error {
+	if len(s.cfg.BlsFile) == 0 {
+		return nil
+	}
+	f, err := os.Create(s.cfg.BlsFile)
+	if err != nil {
+		golog.Error("Server", "saveBlackSql", "create file error", 0,
+			"err", err.Error(),
+			"blacklist_sql_file", s.cfg.BlsFile,
+		)
+		return err
+	}
+
+	for _, v := range s.blacklistSqls[s.blacklistSqlsIndex].sqls {
+		v = v + "\n"
+		_, err = f.WriteString(v)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) handleSaveProxyConfig() error {
+	err := config.WriteConfigFile(s.cfg)
+	if err != nil {
+		return err
+	}
+
+	err = s.saveBlackSql()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) Run() error {

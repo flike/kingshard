@@ -16,6 +16,7 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 
 	"github.com/flike/kingshard/core/yaml"
 )
@@ -83,4 +84,24 @@ func ParseConfigFile(fileName string) (*Config, error) {
 	}
 
 	return ParseConfigData(data)
+}
+
+func WriteConfigFile(cfg *Config) error {
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	execPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	configPath := execPath + "/etc/ks.yaml"
+	err = ioutil.WriteFile(configPath, data, 0755)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
