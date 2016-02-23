@@ -19,9 +19,11 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 - 支持SQL黑名单机制。
 - 支持客户端IP访问白名单机制，只有白名单中的IP才能访问kingshard。
 - 支持字符集设置。
+- 支持动态修改kingshard部分配置项（具体参考管理端命令）。
 
 ### 2. sharding功能
 
+- 支持按整数的hash和range分表方式。
 - 支持跨节点分表，子表可以分布在不同的节点。
 - 支持跨节点的count,sum,max和min等聚合函数。
 - 支持单个分表的join操作，即支持分表和另一张不分表的join操作。

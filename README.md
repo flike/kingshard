@@ -20,6 +20,7 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
 - MySQL HA.
 - Support set the charset of proxy.
 - Support SQL blacklist.
+- Support dynamically changing the config value of kingshard.
 
 ## Install
 ```
