@@ -54,9 +54,8 @@ func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 			data[i] = nil
 		} else {
 			isUnsigned = (f[i].Flag&UNSIGNED_FLAG > 0)
-
 			switch f[i].Type {
-			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24,
+			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_LONG, MYSQL_TYPE_INT24,
 				MYSQL_TYPE_LONGLONG, MYSQL_TYPE_YEAR:
 				if isUnsigned {
 					data[i], err = strconv.ParseUint(string(v), 10, 64)
@@ -65,6 +64,8 @@ func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 				}
 			case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
 				data[i], err = strconv.ParseFloat(string(v), 64)
+			case MYSQL_TYPE_VARCHAR, MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_STRING:
+				data[i] = string(v)
 			default:
 				data[i] = v
 			}
