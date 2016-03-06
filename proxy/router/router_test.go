@@ -18,8 +18,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/core/yaml"
+
+	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/sqlparser"
 )
 
@@ -29,7 +30,7 @@ schema:
   db: kingshard
   nodes: [node1, node2, node3]
   default: node1
-  shard:      
+  shard:
     -
       table: test_shard_hash
       key: id
@@ -118,6 +119,24 @@ schema :
       nodes: [node1,node2,node3]
       locations: [4,4,4]
       table_row_limit: 10000
+    -
+      table: test_shard_year
+      key: date
+      nodes: [node2, node3]
+      date_range: [2012-2015,2016-2018]
+      type: date_year
+    -
+      table: test_shard_month
+      key: date
+      type: date_month
+      nodes: [node2, node3]
+      date_range: [201512-201603,201604-201608]
+    -
+      table: test_shard_day
+      key: date
+      type: date_day
+      nodes: [node2, node3]
+      date_range: [20151201-20160122,20160202-20160308]
 `
 
 	cfg, err := config.ParseConfigData([]byte(s))
@@ -135,6 +154,79 @@ schema :
 	}
 
 	return r
+}
+
+//TODO YYYY-MM-DD HH:MM:SS,YYYY-MM-DD test
+func TestParseDateRule(t *testing.T) {
+	var s = `
+schema:
+  db: kingshard
+  nodes: [node1, node2, node3]
+  default: node1
+  shard:
+    -
+      table: test_shard_year
+      key: date
+      nodes: [node2, node3]
+      date_range: [2012-2015,2016-2018]
+      type: date_year
+    -
+      table: test_shard_month
+      key: date
+      type: date_month
+      nodes: [node2, node3]
+      date_range: [201512-201603,201604-201608]
+    -
+      table: test_shard_day
+      key: date
+      type: date_day
+      nodes: [node2, node3]
+      date_range: [20151201-20160122,20160202-20160308]
+`
+	var cfg config.Config
+	if err := yaml.Unmarshal([]byte(s), &cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	rt, err := NewRouter(&cfg.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rt.DefaultRule.Nodes[0] != "node1" {
+		t.Fatal("default rule parse not correct.")
+	}
+
+	yearRule := rt.GetRule("test_shard_year")
+	if yearRule.Type != DateYearRuleType {
+		t.Fatal(yearRule.Type)
+	}
+
+	if len(yearRule.Nodes) != 2 || yearRule.Nodes[0] != "node2" || yearRule.Nodes[1] != "node3" {
+		t.Fatal("parse nodes not correct.")
+	}
+
+	if n, _ := yearRule.FindNode(1457082679); n != "node3" {
+		t.Fatal(n)
+	}
+
+	monthRule := rt.GetRule("test_shard_month")
+	if monthRule.Type != DateMonthRuleType {
+		t.Fatal(monthRule.Type)
+	}
+
+	if n, _ := monthRule.FindNode(1457082679); n != "node2" {
+		t.Fatal(n)
+	}
+
+	dayRule := rt.GetRule("test_shard_day")
+	if dayRule.Type != DateDayRuleType {
+		t.Fatal(monthRule.Type)
+	}
+
+	if n, _ := dayRule.FindNode(1457082679); n != "node3" {
+		t.Fatal(n)
+	}
+
 }
 
 func newTestDBRule() *Router {
@@ -249,6 +341,79 @@ func checkPlan(t *testing.T, sql string, tableIndexs []int, nodeIndexs []int) {
 	}
 	t.Logf("rewritten_sql=%v", plan.RewrittenSqls)
 
+}
+
+func TestDatePlan(t *testing.T) {
+	var sql string
+	//2016-03-06 13:37:26
+	sql = "select * from test_shard_year where date > 1457242646 "
+	checkPlan(t, sql,
+		[]int{2016, 2017, 2018},
+		[]int{1},
+	)
+
+	//2012-03-06 13:37:26
+	sql = "select * from test_shard_year where date < 1331012246 "
+	checkPlan(t, sql,
+		[]int{2012},
+		[]int{0},
+	)
+
+	//2015-03-06 13:37:26
+	sql = "select * from test_shard_year where date > '2015-03-06 13:37:26' "
+	checkPlan(t, sql,
+		[]int{2015, 2016, 2017, 2018},
+		[]int{0, 1},
+	)
+
+	//2015-03-06 13:37:26
+	sql = "select * from test_shard_year where date <= '2015-03-06' "
+	checkPlan(t, sql,
+		[]int{2012, 2013, 2014, 2015},
+		[]int{0},
+	)
+
+	//2015-03-06 13:37:26
+	sql = "select * from test_shard_month where date <= 1459921046 "
+	checkPlan(t, sql,
+		[]int{201512, 201601, 201602, 201603, 201604},
+		[]int{0, 1},
+	)
+
+	//2015-3-6 13:37:26
+	sql = "select * from test_shard_month where date > '2016-05-06' "
+	checkPlan(t, sql,
+		[]int{201605, 201606, 201607, 201608},
+		[]int{1},
+	)
+
+	//2016-05-07 12:23:56
+	sql = "select * from test_shard_month where date = '2016-05-07 12:23:56' "
+	checkPlan(t, sql,
+		[]int{201605},
+		[]int{1},
+	)
+
+	//2016-03-07 12:23:56
+	sql = "select * from test_shard_day where date = '2016-03-07 12:23:56' "
+	checkPlan(t, sql,
+		[]int{20160307},
+		[]int{1},
+	)
+
+	//2016-03-07 12:23:56
+	sql = "select * from test_shard_day where date > '2016-03-07' "
+	checkPlan(t, sql,
+		[]int{20160307, 20160308},
+		[]int{1},
+	)
+
+	//2016-03-07 12:23:56
+	sql = "select * from test_shard_day where date > 1457242646 "
+	checkPlan(t, sql,
+		[]int{20160306, 20160307, 20160308},
+		[]int{1},
+	)
 }
 
 func TestSelectPlan(t *testing.T) {

@@ -25,9 +25,15 @@ import (
 )
 
 var (
-	DefaultRuleType = "default"
-	HashRuleType    = "hash"
-	RangeRuleType   = "range"
+	DefaultRuleType   = "default"
+	HashRuleType      = "hash"
+	RangeRuleType     = "range"
+	DateYearRuleType  = "date_year"
+	DateMonthRuleType = "date_month"
+	DateDayRuleType   = "date_day"
+	MinMonthDaysCount = 28
+	MaxMonthDaysCount = 31
+	MonthsCount       = 12
 )
 
 type Rule struct {
@@ -35,11 +41,11 @@ type Rule struct {
 	Table string
 	Key   string
 
-	Type string
-
-	Nodes       []string
-	TableToNode []int //index is table index,value is node index
-	Shard       Shard
+	Type           string
+	Nodes          []string
+	SubTableIndexs []int       //SubTableIndexs store all the index of sharding sub-table
+	TableToNode    map[int]int //key is table index, and value is node index
+	Shard          Shard
 }
 
 type Router struct {
@@ -55,7 +61,7 @@ func NewDefaultRule(db string, node string) *Rule {
 		Type:        DefaultRuleType,
 		Nodes:       []string{node},
 		Shard:       new(DefaultShard),
-		TableToNode: []int{0},
+		TableToNode: nil,
 	}
 	return r
 }
@@ -156,14 +162,62 @@ func parseRule(db string, cfg *config.ShardConfig) (*Rule, error) {
 	r.Key = cfg.Key
 	r.Type = cfg.Type
 	r.Nodes = cfg.Nodes //将ruleconfig中的nodes赋值给rule
-	r.TableToNode = make([]int, 0)
+	r.TableToNode = make(map[int]int, 0)
 
-	if len(cfg.Locations) != len(r.Nodes) {
-		return nil, errors.ErrLocationsCount
-	}
-	for i := 0; i < len(cfg.Locations); i++ {
-		for j := 0; j < cfg.Locations[i]; j++ {
-			r.TableToNode = append(r.TableToNode, i)
+	switch r.Type {
+	case HashRuleType, RangeRuleType:
+		var sumTables int
+		if len(cfg.Locations) != len(r.Nodes) {
+			return nil, errors.ErrLocationsCount
+		}
+		for i := 0; i < len(cfg.Locations); i++ {
+			for j := 0; j < cfg.Locations[i]; j++ {
+				r.SubTableIndexs = append(r.SubTableIndexs, j+sumTables)
+				r.TableToNode[j+sumTables] = i
+			}
+			sumTables += cfg.Locations[i]
+		}
+	case DateDayRuleType:
+		if len(cfg.DateRange) != len(r.Nodes) {
+			return nil, errors.ErrDateRangeCount
+		}
+		for i := 0; i < len(cfg.DateRange); i++ {
+			dayNumbers, err := ParseDayRange(cfg.DateRange[i])
+			if err != nil {
+				return nil, err
+			}
+			for _, v := range dayNumbers {
+				r.SubTableIndexs = append(r.SubTableIndexs, v)
+				r.TableToNode[v] = i
+			}
+		}
+	case DateMonthRuleType:
+		if len(cfg.DateRange) != len(r.Nodes) {
+			return nil, errors.ErrDateRangeCount
+		}
+		for i := 0; i < len(cfg.DateRange); i++ {
+			monthNumbers, err := ParseMonthRange(cfg.DateRange[i])
+			if err != nil {
+				return nil, err
+			}
+			for _, v := range monthNumbers {
+				r.SubTableIndexs = append(r.SubTableIndexs, v)
+				r.TableToNode[v] = i
+			}
+		}
+	case DateYearRuleType:
+		if len(cfg.DateRange) != len(r.Nodes) {
+			return nil, errors.ErrDateRangeCount
+		}
+		for i := 0; i < len(cfg.DateRange); i++ {
+			yearNumbers, err := ParseYearRange(cfg.DateRange[i])
+			if err != nil {
+				return nil, err
+			}
+			for _, v := range yearNumbers {
+				r.TableToNode[v] = i
+				r.SubTableIndexs = append(r.SubTableIndexs, v)
+			}
 		}
 	}
 
@@ -175,10 +229,10 @@ func parseRule(db string, cfg *config.ShardConfig) (*Rule, error) {
 }
 
 func parseShard(r *Rule, cfg *config.ShardConfig) error {
-	if r.Type == HashRuleType {
-		//hash shard
+	switch r.Type {
+	case HashRuleType:
 		r.Shard = &HashShard{ShardNum: len(r.TableToNode)}
-	} else if r.Type == RangeRuleType {
+	case RangeRuleType:
 		rs, err := ParseNumSharding(cfg.Locations, cfg.TableRowLimit)
 		if err != nil {
 			return err
@@ -189,7 +243,13 @@ func parseShard(r *Rule, cfg *config.ShardConfig) error {
 		}
 
 		r.Shard = &NumRangeShard{Shards: rs}
-	} else {
+	case DateDayRuleType:
+		r.Shard = &DateDayShard{}
+	case DateMonthRuleType:
+		r.Shard = &DateMonthShard{}
+	case DateYearRuleType:
+		r.Shard = &DateYearShard{}
+	default:
 		r.Shard = &DefaultShard{}
 	}
 
@@ -245,7 +305,6 @@ func (r *Router) buildSelectPlan(statement sqlparser.Statement) (*Plan, error) {
 
 	plan.Rule = r.GetRule(tableName) //根据表名获得分表规则
 	where = stmt.Where
-	plan.TableIndexs = makeList(0, len(plan.Rule.TableToNode))
 
 	if where != nil {
 		plan.Criteria = where.Expr //路由条件
@@ -256,7 +315,7 @@ func (r *Router) buildSelectPlan(statement sqlparser.Statement) (*Plan, error) {
 		}
 	} else {
 		//if shard select without where,send to all nodes and all tables
-		plan.RouteTableIndexs = plan.TableIndexs
+		plan.RouteTableIndexs = plan.Rule.SubTableIndexs
 		plan.RouteNodeIndexs = makeList(0, len(plan.Rule.Nodes))
 	}
 
@@ -299,7 +358,6 @@ func (r *Router) buildInsertPlan(statement sqlparser.Statement) (*Plan, error) {
 	}
 
 	plan.Criteria = plan.checkValuesType(stmt.Rows.(sqlparser.Values))
-	plan.TableIndexs = makeList(0, len(plan.Rule.TableToNode))
 
 	err = plan.calRouteIndexs()
 	if err != nil {
@@ -332,8 +390,6 @@ func (r *Router) buildUpdatePlan(statement sqlparser.Statement) (*Plan, error) {
 		plan.Rule = r.DefaultRule
 	}
 
-	plan.TableIndexs = makeList(0, len(plan.Rule.TableToNode))
-
 	err = plan.calRouteIndexs()
 	if err != nil {
 		golog.Error("Route", "BuildUpdatePlan", err.Error(), 0)
@@ -365,8 +421,6 @@ func (r *Router) buildDeletePlan(statement sqlparser.Statement) (*Plan, error) {
 	} else {
 		plan.Rule = r.DefaultRule
 	}
-
-	plan.TableIndexs = makeList(0, len(plan.Rule.TableToNode))
 
 	err := plan.calRouteIndexs()
 	if err != nil {
@@ -406,8 +460,6 @@ func (r *Router) buildReplacePlan(statement sqlparser.Statement) (*Plan, error) 
 	}
 
 	plan.Criteria = plan.checkValuesType(stmt.Rows.(sqlparser.Values))
-
-	plan.TableIndexs = makeList(0, len(plan.Rule.TableToNode))
 
 	err = plan.calRouteIndexs()
 	if err != nil {

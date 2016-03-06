@@ -36,17 +36,68 @@ type Plan struct {
 	Criteria sqlparser.SQLNode
 	keyIndex int //used for insert/replace to find shard key idx
 
-	TableIndexs      []int //value is table index
 	RouteTableIndexs []int
 	RouteNodeIndexs  []int
 	RewrittenSqls    map[string][]string
 }
 
 func (plan *Plan) notList(l []int) []int {
-	return differentList(plan.TableIndexs, l)
+	return differentList(plan.Rule.SubTableIndexs, l)
 }
 
 func (plan *Plan) getTableIndexs(expr sqlparser.BoolExpr) ([]int, error) {
+	switch plan.Rule.Type {
+	case HashRuleType:
+		return plan.getHashShardTableIndex(expr)
+	case RangeRuleType:
+		return plan.getRangeShardTableIndex(expr)
+	case DateYearRuleType, DateMonthRuleType, DateDayRuleType:
+		return plan.getDateShardTableIndex(expr)
+	default:
+		return plan.Rule.SubTableIndexs, nil
+	}
+	return nil, nil
+}
+
+//Get the table index of hash shard type
+func (plan *Plan) getHashShardTableIndex(expr sqlparser.BoolExpr) ([]int, error) {
+	var index int
+	var err error
+	switch criteria := expr.(type) {
+	case *sqlparser.ComparisonExpr:
+		switch criteria.Operator {
+		case "=", "<=>": //=对应的分片
+			if plan.getValueType(criteria.Left) == EID_NODE {
+				index, err = plan.getTableIndexByValue(criteria.Right)
+			} else {
+				index, err = plan.getTableIndexByValue(criteria.Left)
+			}
+			if err != nil {
+				return nil, err
+			}
+			return []int{index}, nil
+		case "<", "<=", ">", ">=":
+			return plan.Rule.SubTableIndexs, nil
+		case "in":
+			return plan.getTableIndexsByTuple(criteria.Right)
+		case "not in":
+			l, err := plan.getTableIndexsByTuple(criteria.Right)
+			if err != nil {
+				return nil, err
+			}
+			return plan.notList(l), nil
+		}
+	case *sqlparser.RangeCond: //between ... and ...
+		return plan.Rule.SubTableIndexs, nil
+	default:
+		return plan.Rule.SubTableIndexs, nil
+	}
+
+	return plan.RouteTableIndexs, nil
+}
+
+//Get the table index of range shard type
+func (plan *Plan) getRangeShardTableIndex(expr sqlparser.BoolExpr) ([]int, error) {
 	var index int
 	var err error
 	switch criteria := expr.(type) {
@@ -63,10 +114,6 @@ func (plan *Plan) getTableIndexs(expr sqlparser.BoolExpr) ([]int, error) {
 			}
 			return []int{index}, nil
 		case "<", "<=":
-			if plan.Rule.Type == HashRuleType {
-				return plan.TableIndexs, nil
-			}
-
 			if plan.getValueType(criteria.Left) == EID_NODE {
 				index, err = plan.getTableIndexByValue(criteria.Right)
 				if err != nil {
@@ -83,19 +130,15 @@ func (plan *Plan) getTableIndexs(expr sqlparser.BoolExpr) ([]int, error) {
 				if err != nil {
 					return nil, err
 				}
-				return makeList(index, len(plan.TableIndexs)), nil
+				return makeList(index, len(plan.Rule.SubTableIndexs)), nil
 			}
 		case ">", ">=":
-			if plan.Rule.Type == HashRuleType {
-				return plan.TableIndexs, nil
-			}
-
 			if plan.getValueType(criteria.Left) == EID_NODE {
 				index, err = plan.getTableIndexByValue(criteria.Right)
 				if err != nil {
 					return nil, err
 				}
-				return makeList(index, len(plan.TableIndexs)), nil
+				return makeList(index, len(plan.Rule.SubTableIndexs)), nil
 			} else { // 10 > id，这种情况
 				index, err = plan.getTableIndexByValue(criteria.Left)
 				if err != nil {
@@ -109,20 +152,9 @@ func (plan *Plan) getTableIndexs(expr sqlparser.BoolExpr) ([]int, error) {
 		case "in":
 			return plan.getTableIndexsByTuple(criteria.Right)
 		case "not in":
-			if plan.Rule.Type == RangeRuleType {
-				return plan.TableIndexs, nil
-			}
-
-			l, err := plan.getTableIndexsByTuple(criteria.Right)
-			if err != nil {
-				return nil, err
-			}
-			return plan.notList(l), nil
+			return plan.Rule.SubTableIndexs, nil
 		}
 	case *sqlparser.RangeCond:
-		if plan.Rule.Type == HashRuleType {
-			return plan.TableIndexs, nil
-		}
 		var start, last int
 		start, err = plan.getTableIndexByValue(criteria.From)
 		if err != nil {
@@ -146,11 +178,91 @@ func (plan *Plan) getTableIndexs(expr sqlparser.BoolExpr) ([]int, error) {
 			}
 
 			l1 := makeList(0, start+1)
-			l2 := makeList(last, len(plan.TableIndexs))
+			l2 := makeList(last, len(plan.Rule.SubTableIndexs))
 			return unionList(l1, l2), nil
 		}
 	default:
-		return plan.TableIndexs, nil
+		return plan.Rule.SubTableIndexs, nil
+	}
+
+	return plan.RouteTableIndexs, nil
+}
+
+//Get the table index of date shard type(date_year,date_month,date_day).
+func (plan *Plan) getDateShardTableIndex(expr sqlparser.BoolExpr) ([]int, error) {
+	var index int
+	var err error
+	switch criteria := expr.(type) {
+	case *sqlparser.ComparisonExpr:
+		switch criteria.Operator {
+		case "=", "<=>": //=对应的分片
+			if plan.getValueType(criteria.Left) == EID_NODE {
+				index, err = plan.getTableIndexByValue(criteria.Right)
+			} else {
+				index, err = plan.getTableIndexByValue(criteria.Left)
+			}
+			if err != nil {
+				return nil, err
+			}
+			return []int{index}, nil
+		case "<", "<=":
+			if plan.getValueType(criteria.Left) == EID_NODE {
+				index, err = plan.getTableIndexByValue(criteria.Right)
+				if err != nil {
+					return nil, err
+				}
+				return makeLeList(index, plan.Rule.SubTableIndexs), nil
+			} else {
+				index, err = plan.getTableIndexByValue(criteria.Left)
+				if err != nil {
+					return nil, err
+				}
+				return makeGeList(index, plan.Rule.SubTableIndexs), nil
+			}
+		case ">", ">=":
+			if plan.getValueType(criteria.Left) == EID_NODE {
+				index, err = plan.getTableIndexByValue(criteria.Right)
+				if err != nil {
+					return nil, err
+				}
+				return makeGeList(index, plan.Rule.SubTableIndexs), nil
+			} else { // 10 > id，这种情况
+				index, err = plan.getTableIndexByValue(criteria.Left)
+				if err != nil {
+					return nil, err
+				}
+				return makeLeList(index, plan.Rule.SubTableIndexs), nil
+			}
+		case "in":
+			return plan.getTableIndexsByTuple(criteria.Right)
+		case "not in":
+			l, err := plan.getTableIndexsByTuple(criteria.Right)
+			if err != nil {
+				return nil, err
+			}
+			return plan.notList(l), nil
+		}
+	case *sqlparser.RangeCond:
+		var start, last int
+		start, err = plan.getTableIndexByValue(criteria.From)
+		if err != nil {
+			return nil, err
+		}
+		last, err = plan.getTableIndexByValue(criteria.To)
+		if err != nil {
+			return nil, err
+		}
+		if last < start {
+			start, last = last, start
+		}
+		if criteria.Operator == "between" { //对应between ...and ...
+			return makeBetweenList(start, last, plan.Rule.SubTableIndexs), nil
+		} else { //对应not between ....and
+			l := makeBetweenList(start, last, plan.Rule.SubTableIndexs)
+			return plan.notList(l), nil
+		}
+	default:
+		return plan.Rule.SubTableIndexs, nil
 	}
 
 	return plan.RouteTableIndexs, nil
@@ -191,7 +303,7 @@ func (plan *Plan) calRouteIndexs() error {
 		plan.RouteNodeIndexs = plan.TindexsToNindexs(plan.RouteTableIndexs)
 		return nil
 	default:
-		plan.RouteTableIndexs = plan.TableIndexs
+		plan.RouteTableIndexs = plan.Rule.SubTableIndexs
 		plan.RouteNodeIndexs = makeList(0, nodesCount)
 		return nil
 	}
@@ -282,10 +394,10 @@ func (plan *Plan) getTableIndexByBoolExpr(node sqlparser.BoolExpr) ([]int, error
 			return plan.getTableIndexs(node)
 		}
 	}
-	return plan.TableIndexs, nil
+	return plan.Rule.SubTableIndexs, nil
 }
 
-/*获得(12,14,23)对应的table index*/
+//获得(12,14,23)对应的table index
 func (plan *Plan) getTableIndexsByTuple(valExpr sqlparser.ValExpr) ([]int, error) {
 	shardset := make(map[int]bool)
 	switch node := valExpr.(type) {
@@ -313,12 +425,12 @@ func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) (int, error) {
 	index := -1
 
 	for i := 0; i < len(vals); i++ {
-		first_value_expression := vals[i].(sqlparser.ValTuple)
-		if len(first_value_expression) < (plan.keyIndex + 1) {
+		firstValueExpression := vals[i].(sqlparser.ValTuple)
+		if len(firstValueExpression) < (plan.keyIndex + 1) {
 			return 0, errors.ErrColsLenNotMatch
 		}
 
-		newIndex, err := plan.getTableIndexByValue(first_value_expression[plan.keyIndex])
+		newIndex, err := plan.getTableIndexByValue(firstValueExpression[plan.keyIndex])
 		if err != nil {
 			return -1, err
 		}
@@ -404,6 +516,78 @@ func makeList(start, end int) []int {
 		list[i-start] = i
 	}
 	return list
+}
+
+//if value is 2016, and indexs is [2015,2016,2017]
+//the result is [2015,2016]
+func makeLeList(value int, indexs []int) []int {
+	sort.Ints(indexs)
+	for k, v := range indexs {
+		if v == value {
+			return indexs[:k+1]
+		}
+	}
+	return nil
+}
+
+//if value is 2016, and indexs is [2015,2016,2017,2018]
+//the result is [2016,2017,2018]
+func makeGeList(value int, indexs []int) []int {
+	sort.Ints(indexs)
+	for k, v := range indexs {
+		if v == value {
+			return indexs[k:]
+		}
+	}
+	return nil
+}
+
+//if value is 2016, and indexs is [2015,2016,2017,2018]
+//the result is [2015]
+func makeLtList(value int, indexs []int) []int {
+	sort.Ints(indexs)
+	for k, v := range indexs {
+		if v == value {
+			return indexs[:k]
+		}
+	}
+	return nil
+}
+
+//if value is 2016, and indexs is [2015,2016,2017,2018]
+//the result is [2017,2018]
+func makeGtList(value int, indexs []int) []int {
+	sort.Ints(indexs)
+	for k, v := range indexs {
+		if v == value {
+			return indexs[k+1:]
+		}
+	}
+	return nil
+}
+
+//if start is 2016, end is 2017. indexs is [2015,2016,2017,2018]
+//the result is [2016,2017]
+func makeBetweenList(start, end int, indexs []int) []int {
+	var startIndex, endIndex int
+	var SetStart bool
+	if end < start {
+		start, end = end, start
+	}
+	sort.Ints(indexs)
+	for k, v := range indexs {
+		if v == start {
+			startIndex = k
+			SetStart = true
+		}
+		if v == end {
+			endIndex = k
+			if SetStart {
+				return indexs[startIndex : endIndex+1]
+			}
+		}
+	}
+	return nil
 }
 
 // l1 & l2

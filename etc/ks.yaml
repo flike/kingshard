@@ -68,7 +68,7 @@ nodes :
     # 0 will no down
     down_after_noalive: 32
 
-# schema defines which db can be used by client and this db's sql will be executed in which nodes, the db is also the default database
+# schema defines sharding rules, the db is the sharding table database.
 schema :
     db : kingshard
     nodes: [node1,node2]
@@ -88,3 +88,9 @@ schema :
         nodes: [node1, node2]
         locations: [4,4]
         table_row_limit: 10000
+    -
+        table: test_shard_date
+        key: date
+        type:date
+        nodes:[node1,node2]
+        date_range:[20151001-20151031,20151101-20151130]
