@@ -119,3 +119,120 @@ func TestListSet(t *testing.T) {
 	sort.Sort(sort.IntSlice(l2))
 	testCheckList(t, l2, 1, 2, 3, 5)
 }
+
+func TestMakeLeList(t *testing.T) {
+	l1 := []int{20150802, 20150812, 20150822, 20150823, 20150825, 20150828}
+	l2 := makeLeList(20150822, l1)
+	testCheckList(t, l2, 20150802, 20150812, 20150822)
+	l3 := makeLeList(20150824, l1)
+	testCheckList(t, l3, []int{}...)
+}
+
+func TestmakeLtList(t *testing.T) {
+	l1 := []int{20150802, 20150812, 20150822, 20150823, 20150825, 20150828}
+	l2 := makeLeList(20150822, l1)
+	testCheckList(t, l2, 20150802, 20150812)
+	l3 := makeLeList(20150824, l1)
+	testCheckList(t, l3, []int{}...)
+	l4 := makeLeList(20150802, l1)
+	testCheckList(t, l4, []int{}...)
+}
+
+func TestmakeGeList(t *testing.T) {
+	l1 := []int{20150802, 20150812, 20150822, 20150823, 20150825, 20150828}
+	l2 := makeLeList(20150822, l1)
+	testCheckList(t, l2, 20150822, 20150823, 20150825, 20150828)
+	l3 := makeLeList(20150828, l1)
+	testCheckList(t, l3, 20150828)
+}
+
+func TestmakeGtList(t *testing.T) {
+	l1 := []int{20150802, 20150812, 20150822, 20150823, 20150825, 20150828}
+	l2 := makeLeList(20150822, l1)
+	testCheckList(t, l2, 20150823, 20150825, 20150828)
+	l3 := makeLeList(20150824, l1)
+	testCheckList(t, l3, []int{}...)
+	l4 := makeLeList(20150828, l1)
+	testCheckList(t, l4, []int{}...)
+}
+
+func TestParseYearRange(t *testing.T) {
+	dateRange := "2014-2017"
+	years, err := ParseYearRange(dateRange)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testCheckList(t, years, 2014, 2015, 2016, 2017)
+
+	dateRange = "2017-2013"
+	years, err = ParseYearRange(dateRange)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testCheckList(t, years, 2013, 2014, 2015, 2016, 2017)
+}
+
+func TestParseMonthRange(t *testing.T) {
+	dateRange := "201602-201610"
+	months, err := ParseMonthRange(dateRange)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCheckList(t, months,
+		201602,
+		201603,
+		201604,
+		201605,
+		201606,
+		201607,
+		201608,
+		201609,
+		201610,
+	)
+
+	dateRange = "201603-201511"
+	months, err = ParseMonthRange(dateRange)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCheckList(t, months,
+		201511,
+		201512,
+		201601,
+		201602,
+		201603,
+	)
+}
+
+func TestParseDayRange(t *testing.T) {
+	dateRange := "20160227-20160304"
+	days, err := ParseDayRange(dateRange)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCheckList(t, days,
+		20160227,
+		20160228,
+		20160229,
+		20160301,
+		20160302,
+		20160303,
+		20160304,
+	)
+
+	dateRange = "20160304-20160301"
+	days, err = ParseDayRange(dateRange)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCheckList(t, days,
+		20160301,
+		20160302,
+		20160303,
+		20160304,
+	)
+}

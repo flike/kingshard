@@ -24,6 +24,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 ### 2. sharding功能
 
 - 支持按整数的hash和range分表方式。
+- 支持按年、月、日维度的时间分表方式。
 - 支持跨节点分表，子表可以分布在不同的节点。
 - 支持跨节点的count,sum,max和min等聚合函数。
 - 支持单个分表的join操作，即支持分表和另一张不分表的join操作。
@@ -41,13 +42,15 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 
 [3.kingshard sharding介绍](./doc/KingDoc/kingshard_sharding_introduce.md)
 
-[4.kingshard 快速入门](./doc/KingDoc/kingshard_quick_try.md)
+[4.kingshard按时间分表功能介绍](./doc/KingDoc/kingshard_date_sharding.md)
 
-[5.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
+[5.kingshard 快速入门](./doc/KingDoc/kingshard_quick_try.md)
 
-[6.kingshard SQL黑名单功能介绍](./doc/KingDoc/sql_blacklist_introduce.md)
+[6.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
 
-[7.kingshard的FAQ](./doc/KingDoc/function_FAQ.md)
+[7.kingshard SQL黑名单功能介绍](./doc/KingDoc/sql_blacklist_introduce.md)
+
+[8.kingshard的FAQ](./doc/KingDoc/function_FAQ.md)
 
 ### kingshard架构与设计
 
