@@ -13,7 +13,7 @@ password : kingshard
 log_level : debug
 
 # if set log_sql(on|off) off,the sql log will not output
-log_sql: off
+log_sql: on
  
 # only log the query that take more than slow_log_time ms
 #slow_log_time : 100
@@ -89,8 +89,20 @@ schema :
         locations: [4,4]
         table_row_limit: 10000
     -
-        table: test_shard_date
-        key: date
-        type:date
-        nodes:[node1,node2]
-        date_range:[20151001-20151031,20151101-20151130]
+        table: test_shard_year
+        key: ctime
+        type: date_year
+        nodes: [node1,node2]
+        date_range: [2015-2016,2017-2018]
+    -
+        table: test_shard_month
+        key: dtime
+        type: date_month
+        nodes: [node1,node2]
+        date_range: [201603-201605,201609-201612]
+    -
+        table: test_shard_day
+        key: mtime
+        type: date_day
+        nodes: [node1,node2]
+        date_range: [20160306-20160307,20160308-20160309]
