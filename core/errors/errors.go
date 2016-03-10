@@ -64,4 +64,6 @@ var (
 	ErrDateIllegal      = errors.New("date format illegal")
 	ErrDateRangeIllegal = errors.New("date range format illegal")
 	ErrDateRangeCount   = errors.New("date range count is not equal")
+	ErrSlaveExist       = errors.New("slave has exist")
+	ErrSlaveNotExist    = errors.New("slave has not exist")
 )
