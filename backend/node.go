@@ -176,6 +176,11 @@ func (n *Node) AddSlave(addr string) error {
 	}
 	n.Lock()
 	defer n.Unlock()
+	for _, v := range n.Slave {
+		if v.addr == addr {
+			return errors.ErrSlaveExist
+		}
+	}
 	addrAndWeight := strings.Split(addr, WeightSplit)
 	if len(addrAndWeight) == 2 {
 		weight, err = strconv.Atoi(addrAndWeight[1])
@@ -196,12 +201,22 @@ func (n *Node) AddSlave(addr string) error {
 }
 
 func (n *Node) DeleteSlave(addr string) error {
+	var i int
 	n.Lock()
 	defer n.Unlock()
 	slaveCount := len(n.Slave)
 	if slaveCount == 0 {
 		return errors.ErrNoSlaveDB
-	} else if slaveCount == 1 {
+	}
+	for i = 0; i < slaveCount; i++ {
+		if n.Slave[i].addr == addr {
+			break
+		}
+	}
+	if i == slaveCount {
+		return errors.ErrSlaveNotExist
+	}
+	if slaveCount == 1 {
 		n.Slave = nil
 		n.SlaveWeights = nil
 		n.RoundRobinQ = nil
@@ -210,7 +225,7 @@ func (n *Node) DeleteSlave(addr string) error {
 
 	s := make([]*DB, 0, slaveCount-1)
 	sw := make([]int, 0, slaveCount-1)
-	for i := 0; i < slaveCount; i++ {
+	for i = 0; i < slaveCount; i++ {
 		if n.Slave[i].addr != addr {
 			s = append(s, n.Slave[i])
 			sw = append(sw, n.SlaveWeights[i])
