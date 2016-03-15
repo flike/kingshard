@@ -153,7 +153,7 @@ CREATE TABLE `test_shard_hash_0000` (
 ```
 
 ### 3.1.2. 分表的插入和查询
-执行下面SQL语句，根据查询的结果可以看出SQL语句根据分表规则落到不同的子表。查询操作（select）可以跨多个node，当更新操作涉及到多个node时，kingshard会返回错误。为了保证数据一致性，kingshard不允许同时更新多个node上的子表（因为kingshard还未实现分布式事务）。但可以更新单个node上的多个子表，由单node上的事务保证。
+执行下面SQL语句，根据查询的结果可以看出SQL语句根据分表规则落到不同的子表。查询操作（select）可以跨多个node，当更新操作涉及到多个node时，kingshard会以非事务的方式执行跨node的更新。为了保证数据一致性，请根据实际需求使用非事务方式的跨node更新操作。
 
 ```
 mysql> insert into test_shard_hash(id,str,f,e,u,i) values(15,"flike",3.14,'test2',2,3);
@@ -234,30 +234,18 @@ Query OK, 2 rows affected (0.01 sec)
 2015/09/02 19:17:27 - INFO - 127.0.0.1:55003->192.168.59.103:3307:update test_shard_hash_0007 set u = 123 where id = 15 or id = 7
 ```
 
-当更新的记录落在不同的子表，只有当这些子表在同一个node中，kingshard才支持。kingshard是通过单node事务实现的，也就是说将发往同一个node的SQL都放在一个事务中执行，这些操作正确性由MySQL保证。在上述记录中，我们可以看出id为17和18的记录都在node1中，所以kingshard是可以执行下列SQL：
+当更新的记录落在不同的子表，kingshard会以非事务的方式将更新操作发送到多个node上。例如执行如下SQL：
 
 ```
-mysql> update test_shard_hash set i=23 where id = 17 or id = 18;
-Query OK, 2 rows affected (0.00 sec)
+mysql> update test_shard_hash set str="myworld_test4" where id in(128,1,231);
+Query OK, 3 rows affected (0.02 sec)
 ```
 对应的SQL日志是：
 
 ```
-2015/09/02 19:24:46 - INFO - 127.0.0.1:55003->127.0.0.1:3306:update test_shard_hash_0001 set i = 23 where id = 17 or id = 18
-2015/09/02 19:24:46 - INFO - 127.0.0.1:55003->127.0.0.1:3306:update test_shard_hash_0002 set i = 23 where id = 17 or id = 18
-```
-
-但是如果更新的记录落在不同的node时，kingshard则会报告错误：
-例如：
-
-```
-mysql> update test_shard_hash set i=23 where id = 15 or id = 18;
-ERROR 1105 (HY000): no route node
-```
-对应的SQL日志是：
-
-```
-2015/09/02 19:24:24 - ERROR - router.go:[483] - [Router] "generateUpdateSql" "update in multi node" "RouteNodeIndexs=[0 1]" conn_id=0
+2016/03/15 15:18:27 - OK - 1.2ms - 127.0.0.1:60730->127.0.0.1:3306:update test_shard_hash_0000 set str = 'myworld_test4' where id in (128, 1, 231)
+2016/03/15 15:18:27 - OK - 0.5ms - 127.0.0.1:60730->127.0.0.1:3306:update test_shard_hash_0001 set str = 'myworld_test4' where id in (128, 1, 231)
+2016/03/15 15:18:27 - OK - 6.8ms - 127.0.0.1:60730->192.168.59.103:3307:update test_shard_hash_0007 set str = 'myworld_test4' where id in (128, 1, 231)
 ```
 
 ### 3.2. 指定发送的node

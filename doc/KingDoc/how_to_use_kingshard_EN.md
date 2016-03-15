@@ -148,7 +148,7 @@ CREATE TABLE `test_shard_hash_0000` (
 
 ### 3.1.2 Insert and select opeation of sharding
 
-The select SQLs will be sent to a proper database or multi databases based on the conditions. The insert SQLs will only be sent to one database, if the insert operation accoss multi databases, kingshard will response error messages, because kingshard does not implemente distributed transactions. The SQLs as below:
+The select SQLs will be sent to a proper database or multi databases based on the conditions. The insert SQLs will also be sent to multi databases, if the insert operation accoss multi databases, kingshard will send the sqls to multi databases. The SQLs as below:
 
 ```
 mysql> insert into test_shard_hash(id,str,f,e,u,i) values(15,"flike",3.14,'test2',2,3);

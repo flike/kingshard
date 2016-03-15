@@ -352,17 +352,6 @@ func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) er
 	}
 
 	var rs []*mysql.Result
-	if 1 < len(conns) {
-		return errors.ErrExecInMulti
-	}
-	if 1 < len(plan.RewrittenSqls) {
-		nodeIndex := plan.RouteNodeIndexs[0]
-		nodeName := plan.Rule.Nodes[nodeIndex]
-		txSqls := []string{"begin;"}
-		txSqls = append(txSqls, plan.RewrittenSqls[nodeName]...)
-		txSqls = append(txSqls, "commit;")
-		plan.RewrittenSqls[nodeName] = txSqls
-	}
 
 	rs, err = c.executeInMultiNodes(conns, plan.RewrittenSqls, args)
 	if err == nil {

@@ -595,11 +595,6 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 		nodeName := r.Nodes[0]
 		sqls[nodeName] = []string{buf.String()}
 	} else {
-		nodeCount := len(plan.RouteNodeIndexs)
-		if 1 < nodeCount {
-			golog.Error("Router", "generateInsertSql", errors.ErrInsertInMulti.Error(), 0)
-			return errors.ErrInsertInMulti
-		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
@@ -639,12 +634,6 @@ func (r *Router) generateUpdateSql(plan *Plan, stmt sqlparser.Statement) error {
 		nodeName := r.Nodes[0]
 		sqls[nodeName] = []string{buf.String()}
 	} else {
-		nodeCount := len(plan.RouteNodeIndexs)
-		if 1 < nodeCount {
-			golog.Error("Router", "generateUpdateSql", errors.ErrUpdateInMulti.Error(), 0,
-				"RouteNodeIndexs", plan.RouteNodeIndexs)
-			return errors.ErrUpdateInMulti
-		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
@@ -688,11 +677,6 @@ func (r *Router) generateDeleteSql(plan *Plan, stmt sqlparser.Statement) error {
 		nodeName := r.Nodes[0]
 		sqls[nodeName] = []string{buf.String()}
 	} else {
-		nodeCount := len(plan.RouteNodeIndexs)
-		if 1 < nodeCount {
-			golog.Error("Router", "generateDeleteSql", errors.ErrDeleteInMulti.Error(), 0)
-			return errors.ErrUpdateInMulti
-		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
@@ -735,11 +719,6 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 		nodeName := r.Nodes[0]
 		sqls[nodeName] = []string{buf.String()}
 	} else {
-		nodeCount := len(plan.RouteNodeIndexs)
-		if 1 < nodeCount {
-			golog.Error("Router", "generateReplaceSql", errors.ErrReplaceInMulti.Error(), 0)
-			return errors.ErrUpdateInMulti
-		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
