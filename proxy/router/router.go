@@ -598,19 +598,24 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 		nodeName := r.Nodes[0]
 		sqls[nodeName] = []string{buf.String()}
 	} else {
+		rows, err := r.GetIRRows(node.Rows, plan)
+		if err != nil {
+			return err
+		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
+			tableIndex := plan.RouteTableIndexs[i]
+			nodeIndex := plan.Rule.TableToNode[tableIndex]
+			nodeName := r.Nodes[nodeIndex]
+
 			buf.Fprintf("insert %vinto %v", node.Comments, node.Table)
 			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			buf.Fprintf("%v %v%v",
 				node.Columns,
-				node.Rows,
+				rows[tableIndex],
 				node.OnDup)
 
-			tableIndex := plan.RouteTableIndexs[i]
-			nodeIndex := plan.Rule.TableToNode[tableIndex]
-			nodeName := r.Nodes[nodeIndex]
 			if _, ok := sqls[nodeName]; ok == false {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}
@@ -620,6 +625,28 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 	}
 	plan.RewrittenSqls = sqls
 	return nil
+}
+
+//the key is tableIndex
+//the values is row values in insert sql
+func (r *Router) GetIRRows(rows sqlparser.InsertRows, plan *Plan) (map[int]sqlparser.InsertRows, error) {
+	vals := rows.(sqlparser.Values)
+	rowsToTindex := make(map[int][]sqlparser.Tuple)
+	for i := 0; i < len(vals); i++ {
+		valueExpression := vals[i].(sqlparser.ValTuple)
+		tindex, err := plan.getTableIndexByValue(valueExpression[plan.keyIndex])
+		if err != nil {
+			return nil, err
+		}
+
+		rowsToTindex[tindex] = append(rowsToTindex[tindex], valueExpression)
+	}
+	result := make(map[int]sqlparser.InsertRows)
+	for k, v := range rowsToTindex {
+		result[k] = (sqlparser.Values)(v)
+	}
+
+	return result, nil
 }
 
 func (r *Router) generateUpdateSql(plan *Plan, stmt sqlparser.Statement) error {
@@ -722,8 +749,16 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 		nodeName := r.Nodes[0]
 		sqls[nodeName] = []string{buf.String()}
 	} else {
+		rows, err := r.GetIRRows(node.Rows, plan)
+		if err != nil {
+			return err
+		}
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
+			tableIndex := plan.RouteTableIndexs[i]
+			nodeIndex := plan.Rule.TableToNode[tableIndex]
+			nodeName := r.Nodes[nodeIndex]
+
 			buf := sqlparser.NewTrackedBuffer(nil)
 			buf.Fprintf("replace %vinto %v",
 				node.Comments,
@@ -732,11 +767,9 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			buf.Fprintf("%v %v",
 				node.Columns,
-				node.Rows,
+				rows[tableIndex],
 			)
-			tableIndex := plan.RouteTableIndexs[i]
-			nodeIndex := plan.Rule.TableToNode[tableIndex]
-			nodeName := r.Nodes[nodeIndex]
+
 			if _, ok := sqls[nodeName]; ok == false {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}

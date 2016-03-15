@@ -287,12 +287,11 @@ func (plan *Plan) calRouteIndexs() error {
 
 	switch criteria := plan.Criteria.(type) {
 	case sqlparser.Values: //代表insert中values
-		tindex, err := plan.getInsertTableIndex(criteria)
+		plan.RouteTableIndexs, err = plan.getInsertTableIndex(criteria)
 		if err != nil {
 			return err
 		}
-		plan.RouteTableIndexs = []int{tindex}
-		plan.RouteNodeIndexs = plan.TindexsToNindexs([]int{tindex})
+		plan.RouteNodeIndexs = plan.TindexsToNindexs(plan.RouteTableIndexs)
 
 		return nil
 	case sqlparser.BoolExpr:
@@ -421,26 +420,22 @@ func (plan *Plan) getTableIndexsByTuple(valExpr sqlparser.ValExpr) ([]int, error
 	return shardlist, nil
 }
 
-func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) (int, error) {
-	index := -1
-
+func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) ([]int, error) {
+	tableIndexs := make([]int, 0, len(vals))
 	for i := 0; i < len(vals); i++ {
-		firstValueExpression := vals[i].(sqlparser.ValTuple)
-		if len(firstValueExpression) < (plan.keyIndex + 1) {
-			return 0, errors.ErrColsLenNotMatch
+		valueExpression := vals[i].(sqlparser.ValTuple)
+		if len(valueExpression) < (plan.keyIndex + 1) {
+			return nil, errors.ErrColsLenNotMatch
 		}
 
-		newIndex, err := plan.getTableIndexByValue(firstValueExpression[plan.keyIndex])
+		tableIndex, err := plan.getTableIndexByValue(valueExpression[plan.keyIndex])
 		if err != nil {
-			return -1, err
+			return nil, err
 		}
-		if index == -1 {
-			index = newIndex
-		} else if index != newIndex {
-			return -1, errors.ErrMultiShard
-		}
+
+		tableIndexs = append(tableIndexs, tableIndex)
 	}
-	return index, nil
+	return tableIndexs, nil
 }
 
 // find shard key index in insert or replace SQL
