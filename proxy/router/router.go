@@ -386,14 +386,15 @@ func (r *Router) buildUpdatePlan(statement sqlparser.Statement) (*Plan, error) {
 	where = stmt.Where
 	if where != nil {
 		plan.Criteria = where.Expr //路由条件
+		err = plan.calRouteIndexs()
+		if err != nil {
+			golog.Error("Route", "BuildUpdatePlan", err.Error(), 0)
+			return nil, err
+		}
 	} else {
-		plan.Rule = r.DefaultRule
-	}
-
-	err = plan.calRouteIndexs()
-	if err != nil {
-		golog.Error("Route", "BuildUpdatePlan", err.Error(), 0)
-		return nil, err
+		//if shard update without where,send to all nodes and all tables
+		plan.RouteTableIndexs = plan.Rule.SubTableIndexs
+		plan.RouteNodeIndexs = makeList(0, len(plan.Rule.Nodes))
 	}
 
 	if plan.Rule.Type != DefaultRuleType && len(plan.RouteTableIndexs) == 0 {
@@ -411,6 +412,7 @@ func (r *Router) buildUpdatePlan(statement sqlparser.Statement) (*Plan, error) {
 func (r *Router) buildDeletePlan(statement sqlparser.Statement) (*Plan, error) {
 	plan := &Plan{}
 	var where *sqlparser.Where
+	var err error
 
 	stmt := statement.(*sqlparser.Delete)
 	plan.Rule = r.GetRule(sqlparser.String(stmt.Table))
@@ -418,14 +420,15 @@ func (r *Router) buildDeletePlan(statement sqlparser.Statement) (*Plan, error) {
 
 	if where != nil {
 		plan.Criteria = where.Expr //路由条件
+		err = plan.calRouteIndexs()
+		if err != nil {
+			golog.Error("Route", "BuildUpdatePlan", err.Error(), 0)
+			return nil, err
+		}
 	} else {
-		plan.Rule = r.DefaultRule
-	}
-
-	err := plan.calRouteIndexs()
-	if err != nil {
-		golog.Error("Route", "BuildDeletePlan", err.Error(), 0)
-		return nil, err
+		//if shard delete without where,send to all nodes and all tables
+		plan.RouteTableIndexs = plan.Rule.SubTableIndexs
+		plan.RouteNodeIndexs = makeList(0, len(plan.Rule.Nodes))
 	}
 
 	if plan.Rule.Type != DefaultRuleType && len(plan.RouteTableIndexs) == 0 {
