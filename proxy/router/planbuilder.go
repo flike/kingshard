@@ -34,7 +34,10 @@ type Plan struct {
 	Rule *Rule
 
 	Criteria sqlparser.SQLNode
-	keyIndex int //used for insert/replace to find shard key idx
+	KeyIndex int //used for insert/replace to find shard key idx
+	//used for insert/replace values,key is table index,and value is
+	//the rows for insert or replace.
+	Rows map[int]sqlparser.Values
 
 	RouteTableIndexs []int
 	RouteNodeIndexs  []int
@@ -292,7 +295,6 @@ func (plan *Plan) calRouteIndexs() error {
 			return err
 		}
 		plan.RouteNodeIndexs = plan.TindexsToNindexs(plan.RouteTableIndexs)
-
 		return nil
 	case sqlparser.BoolExpr:
 		plan.RouteTableIndexs, err = plan.getTableIndexByBoolExpr(criteria)
@@ -420,20 +422,27 @@ func (plan *Plan) getTableIndexsByTuple(valExpr sqlparser.ValExpr) ([]int, error
 	return shardlist, nil
 }
 
+//get the insert table index and set plan.Rows
 func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) ([]int, error) {
 	tableIndexs := make([]int, 0, len(vals))
+	rowsToTindex := make(map[int][]sqlparser.Tuple)
 	for i := 0; i < len(vals); i++ {
 		valueExpression := vals[i].(sqlparser.ValTuple)
-		if len(valueExpression) < (plan.keyIndex + 1) {
+		if len(valueExpression) < (plan.KeyIndex + 1) {
 			return nil, errors.ErrColsLenNotMatch
 		}
 
-		tableIndex, err := plan.getTableIndexByValue(valueExpression[plan.keyIndex])
+		tableIndex, err := plan.getTableIndexByValue(valueExpression[plan.KeyIndex])
 		if err != nil {
 			return nil, err
 		}
 
 		tableIndexs = append(tableIndexs, tableIndex)
+		//get the rows insert into this table
+		rowsToTindex[tableIndex] = append(rowsToTindex[tableIndex], valueExpression)
+	}
+	for k, v := range rowsToTindex {
+		plan.Rows[k] = (sqlparser.Values)(v)
 	}
 	return tableIndexs, nil
 }
@@ -444,16 +453,16 @@ func (plan *Plan) GetIRKeyIndex(cols sqlparser.Columns) error {
 	if plan.Rule == nil {
 		return errors.ErrNoPlanRule
 	}
-	plan.keyIndex = -1
+	plan.KeyIndex = -1
 	for i, _ := range cols {
 		colname := string(cols[i].(*sqlparser.NonStarExpr).Expr.(*sqlparser.ColName).Name)
 
 		if colname == plan.Rule.Key {
-			plan.keyIndex = i
+			plan.KeyIndex = i
 			break
 		}
 	}
-	if plan.keyIndex == -1 {
+	if plan.KeyIndex == -1 {
 		return errors.ErrIRNoShardingKey
 	}
 	return nil
