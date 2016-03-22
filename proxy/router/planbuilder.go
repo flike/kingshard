@@ -444,7 +444,8 @@ func (plan *Plan) getInsertTableIndex(vals sqlparser.Values) ([]int, error) {
 	for k, v := range rowsToTindex {
 		plan.Rows[k] = (sqlparser.Values)(v)
 	}
-	return tableIndexs, nil
+
+	return cleanList(tableIndexs), nil
 }
 
 // find shard key index in insert or replace SQL
