@@ -26,17 +26,13 @@ import (
 
 	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/core/golog"
+	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/proxy/server"
 )
 
 var configFile *string = flag.String("config", "/etc/ks.yaml", "kingshard config file")
 var logLevel *string = flag.String("log-level", "", "log level [debug|info|warn|error], default error")
 var version *bool = flag.Bool("v", false, "the version of kingshard")
-
-var (
-	BuildTime = "2016-01-09 CST"
-	GitHash   = "master"
-)
 
 const (
 	sqlLogName = "sql.log"
@@ -57,8 +53,8 @@ func main() {
 	fmt.Print(banner)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
-	fmt.Printf("Git commit hash:%s\n", GitHash)
-	fmt.Printf("Build time:%s\n", BuildTime)
+	fmt.Printf("Git commit:%s\n", hack.Version)
+	fmt.Printf("Build time:%s\n", hack.Compile)
 	if *version {
 		return
 	}
