@@ -423,6 +423,11 @@ func (c *ClientConn) limitSelectResult(r *mysql.Resultset, stmt *sqlparser.Selec
 			return fmt.Errorf("invalid limit %s", nstring(stmt.Limit))
 		}
 	}
+	if offset > int64(len(r.Values)) {
+		r.Values = nil
+		r.RowDatas = nil
+		return nil
+	}
 
 	if offset+count > int64(len(r.Values)) {
 		count = int64(len(r.Values)) - offset
