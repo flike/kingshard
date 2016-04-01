@@ -120,7 +120,7 @@ schema :
 3. cd src/github.com/flike/kingshard
 4. source ./dev.sh
 5. make
-6. set the config file (etc/multi.yaml)
+6. set the config file (etc/ks.yaml)
 7. run kingshard (./bin/kingshard -config=etc/multi.yaml)
 ```
 
