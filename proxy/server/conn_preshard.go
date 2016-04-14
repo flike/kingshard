@@ -304,8 +304,11 @@ func (c *ClientConn) getUpdateExecDB(tokens []string, tokensLen int) (*ExecuteDB
 func (c *ClientConn) getSetExecDB(tokens []string, tokensLen int, sql string) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
 
-	//handle two styles: set autocommit= 0 or set autocommit = 0
-	if 2 < len(tokens) {
+	//handle three styles:
+	//set autocommit= 0
+	//set autocommit = 0
+	//set autocommit=0
+	if 2 <= len(tokens) {
 		before := strings.Split(sql, "=")
 		//uncleanWorld is 'autocommit' or 'autocommit '
 		uncleanWord := strings.Split(before[0], " ")
