@@ -73,6 +73,14 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	}
 
 	if err != nil {
+		//this SQL doesn't need execute in the backend.
+		if err == errors.ErrIgnoreSQL {
+			err = c.writeOK(nil)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		}
 		return false, err
 	}
 	//need shard sql
@@ -319,6 +327,15 @@ func (c *ClientConn) getSetExecDB(tokens []string, tokensLen int, sql string) (*
 			secondWord == mysql.TK_STR_CONNECTION ||
 			secondWord == mysql.TK_STR_AUTOCOMMIT {
 			return nil, nil
+		}
+
+		//SET [gobal/session] TRANSACTION ISOLATION LEVEL SERIALIZABLE
+		//ignore this sql
+		if 3 <= len(uncleanWord) {
+			if strings.ToLower(uncleanWord[1]) == mysql.TK_STR_TRANSACTION ||
+				strings.ToLower(uncleanWord[2]) == mysql.TK_STR_TRANSACTION {
+				return nil, errors.ErrIgnoreSQL
+			}
 		}
 	}
 

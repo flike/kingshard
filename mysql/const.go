@@ -198,9 +198,10 @@ var (
 	TK_STR_INTO = "into"
 	TK_STR_SET  = "set"
 	//set
-	TK_STR_NAMES      = "names"
-	TK_STR_RESULTS    = "character_set_results"
-	TK_STR_CLIENT     = "character_set_client"
-	TK_STR_CONNECTION = "character_set_connection"
-	TK_STR_AUTOCOMMIT = "autocommit"
+	TK_STR_NAMES       = "names"
+	TK_STR_RESULTS     = "character_set_results"
+	TK_STR_CLIENT      = "character_set_client"
+	TK_STR_CONNECTION  = "character_set_connection"
+	TK_STR_AUTOCOMMIT  = "autocommit"
+	TK_STR_TRANSACTION = "transaction"
 )
