@@ -105,8 +105,12 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	}
 
 	if rs[0].Resultset != nil {
+		c.lastInsertId = int64(rs[0].InsertId)
+		c.affectedRows = int64(rs[0].AffectedRows)
 		err = c.writeResultset(c.status, rs[0].Resultset)
 	} else {
+		c.lastInsertId = int64(rs[0].InsertId)
+		c.affectedRows = int64(rs[0].AffectedRows)
 		err = c.writeOK(rs[0])
 	}
 
@@ -217,6 +221,9 @@ func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB
 						return nil, nil
 					}
 				}
+			}
+			if strings.ToLower(tokens[i]) == mysql.TK_STR_LAST_INSERT_ID {
+				return nil, nil
 			}
 		}
 	}

@@ -156,6 +156,30 @@ func (c *ClientConn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Selec
 	return c.writeResultset(r.Status, r.Resultset)
 }
 
+func (c *ClientConn) handleSimpleSelect(stmt *sqlparser.SimpleSelect) error {
+	var column = 1
+	var rows [][]string
+	var names []string = []string{
+		"last_insert_id()",
+	}
+
+	var t = fmt.Sprintf("%d", c.lastInsertId)
+	rows = append(rows, []string{t})
+
+	r := new(mysql.Resultset)
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	r, _ = c.buildResultset(nil, names, values)
+	return c.writeResultset(c.status, r)
+}
+
 //build select result with group by opt
 func (c *ClientConn) buildSelectGroupByResult(rs []*mysql.Result,
 	stmt *sqlparser.Select) (*mysql.Result, error) {

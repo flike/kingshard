@@ -109,6 +109,8 @@ var (
 
 // admin
 %token <empty> ADMIN HELP
+// select last_insert_id()
+%token <empty> LAST_INSERT_ID
 //offset
 %token <empty> OFFSET
 //collate
@@ -448,6 +450,10 @@ select_expression:
 | ID '.' '*'
   {
     $$ = &StarExpr{TableName: $1}
+  }
+| LAST_INSERT_ID'('')'
+  {
+    $$ = &LastInsertId{}
   }
 
 expression:
