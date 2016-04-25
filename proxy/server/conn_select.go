@@ -157,10 +157,15 @@ func (c *ClientConn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Selec
 }
 
 func (c *ClientConn) handleSimpleSelect(stmt *sqlparser.SimpleSelect) error {
+	nonStarExpr, _ := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
+	var name string = hack.String(nonStarExpr.As)
+	if name == "" {
+		name = "last_insert_id()"
+	}
 	var column = 1
 	var rows [][]string
 	var names []string = []string{
-		"last_insert_id()",
+		name,
 	}
 
 	var t = fmt.Sprintf("%d", c.lastInsertId)

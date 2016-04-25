@@ -451,7 +451,7 @@ select_expression:
   {
     $$ = &StarExpr{TableName: $1}
   }
-| LAST_INSERT_ID'('')'
+| LAST_INSERT_ID
   {
     $$ = &LastInsertId{}
   }

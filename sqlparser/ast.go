@@ -921,7 +921,7 @@ func (*LastInsertId) IStatement()  {}
 func (*LastInsertId) ISelectExpr() {}
 
 func (node *LastInsertId) Format(buf *TrackedBuffer) {
-	buf.Fprintf("last_insert_id")
+	buf.Fprintf("last_insert_id()")
 }
 
 type SimpleSelect struct {
