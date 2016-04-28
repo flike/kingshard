@@ -17,6 +17,7 @@ package server
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/flike/kingshard/backend"
 	"github.com/flike/kingshard/core/golog"
@@ -26,10 +27,33 @@ import (
 
 var nstring = sqlparser.String
 
-func (c *ClientConn) handleSet(stmt *sqlparser.Set, sql string) error {
+func (c *ClientConn) handleSet(stmt *sqlparser.Set, sql string) (err error) {
 	if len(stmt.Exprs) != 1 && len(stmt.Exprs) != 2 {
 		return fmt.Errorf("must set one item once, not %s", nstring(stmt))
 	}
+
+	//log the SQL
+	startTime := time.Now().UnixNano()
+	defer func() {
+		var state string
+		if err != nil {
+			state = "ERROR"
+		} else {
+			state = "OK"
+		}
+		execTime := float64(time.Now().UnixNano()-startTime) / float64(time.Millisecond)
+		if c.proxy.logSql[c.proxy.logSqlIndex] != golog.LogSqlOff &&
+			execTime > float64(c.proxy.slowLogTime[c.proxy.slowLogTimeIndex]) {
+			c.proxy.counter.IncrSlowLogTotal()
+			golog.OutputSql(state, "%.1fms - %s->%s:%s",
+				execTime,
+				c.c.RemoteAddr(),
+				c.proxy.addr,
+				sql,
+			)
+		}
+
+	}()
 
 	k := string(stmt.Exprs[0].Name.Name)
 	switch strings.ToUpper(k) {
@@ -37,7 +61,8 @@ func (c *ClientConn) handleSet(stmt *sqlparser.Set, sql string) error {
 		return c.handleSetAutoCommit(stmt.Exprs[0].Expr)
 	case `NAMES`, `CHARACTER_SET_RESULTS`, `CHARACTER_SET_CLIENT`, `CHARACTER_SET_CONNECTION`:
 		if len(stmt.Exprs) == 2 {
-			c.handleSetNames(stmt.Exprs[0].Expr, stmt.Exprs[1].Expr)
+			//SET NAMES 'charset_name' COLLATE 'collation_name'
+			return c.handleSetNames(stmt.Exprs[0].Expr, stmt.Exprs[1].Expr)
 		}
 		return c.handleSetNames(stmt.Exprs[0].Expr, nil)
 	default:

@@ -73,6 +73,14 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	}
 
 	if err != nil {
+		//this SQL doesn't need execute in the backend.
+		if err == errors.ErrIgnoreSQL {
+			err = c.writeOK(nil)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		}
 		return false, err
 	}
 	//need shard sql
@@ -97,8 +105,12 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	}
 
 	if rs[0].Resultset != nil {
+		c.lastInsertId = int64(rs[0].InsertId)
+		c.affectedRows = int64(rs[0].AffectedRows)
 		err = c.writeResultset(c.status, rs[0].Resultset)
 	} else {
+		c.lastInsertId = int64(rs[0].InsertId)
+		c.affectedRows = int64(rs[0].AffectedRows)
 		err = c.writeOK(rs[0])
 	}
 
@@ -210,6 +222,9 @@ func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB
 					}
 				}
 			}
+			if strings.ToLower(tokens[i]) == mysql.TK_STR_LAST_INSERT_ID {
+				return nil, nil
+			}
 		}
 	}
 
@@ -304,8 +319,11 @@ func (c *ClientConn) getUpdateExecDB(tokens []string, tokensLen int) (*ExecuteDB
 func (c *ClientConn) getSetExecDB(tokens []string, tokensLen int, sql string) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
 
-	//handle two styles: set autocommit= 0 or set autocommit = 0
-	if 2 < len(tokens) {
+	//handle three styles:
+	//set autocommit= 0
+	//set autocommit = 0
+	//set autocommit=0
+	if 2 <= len(tokens) {
 		before := strings.Split(sql, "=")
 		//uncleanWorld is 'autocommit' or 'autocommit '
 		uncleanWord := strings.Split(before[0], " ")
@@ -316,6 +334,15 @@ func (c *ClientConn) getSetExecDB(tokens []string, tokensLen int, sql string) (*
 			secondWord == mysql.TK_STR_CONNECTION ||
 			secondWord == mysql.TK_STR_AUTOCOMMIT {
 			return nil, nil
+		}
+
+		//SET [gobal/session] TRANSACTION ISOLATION LEVEL SERIALIZABLE
+		//ignore this sql
+		if 3 <= len(uncleanWord) {
+			if strings.ToLower(uncleanWord[1]) == mysql.TK_STR_TRANSACTION ||
+				strings.ToLower(uncleanWord[2]) == mysql.TK_STR_TRANSACTION {
+				return nil, errors.ErrIgnoreSQL
+			}
 		}
 	}
 
