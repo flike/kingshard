@@ -52,7 +52,10 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	sql = strings.TrimRight(sql, ";") //删除sql语句最后的分号
 	hasHandled, err := c.preHandleShard(sql)
 	if err != nil {
-		golog.Error("server", "preHandleShard", err.Error(), 0, "hasHandled", hasHandled)
+		golog.Error("server", "preHandleShard", err.Error(), 0,
+			"sql", sql,
+			"hasHandled", hasHandled,
+		)
 		return err
 	}
 	if hasHandled {
