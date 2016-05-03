@@ -914,16 +914,6 @@ func (node *Replace) Format(buf *TrackedBuffer) {
 
 func (*Replace) IStatement() {}
 
-type LastInsertId struct {
-}
-
-func (*LastInsertId) IStatement()  {}
-func (*LastInsertId) ISelectExpr() {}
-
-func (node *LastInsertId) Format(buf *TrackedBuffer) {
-	buf.Fprintf("last_insert_id()")
-}
-
 type SimpleSelect struct {
 	Comments    Comments
 	Distinct    string

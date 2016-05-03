@@ -39,3 +39,7 @@ func Slice(s string) (b []byte) {
 	pbytes.Cap = pstring.Len
 	return
 }
+
+func IsSqlSep(r rune) bool {
+	return r == ' ' || r == ',' || r == '\t'
+}

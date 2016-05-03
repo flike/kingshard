@@ -21,6 +21,7 @@ import (
 	"github.com/flike/kingshard/backend"
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
+	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
 )
@@ -61,7 +62,8 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 		}
 	}
 
-	tokens := strings.Fields(sql)
+	tokens := strings.FieldsFunc(sql, hack.IsSqlSep)
+
 	if len(tokens) == 0 {
 		return false, errors.ErrCmdUnsupport
 	}
@@ -104,13 +106,12 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 		return false, mysql.NewError(mysql.ER_UNKNOWN_ERROR, msg)
 	}
 
+	c.lastInsertId = int64(rs[0].InsertId)
+	c.affectedRows = int64(rs[0].AffectedRows)
+
 	if rs[0].Resultset != nil {
-		c.lastInsertId = int64(rs[0].InsertId)
-		c.affectedRows = int64(rs[0].AffectedRows)
 		err = c.writeResultset(c.status, rs[0].Resultset)
 	} else {
-		c.lastInsertId = int64(rs[0].InsertId)
-		c.affectedRows = int64(rs[0].AffectedRows)
 		err = c.writeOK(rs[0])
 	}
 
@@ -222,6 +223,7 @@ func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB
 					}
 				}
 			}
+
 			if strings.ToLower(tokens[i]) == mysql.TK_STR_LAST_INSERT_ID {
 				return nil, nil
 			}
