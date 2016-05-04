@@ -306,6 +306,7 @@ func (c *ClientConn) dispatch(data []byte) error {
 
 	switch cmd {
 	case mysql.COM_QUIT:
+		c.handleRollback()
 		c.Close()
 		return nil
 	case mysql.COM_QUERY:
