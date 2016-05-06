@@ -28,19 +28,21 @@ import (
 )
 
 const (
-	MasterComment = "/*master*/"
-	SumFuncName   = "sum"
-	CountFuncName = "count"
-	MaxFuncName   = "max"
-	MinFuncName   = "min"
-	FUNC_EXIST    = 1
+	MasterComment    = "/*master*/"
+	SumFunc          = "sum"
+	CountFunc        = "count"
+	MaxFunc          = "max"
+	MinFunc          = "min"
+	LastInsertIdFunc = "last_insert_id"
+	FUNC_EXIST       = 1
 )
 
 var funcNameMap = map[string]int{
-	"sum":   FUNC_EXIST,
-	"count": FUNC_EXIST,
-	"max":   FUNC_EXIST,
-	"min":   FUNC_EXIST,
+	"sum":            FUNC_EXIST,
+	"count":          FUNC_EXIST,
+	"max":            FUNC_EXIST,
+	"min":            FUNC_EXIST,
+	"last_insert_id": FUNC_EXIST,
 }
 
 func (c *ClientConn) handleFieldList(data []byte) error {
@@ -154,6 +156,36 @@ func (c *ClientConn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Selec
 	}
 
 	return c.writeResultset(r.Status, r.Resultset)
+}
+
+//only process last_inser_id
+func (c *ClientConn) handleSimpleSelect(stmt *sqlparser.SimpleSelect) error {
+	nonStarExpr, _ := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
+	var name string = hack.String(nonStarExpr.As)
+	if name == "" {
+		name = "last_insert_id()"
+	}
+	var column = 1
+	var rows [][]string
+	var names []string = []string{
+		name,
+	}
+
+	var t = fmt.Sprintf("%d", c.lastInsertId)
+	rows = append(rows, []string{t})
+
+	r := new(mysql.Resultset)
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	r, _ = c.buildResultset(nil, names, values)
+	return c.writeResultset(c.status, r)
 }
 
 //build select result with group by opt
@@ -491,6 +523,7 @@ func (c *ClientConn) getFuncExprs(stmt *sqlparser.Select) map[int]string {
 		if !ok {
 			continue
 		} else {
+			f = nonStarExpr.Expr.(*sqlparser.FuncExpr)
 			funcName := strings.ToLower(string(f.Name))
 			switch funcNameMap[funcName] {
 			case FUNC_EXIST:
@@ -670,7 +703,7 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 
 	var num int64
 	switch strings.ToLower(funcName) {
-	case CountFuncName:
+	case CountFunc:
 		if len(rs) == 0 {
 			return nil, nil
 		}
@@ -684,12 +717,14 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 			}
 		}
 		return num, nil
-	case SumFuncName:
+	case SumFunc:
 		return c.getSumFuncExprValue(rs, index)
-	case MaxFuncName:
+	case MaxFunc:
 		return c.getMaxFuncExprValue(rs, index)
-	case MinFuncName:
+	case MinFunc:
 		return c.getMinFuncExprValue(rs, index)
+	case LastInsertIdFunc:
+		return c.lastInsertId, nil
 	default:
 		if len(rs) == 0 {
 			return nil, nil
