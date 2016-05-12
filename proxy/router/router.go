@@ -482,14 +482,32 @@ func (r *Router) buildReplacePlan(statement sqlparser.Statement) (*Plan, error) 
 //rewrite select sql
 func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex int) string {
 	buf := sqlparser.NewTrackedBuffer(nil)
-	buf.Fprintf("select %v%s%v",
+	buf.Fprintf("select %v%s",
 		node.Comments,
 		node.Distinct,
-		node.SelectExprs,
 	)
+
+	var prefix string
+	//for shardTable.*,need replace table into shardTable_xxxx.
+	for _, expr := range node.SelectExprs {
+		if starExpr, ok := expr.(*sqlparser.StarExpr); ok {
+			if string(starExpr.TableName) == plan.Rule.Table {
+				fmt.Fprintf(buf, "%s%s_%04d.*",
+					prefix,
+					plan.Rule.Table,
+					tableIndex,
+				)
+			} else {
+				buf.Fprintf("%s%v", prefix, expr)
+			}
+		} else {
+			buf.Fprintf("%s%v", prefix, expr)
+		}
+		prefix = ", "
+	}
 	//insert the group columns in the first of select cloumns
 	if len(node.GroupBy) != 0 {
-		prefix := ","
+		prefix = ","
 		for _, n := range node.GroupBy {
 			buf.Fprintf("%s%v", prefix, n)
 		}
@@ -540,7 +558,7 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		)
 	}
 	//append other tables
-	prefix := ", "
+	prefix = ", "
 	for i := 1; i < len(node.From); i++ {
 		buf.Fprintf("%s%v", prefix, node.From[i])
 	}
