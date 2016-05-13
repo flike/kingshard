@@ -289,6 +289,9 @@ func (c *ClientConn) Run() {
 				err.Error(), c.connectionId,
 			)
 			c.writeError(err)
+			if err == mysql.ErrBadConn {
+				c.Close()
+			}
 		}
 
 		if c.closed {
