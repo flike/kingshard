@@ -220,6 +220,10 @@ func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB
 					tableName := sqlparser.GetTableName(tokens[i+1])
 					if _, ok := rules[tableName]; ok {
 						return nil, nil
+					} else {
+						//if the table is not shard table,send the sql
+						//to default db
+						break
 					}
 				}
 			}
