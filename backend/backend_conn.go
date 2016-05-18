@@ -444,6 +444,7 @@ func (c *Conn) SetCharset(charset string) error {
 		return err
 	} else {
 		c.collation = cid
+		c.charset = charset
 		return nil
 	}
 }
