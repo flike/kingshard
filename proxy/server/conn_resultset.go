@@ -1,14 +1,32 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package server
 
 import (
 	"fmt"
 	"strconv"
 
+	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/mysql"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
+	if value == nil {
+		return hack.Slice("NULL"), nil
+	}
 	switch v := value.(type) {
 	case int8:
 		return strconv.AppendInt(nil, int64(v), 10), nil
@@ -53,6 +71,10 @@ func formatField(field *mysql.Field, value interface{}) error {
 		field.Charset = 63
 		field.Type = mysql.MYSQL_TYPE_LONGLONG
 		field.Flag = mysql.BINARY_FLAG | mysql.NOT_NULL_FLAG | mysql.UNSIGNED_FLAG
+	case float32, float64:
+		field.Charset = 63
+		field.Type = mysql.MYSQL_TYPE_DOUBLE
+		field.Flag = mysql.BINARY_FLAG | mysql.NOT_NULL_FLAG
 	case string, []byte:
 		field.Charset = 33
 		field.Type = mysql.MYSQL_TYPE_VAR_STRING
@@ -62,10 +84,19 @@ func formatField(field *mysql.Field, value interface{}) error {
 	return nil
 }
 
-func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*mysql.Resultset, error) {
+func (c *ClientConn) buildResultset(fields []*mysql.Field, names []string, values [][]interface{}) (*mysql.Resultset, error) {
+	var ExistFields bool
 	r := new(mysql.Resultset)
 
 	r.Fields = make([]*mysql.Field, len(names))
+	//use the field def that get from true database
+	if len(fields) != 0 {
+		if len(r.Fields) == len(fields) {
+			ExistFields = true
+		} else {
+			return nil, errors.ErrInvalidArgument
+		}
+	}
 
 	var b []byte
 	var err error
@@ -79,16 +110,19 @@ func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*my
 		for j, value := range vs {
 			//列的定义
 			if i == 0 {
-				field := &mysql.Field{}
-				r.Fields[j] = field
-				field.Name = hack.Slice(names[j])
-
-				if err = formatField(field, value); err != nil {
-					return nil, err
+				if ExistFields {
+					r.Fields[j] = fields[j]
+				} else {
+					field := &mysql.Field{}
+					r.Fields[j] = field
+					field.Name = hack.Slice(names[j])
+					if err = formatField(field, value); err != nil {
+						return nil, err
+					}
 				}
+
 			}
 			b, err = formatValue(value)
-
 			if err != nil {
 				return nil, err
 			}
@@ -104,37 +138,44 @@ func (c *ClientConn) buildResultset(names []string, values [][]interface{}) (*my
 
 func (c *ClientConn) writeResultset(status uint16, r *mysql.Resultset) error {
 	c.affectedRows = int64(-1)
+	total := make([]byte, 0, 1024)
+	data := make([]byte, 4, 512)
+	var err error
 
 	columnLen := mysql.PutLengthEncodedInt(uint64(len(r.Fields)))
 
-	data := make([]byte, 4, 1024)
-
 	data = append(data, columnLen...)
-	if err := c.writePacket(data); err != nil {
+	total, err = c.writePacketBatch(total, data, false)
+	if err != nil {
 		return err
 	}
 
 	for _, v := range r.Fields {
 		data = data[0:4]
 		data = append(data, v.Dump()...)
-		if err := c.writePacket(data); err != nil {
+		total, err = c.writePacketBatch(total, data, false)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
+	total, err = c.writeEOFBatch(total, status, false)
+	if err != nil {
 		return err
 	}
 
 	for _, v := range r.RowDatas {
 		data = data[0:4]
 		data = append(data, v...)
-		if err := c.writePacket(data); err != nil {
+		total, err = c.writePacketBatch(total, data, false)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
+	total, err = c.writeEOFBatch(total, status, true)
+	total = nil
+	if err != nil {
 		return err
 	}
 

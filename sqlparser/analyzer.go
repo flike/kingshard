@@ -2,12 +2,28 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package sqlparser
 
 // analyzer.go contains utility analysis functions.
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/flike/kingshard/sqltypes"
 )
 
@@ -31,14 +47,32 @@ func GetDBName(sql string) (string, error) {
 	return "", fmt.Errorf("statement '%s' is not a dml", sql)
 }
 
-// GetTableName returns the table name from the SimpleTableExpr
-// only if it's a simple expression. Otherwise, it returns "".
-func GetTableName(node SimpleTableExpr) string {
-	if n, ok := node.(*TableName); ok && n.Qualifier == nil {
-		return string(n.Name)
+func GetTableName(token string) string {
+	if len(token) == 0 {
+		return ""
 	}
-	// sub-select or '.' expression
-	return ""
+
+	vec := strings.SplitN(token, ".", 2)
+	if len(vec) == 2 {
+		return strings.Trim(vec[1], "`")
+	} else {
+		return strings.Trim(vec[0], "`")
+	}
+}
+
+func GetInsertTableName(token string) string {
+	if len(token) == 0 {
+		return ""
+	}
+
+	vec := strings.SplitN(token, ".", 2)
+	if len(vec) == 2 {
+		table := strings.Split(vec[1], "(")
+		return strings.Trim(table[0], "`")
+	} else {
+		table := strings.Split(vec[0], "(")
+		return strings.Trim(table[0], "`")
+	}
 }
 
 // GetColName returns the column name, only if

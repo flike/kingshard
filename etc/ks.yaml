@@ -1,0 +1,108 @@
+# server listen addr
+addr : 0.0.0.0:9696
+
+# server user and password
+user :  kingshard
+password : kingshard
+
+# if set log_path, the sql log will write into log_path/sql.log,the system log
+# will write into log_path/sys.log
+#log_path : /Users/flike/log
+
+# log level[debug|info|warn|error],default error
+log_level : debug
+
+# if set log_sql(on|off) off,the sql log will not output
+log_sql: on
+ 
+# only log the query that take more than slow_log_time ms
+#slow_log_time : 100
+
+# the path of blacklist sql file
+# all these sqls in the file will been forbidden by kingshard
+#blacklist_sql_file: /Users/flike/blacklist
+
+# only allow this ip list ip to connect kingshard
+#allow_ips: 127.0.0.1
+
+# the charset of kingshard, if you don't set this item
+# the default charset of kingshard is utf8.
+#proxy_charset: gbk
+
+# node is an agenda for real remote mysql server.
+nodes :
+- 
+    name : node1 
+
+    # default max conns for mysql server
+    max_conns_limit : 32
+
+    # all mysql in a node must have the same user and password
+    user :  kingshard 
+    password : kingshard
+
+    # master represents a real mysql master server 
+    master : 127.0.0.1:3306
+
+    # slave represents a real mysql salve server,and the number after '@' is 
+    # read load weight of this slave.
+    #slave : 192.168.59.101:3307@2,192.168.59.101:3307@3
+    down_after_noalive : 32
+- 
+    name : node2 
+
+    # default max conns for mysql server
+    max_conns_limit : 32
+
+    # all mysql in a node must have the same user and password
+    user :  kingshard 
+    password : kingshard
+
+    # master represents a real mysql master server 
+    master : 192.168.59.103:3307
+
+    # slave represents a real mysql salve server 
+    slave : 
+
+    # down mysql after N seconds noalive
+    # 0 will no down
+    down_after_noalive: 32
+
+# schema defines sharding rules, the db is the sharding table database.
+schema :
+    db : kingshard
+    nodes: [node1,node2]
+    default: node1      
+    shard:
+    -   
+        table: test_shard_hash
+        key: id
+        nodes: [node1, node2]
+        type: hash
+        locations: [4,4]
+
+    -   
+        table: test_shard_range
+        key: id
+        type: range
+        nodes: [node1, node2]
+        locations: [4,4]
+        table_row_limit: 10000
+    -
+        table: test_shard_year
+        key: ctime
+        type: date_year
+        nodes: [node1,node2]
+        date_range: [2015-2016,2017-2018]
+    -
+        table: test_shard_month
+        key: dtime
+        type: date_month
+        nodes: [node1,node2]
+        date_range: [201603-201605,201609-201612]
+    -
+        table: test_shard_day
+        key: mtime
+        type: date_day
+        nodes: [node1,node2]
+        date_range: [20160306-20160307,20160308-20160309]

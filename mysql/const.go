@@ -1,10 +1,24 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package mysql
 
 const (
 	MinProtocolVersion byte   = 10
 	MaxPayloadLen      int    = 1<<24 - 1
 	TimeFormat         string = "2006-01-02 15:04:05"
-	ServerVersion      string = "5.6.20-kingshard-1.0"
+	ServerVersion      string = "5.6.20-kingshard"
 )
 
 const (
@@ -145,33 +159,50 @@ const (
 )
 
 var (
-	KS_TK_INSERT   = 1
-	KS_TK_UPDATE   = 1
-	KS_TK_DELETE   = 1
-	KS_TK_REPLACE  = 1
-	KS_TK_SET      = 1
-	KS_TK_BEGIN    = 1
-	KS_TK_COMMIT   = 1
-	KS_TK_ROLLBACK = 1
-	KS_TK_ADMIN    = 1
-	KS_TK_USE      = 1
+	TK_ID_INSERT   = 1
+	TK_ID_UPDATE   = 2
+	TK_ID_DELETE   = 3
+	TK_ID_REPLACE  = 4
+	TK_ID_SET      = 5
+	TK_ID_BEGIN    = 6
+	TK_ID_COMMIT   = 7
+	TK_ID_ROLLBACK = 8
+	TK_ID_ADMIN    = 9
+	TK_ID_USE      = 10
 
-	KS_TK_SELECT = 2
+	TK_ID_SELECT      = 11
+	TK_ID_START       = 12
+	TK_ID_TRANSACTION = 13
 
-	WHITE_TOKEN_MAP = map[string]int{
-		"insert":   KS_TK_INSERT,
-		"update":   KS_TK_UPDATE,
-		"delete":   KS_TK_DELETE,
-		"replace":  KS_TK_REPLACE,
-		"set":      KS_TK_SET,
-		"begin":    KS_TK_BEGIN,
-		"commit":   KS_TK_COMMIT,
-		"rollback": KS_TK_ROLLBACK,
-		"admin":    KS_TK_ADMIN,
-		"select":   KS_TK_SELECT,
-		"use":      KS_TK_USE,
+	PARSE_TOKEN_MAP = map[string]int{
+		"insert":      TK_ID_INSERT,
+		"update":      TK_ID_UPDATE,
+		"delete":      TK_ID_DELETE,
+		"replace":     TK_ID_REPLACE,
+		"set":         TK_ID_SET,
+		"begin":       TK_ID_BEGIN,
+		"commit":      TK_ID_COMMIT,
+		"rollback":    TK_ID_ROLLBACK,
+		"admin":       TK_ID_ADMIN,
+		"select":      TK_ID_SELECT,
+		"use":         TK_ID_USE,
+		"start":       TK_ID_START,
+		"transaction": TK_ID_TRANSACTION,
 	}
 	// '/'
 	COMMENT_PREFIX uint8 = 47
 	COMMENT_STRING       = "/*"
+
+	//
+	TK_STR_FROM = "from"
+	TK_STR_INTO = "into"
+	TK_STR_SET  = "set"
+	//set
+	TK_STR_NAMES          = "names"
+	TK_STR_RESULTS        = "character_set_results"
+	TK_STR_CLIENT         = "character_set_client"
+	TK_STR_CONNECTION     = "character_set_connection"
+	TK_STR_AUTOCOMMIT     = "autocommit"
+	TK_STR_TRANSACTION    = "transaction"
+	TK_STR_LAST_INSERT_ID = "last_insert_id()"
 )

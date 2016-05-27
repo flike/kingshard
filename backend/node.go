@@ -1,3 +1,17 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package backend
 
 import (
@@ -21,7 +35,8 @@ const (
 
 type Node struct {
 	Cfg config.NodeConfig
-	sync.Mutex
+
+	sync.RWMutex
 	Master *DB
 
 	Slave          []*DB
@@ -43,17 +58,13 @@ func (n *Node) CheckNode() {
 	n.checkMaster()
 	n.checkSlave()
 
-	t := time.NewTicker(30 * time.Second)
-	defer t.Stop()
-
 	n.LastMasterPing = time.Now().Unix()
 	n.LastSlavePing = n.LastMasterPing
+
 	for {
-		select {
-		case <-t.C:
-			n.checkMaster()
-			n.checkSlave()
-		}
+		n.checkMaster()
+		n.checkSlave()
+		time.Sleep(16 * time.Second)
 	}
 }
 
@@ -82,7 +93,7 @@ func (n *Node) GetSlaveConn() (*BackendConn, error) {
 	}
 
 	if db == nil {
-		return nil, errors.ErrNoSlaveDb
+		return nil, errors.ErrNoSlaveDB
 	}
 	if atomic.LoadInt32(&(db.state)) == Down {
 		return nil, errors.ErrSlaveDown
@@ -97,60 +108,67 @@ func (n *Node) checkMaster() {
 		golog.Error("Node", "checkMaster", "Master is no alive", 0)
 		return
 	}
-	if atomic.LoadInt32(&(db.state)) == Down {
-		return
-	}
 
 	if err := db.Ping(); err != nil {
 		golog.Error("Node", "checkMaster", "Ping", 0, "db.Addr", db.Addr(), "error", err.Error())
 	} else {
+		if atomic.LoadInt32(&(db.state)) == Down {
+			golog.Info("Node", "checkMaster", "Master up", 0, "db.Addr", db.Addr())
+			n.UpMaster(db.addr)
+		}
 		n.LastMasterPing = time.Now().Unix()
-		atomic.StoreInt32(&(db.state), Up)
+		if atomic.LoadInt32(&(db.state)) != ManualDown {
+			atomic.StoreInt32(&(db.state), Up)
+		}
 		return
 	}
 
-	if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastMasterPing > int64(n.DownAfterNoAlive) {
+	if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastMasterPing > int64(n.DownAfterNoAlive/time.Second) {
 		golog.Info("Node", "checkMaster", "Master down", 0,
 			"db.Addr", db.Addr(),
 			"Master_down_time", int64(n.DownAfterNoAlive/time.Second))
-		n.DownMaster(db.addr)
+		n.DownMaster(db.addr, Down)
 	}
 }
 
 func (n *Node) checkSlave() {
-	n.Lock()
+	n.RLock()
 	if n.Slave == nil {
-		n.Unlock()
+		n.RUnlock()
 		return
 	}
 	slaves := make([]*DB, len(n.Slave))
 	copy(slaves, n.Slave)
-	n.Unlock()
+	n.RUnlock()
 
 	for i := 0; i < len(slaves); i++ {
-		if atomic.LoadInt32(&(slaves[i].state)) == Down {
-			continue
-		}
 		if err := slaves[i].Ping(); err != nil {
 			golog.Error("Node", "checkSlave", "Ping", 0, "db.Addr", slaves[i].Addr(), "error", err.Error())
 		} else {
+			if atomic.LoadInt32(&(slaves[i].state)) == Down {
+				golog.Info("Node", "checkSlave", "Slave up", 0, "db.Addr", slaves[i].Addr())
+				n.UpSlave(slaves[i].addr)
+			}
 			n.LastSlavePing = time.Now().Unix()
-			atomic.StoreInt32(&(slaves[i].state), Up)
+			if atomic.LoadInt32(&(slaves[i].state)) != ManualDown {
+				atomic.StoreInt32(&(slaves[i].state), Up)
+			}
 			continue
 		}
 
-		if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastSlavePing > int64(n.DownAfterNoAlive) {
+		if int64(n.DownAfterNoAlive) > 0 && time.Now().Unix()-n.LastSlavePing > int64(n.DownAfterNoAlive/time.Second) {
 			golog.Info("Node", "checkMaster", "Master down", 0,
 				"db.Addr", slaves[i].Addr(),
 				"slave_down_time", int64(n.DownAfterNoAlive/time.Second))
 			//If can't ping slave after DownAfterNoAlive, set slave Down
-			n.DownSlave(slaves[i].addr)
+			n.DownSlave(slaves[i].addr, Down)
 		}
 	}
 
 }
 
 func (n *Node) AddSlave(addr string) error {
+	var db *DB
 	var weight int
 	var err error
 	if len(addr) == 0 {
@@ -158,6 +176,11 @@ func (n *Node) AddSlave(addr string) error {
 	}
 	n.Lock()
 	defer n.Unlock()
+	for _, v := range n.Slave {
+		if v.addr == addr {
+			return errors.ErrSlaveExist
+		}
+	}
 	addrAndWeight := strings.Split(addr, WeightSplit)
 	if len(addrAndWeight) == 2 {
 		weight, err = strconv.Atoi(addrAndWeight[1])
@@ -168,19 +191,32 @@ func (n *Node) AddSlave(addr string) error {
 		weight = 1
 	}
 	n.SlaveWeights = append(n.SlaveWeights, weight)
-	db := n.OpenDB(addrAndWeight[0])
-	n.Slave = append(n.Slave, db)
-	n.InitBalancer()
-	return nil
+	if db, err = n.OpenDB(addrAndWeight[0]); err != nil {
+		return err
+	} else {
+		n.Slave = append(n.Slave, db)
+		n.InitBalancer()
+		return nil
+	}
 }
 
 func (n *Node) DeleteSlave(addr string) error {
+	var i int
 	n.Lock()
 	defer n.Unlock()
 	slaveCount := len(n.Slave)
 	if slaveCount == 0 {
-		return errors.ErrNoSlaveDb
-	} else if slaveCount == 1 {
+		return errors.ErrNoSlaveDB
+	}
+	for i = 0; i < slaveCount; i++ {
+		if n.Slave[i].addr == addr {
+			break
+		}
+	}
+	if i == slaveCount {
+		return errors.ErrSlaveNotExist
+	}
+	if slaveCount == 1 {
 		n.Slave = nil
 		n.SlaveWeights = nil
 		n.RoundRobinQ = nil
@@ -189,7 +225,7 @@ func (n *Node) DeleteSlave(addr string) error {
 
 	s := make([]*DB, 0, slaveCount-1)
 	sw := make([]int, 0, slaveCount-1)
-	for i := 0; i < slaveCount; i++ {
+	for i = 0; i < slaveCount; i++ {
 		if n.Slave[i].addr != addr {
 			s = append(s, n.Slave[i])
 			sw = append(sw, n.SlaveWeights[i])
@@ -202,15 +238,17 @@ func (n *Node) DeleteSlave(addr string) error {
 	return nil
 }
 
-func (n *Node) OpenDB(addr string) *DB {
-	db := Open(addr, n.Cfg.User, n.Cfg.Password, "")
-
-	db.SetMaxIdleConnNum(n.Cfg.IdleConns)
-	return db
+func (n *Node) OpenDB(addr string) (*DB, error) {
+	db, err := Open(addr, n.Cfg.User, n.Cfg.Password, "", n.Cfg.MaxConnNum)
+	return db, err
 }
 
-func (n *Node) checkUpDB(addr string) (*DB, error) {
-	db := n.OpenDB(addr)
+func (n *Node) UpDB(addr string) (*DB, error) {
+	db, err := n.OpenDB(addr)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if err := db.Ping(); err != nil {
 		db.Close()
@@ -222,7 +260,7 @@ func (n *Node) checkUpDB(addr string) (*DB, error) {
 }
 
 func (n *Node) UpMaster(addr string) error {
-	db, err := n.checkUpDB(addr)
+	db, err := n.UpDB(addr)
 	if err != nil {
 		golog.Error("Node", "UpMaster", err.Error(), 0)
 	}
@@ -231,7 +269,7 @@ func (n *Node) UpMaster(addr string) error {
 }
 
 func (n *Node) UpSlave(addr string) error {
-	db, err := n.checkUpDB(addr)
+	db, err := n.UpDB(addr)
 	if err != nil {
 		golog.Error("Node", "UpSlave", err.Error(), 0)
 	}
@@ -250,44 +288,46 @@ func (n *Node) UpSlave(addr string) error {
 	return err
 }
 
-func (n *Node) DownMaster(addr string) error {
+func (n *Node) DownMaster(addr string, state int32) error {
 	db := n.Master
 	if db == nil || db.addr != addr {
-		return errors.ErrNoMasterDb
+		return errors.ErrNoMasterDB
 	}
+
 	db.Close()
-	atomic.StoreInt32(&(db.state), Down)
+	atomic.StoreInt32(&(db.state), state)
 	return nil
 }
 
-func (n *Node) DownSlave(addr string) error {
-	n.Lock()
+func (n *Node) DownSlave(addr string, state int32) error {
+	n.RLock()
 	if n.Slave == nil {
-		n.Unlock()
-		return errors.ErrNoSlaveDb
+		n.RUnlock()
+		return errors.ErrNoSlaveDB
 	}
 	slaves := make([]*DB, len(n.Slave))
 	copy(slaves, n.Slave)
-	n.Unlock()
+	n.RUnlock()
 
 	//slave is *DB
 	for _, slave := range slaves {
 		if slave.addr == addr {
 			slave.Close()
-			atomic.StoreInt32(&(slave.state), Down)
-			return nil
+			atomic.StoreInt32(&(slave.state), state)
+			break
 		}
 	}
 	return nil
 }
 
 func (n *Node) ParseMaster(masterStr string) error {
+	var err error
 	if len(masterStr) == 0 {
-		return errors.ErrNoMasterDb
+		return errors.ErrNoMasterDB
 	}
 
-	n.Master = n.OpenDB(masterStr)
-	return nil
+	n.Master, err = n.OpenDB(masterStr)
+	return err
 }
 
 //slaveStr(127.0.0.1:3306@2,192.168.0.12:3306@3)
@@ -317,7 +357,9 @@ func (n *Node) ParseSlave(slaveStr string) error {
 			weight = 1
 		}
 		n.SlaveWeights = append(n.SlaveWeights, weight)
-		db = n.OpenDB(addrAndWeight[0])
+		if db, err = n.OpenDB(addrAndWeight[0]); err != nil {
+			return err
+		}
 		n.Slave = append(n.Slave, db)
 	}
 	n.InitBalancer()

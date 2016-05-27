@@ -1,3 +1,17 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package backend
 
 import (
@@ -13,7 +27,7 @@ import (
 )
 
 var (
-	pingPeriod = int64(time.Second * 30)
+	pingPeriod = int64(time.Second * 16)
 )
 
 //proxy <-> mysql server
@@ -35,9 +49,8 @@ type Conn struct {
 	charset   string
 	salt      []byte
 
-	lastPing int64
-
-	pkgErr error
+	pushTimestamp int64
+	pkgErr        error
 }
 
 func (c *Conn) Connect(addr string, user string, password string, db string) error {
@@ -68,8 +81,17 @@ func (c *Conn) ReConnect() error {
 		return err
 	}
 
-	c.conn = netConn
-	c.pkg = mysql.NewPacketIO(netConn)
+	tcpConn := netConn.(*net.TCPConn)
+
+	//SetNoDelay controls whether the operating system should delay packet transmission
+	// in hopes of sending fewer packets (Nagle's algorithm).
+	// The default is true (no delay),
+	// meaning that data is sent as soon as possible after a Write.
+	//I set this option false.
+	tcpConn.SetNoDelay(false)
+	tcpConn.SetKeepAlive(true)
+	c.conn = tcpConn
+	c.pkg = mysql.NewPacketIO(tcpConn)
 
 	if err := c.readInitialHandshake(); err != nil {
 		c.conn.Close()
@@ -97,8 +119,6 @@ func (c *Conn) ReConnect() error {
 		}
 	}
 
-	c.lastPing = time.Now().Unix()
-
 	return nil
 }
 
@@ -106,6 +126,8 @@ func (c *Conn) Close() error {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
+		c.salt = nil
+		c.pkgErr = nil
 	}
 
 	return nil
@@ -320,19 +342,13 @@ func (c *Conn) writeCommandStrStr(command byte, arg1 string, arg2 string) error 
 }
 
 func (c *Conn) Ping() error {
-	n := time.Now().UnixNano()
-
-	if n-c.lastPing >= pingPeriod {
-		if err := c.writeCommand(mysql.COM_PING); err != nil {
-			return err
-		}
-
-		if _, err := c.readOK(); err != nil {
-			return err
-		}
+	if err := c.writeCommand(mysql.COM_PING); err != nil {
+		return err
 	}
 
-	c.lastPing = n
+	if _, err := c.readOK(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -377,6 +393,10 @@ func (c *Conn) Execute(command string, args ...interface{}) (*mysql.Result, erro
 	}
 }
 
+func (c *Conn) ClosePrepare(id uint32) error {
+	return c.writeCommandUint32(mysql.COM_STMT_CLOSE, id)
+}
+
 func (c *Conn) Begin() error {
 	_, err := c.exec("begin")
 	return err
@@ -390,6 +410,23 @@ func (c *Conn) Commit() error {
 func (c *Conn) Rollback() error {
 	_, err := c.exec("rollback")
 	return err
+}
+
+func (c *Conn) SetAutoCommit(n uint8) error {
+	if n == 0 {
+		if _, err := c.exec("set autocommit = 0"); err != nil {
+			c.conn.Close()
+
+			return err
+		}
+	} else {
+		if _, err := c.exec("set autocommit = 1"); err != nil {
+			c.conn.Close()
+
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Conn) SetCharset(charset string) error {
@@ -407,6 +444,7 @@ func (c *Conn) SetCharset(charset string) error {
 		return err
 	} else {
 		c.collation = cid
+		c.charset = charset
 		return nil
 	}
 }

@@ -2,6 +2,20 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Copyright 2015 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 %{
 package sqlparser
 
@@ -85,7 +99,7 @@ var (
 %left <empty> END
 
 // Transaction Tokens
-%token <empty> BEGIN COMMIT ROLLBACK
+%token <empty> BEGIN START TRANSACTION COMMIT ROLLBACK
 
 // Charset Tokens
 %token <empty> NAMES 
@@ -93,8 +107,12 @@ var (
 // Replace
 %token <empty> REPLACE
 
-// Mixer admin
-%token <empty> ADMIN
+// admin
+%token <empty> ADMIN HELP
+//offset
+%token <empty> OFFSET
+//collate
+%token <empty> COLLATE
 
 // DDL Tokens
 %token <empty> CREATE ALTER DROP RENAME
@@ -249,9 +267,23 @@ set_statement:
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
   }
-| SET comment_opt NAMES ID 
+| SET comment_opt NAMES value_expression 
   {
-    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal($4)}}}
+    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: $4}}}
+  }
+| SET comment_opt NAMES value_expression COLLATE value_expression
+  {
+    $$ = &Set{
+	       Comments: Comments($2), 
+	       Exprs: UpdateExprs{
+	            &UpdateExpr{
+	               Name: &ColName{Name:[]byte("names")}, Expr: $4,
+				  },
+				&UpdateExpr{
+	               Name: &ColName{Name:[]byte("collate")}, Expr: $6,
+				  },
+	       },
+	    }
   }
 
 begin_statement:
@@ -259,6 +291,11 @@ begin_statement:
   {
     $$ = &Begin{}
   }
+| START TRANSACTION
+  {
+    $$ = &Begin{}
+  }
+
 
 commit_statement:
   COMMIT
@@ -276,6 +313,10 @@ admin_statement:
   ADMIN dml_table_expression column_list_opt row_list
   {
     $$ = &Admin{Region : $2, Columns : $3,Rows:$4}
+  }
+| ADMIN HELP
+  {
+    $$ = &AdminHelp{}
   }
 
 use_statement:
@@ -948,6 +989,10 @@ limit_opt:
 | LIMIT value_expression ',' value_expression
   {
     $$ = &Limit{Offset: $2, Rowcount: $4}
+  }
+| LIMIT value_expression OFFSET value_expression
+  {
+	$$ = &Limit{Offset: $4, Rowcount: $2}
   }
 
 lock_opt:
