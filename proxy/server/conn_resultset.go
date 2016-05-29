@@ -132,6 +132,8 @@ func (c *ClientConn) buildResultset(fields []*mysql.Field, names []string, value
 
 		r.RowDatas = append(r.RowDatas, row)
 	}
+	//assign the values to the result
+	r.Values = values
 
 	return r, nil
 }
