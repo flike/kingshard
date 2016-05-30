@@ -146,6 +146,8 @@ func (r *Router) GetRule(table string) *Rule {
 		if strings.Trim(arry[0], "`") == r.DB {
 			table = strings.Trim(arry[1], "`")
 		}
+	} else {
+		table = strings.Trim(arry[0], "`")
 	}
 	rule := r.Rules[table]
 	if rule == nil {
@@ -244,11 +246,20 @@ func parseShard(r *Rule, cfg *config.ShardConfig) error {
 
 		r.Shard = &NumRangeShard{Shards: rs}
 	case DateDayRuleType:
-		r.Shard = &DateDayShard{}
+		if cfg.TimeFormat == "" {
+			cfg.TimeFormat = "YYYY-mm-dd HH:MM:SS"
+		}
+		r.Shard = &DateDayShard{cfg.TimeFormat}
 	case DateMonthRuleType:
-		r.Shard = &DateMonthShard{}
+		if cfg.TimeFormat == "" {
+			cfg.TimeFormat = "YYYY-mm-dd HH:MM:SS"
+		}
+		r.Shard = &DateMonthShard{cfg.TimeFormat}
 	case DateYearRuleType:
-		r.Shard = &DateYearShard{}
+		if cfg.TimeFormat == "" {
+			cfg.TimeFormat = "YYYY-mm-dd HH:MM:SS"
+		}
+		r.Shard = &DateYearShard{cfg.TimeFormat}
 	default:
 		r.Shard = &DefaultShard{}
 	}
