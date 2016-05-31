@@ -68,6 +68,7 @@ type ShardConfig struct {
 	Type          string   `yaml:"type"`
 	TableRowLimit int      `yaml:"table_row_limit"`
 	DateRange     []string `yaml:"date_range"`
+	TimeFormat    string   `yaml:"time_format"`
 }
 
 func ParseConfigData(data []byte) (*Config, error) {
