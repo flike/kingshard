@@ -550,9 +550,9 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	switch v := (node.From[0]).(type) {
 	case *sqlparser.AliasedTableExpr:
 		table := sqlparser.String(v.Expr)
-		if table[-1] == "`" {
+		if table[len(table)-1] == '`' {
 			fmt.Fprintf(buf, "%s_%04d`",
-				table[:-1],
+				table[:len(table)-1],
 				tableIndex,
 			)
 		} else {
@@ -570,9 +570,9 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	case *sqlparser.JoinTableExpr:
 		if ate, ok := (v.LeftExpr).(*sqlparser.AliasedTableExpr); ok {
 			table := sqlparser.String(ate.Expr)
-			if table[-1] == "`" {
+			if table[len(table)-1] == '`' {
 				fmt.Fprintf(buf, "%s_%04d`",
-					table[:-1],
+					table[:len(table)-1],
 					tableIndex,
 				)
 			} else {
@@ -589,9 +589,9 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 			}
 		} else {
 			table := sqlparser.String(v.LeftExpr)
-			if table[-1] == "`" {
+			if table[len(table)-1] == '`' {
 				fmt.Fprintf(buf, "%s_%04d`",
-					table[:-1],
+					table[:len(table)-1],
 					tableIndex,
 				)
 			} else {
@@ -608,9 +608,9 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		}
 	default:
 		table := sqlparser.String(node.From[0])
-		if table[-1] == "`" {
+		if table[len(table)-1] == '`' {
 			fmt.Fprintf(buf, "%s_%04d`",
-				table[:-1],
+				table[:len(table)-1],
 				tableIndex,
 			)
 		} else {
@@ -689,8 +689,14 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
 			nodeName := r.Nodes[nodeIndex]
 
-			buf.Fprintf("insert %vinto %v", node.Comments, node.Table)
-			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
+			buf.Fprintf("insert %vinto ", node.Comments)
+			table := sqlparser.String(node.Table)
+			if table[len(table)-1] == '`' {
+				fmt.Fprintf(buf, "%s_%04d`", table[:len(table)-1], plan.RouteTableIndexs[i])
+			} else {
+				fmt.Fprintf(buf, "%s_%04d", table, plan.RouteTableIndexs[i])
+			}
+
 			buf.Fprintf("%v %v%v",
 				node.Columns,
 				plan.Rows[tableIndex],
@@ -725,11 +731,13 @@ func (r *Router) generateUpdateSql(plan *Plan, stmt sqlparser.Statement) error {
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
-			buf.Fprintf("update %v%v",
-				node.Comments,
-				node.Table,
-			)
-			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
+			buf.Fprintf("update %v", node.Comments)
+			table := sqlparser.String(node.Table)
+			if table[len(table)-1] == '`' {
+				fmt.Fprintf(buf, "%s_%04d`", table[:len(table)-1], plan.RouteTableIndexs[i])
+			} else {
+				fmt.Fprintf(buf, "%s_%04d", table, plan.RouteTableIndexs[i])
+			}
 			buf.Fprintf(" set %v%v%v%v",
 				node.Exprs,
 				node.Where,
@@ -768,11 +776,13 @@ func (r *Router) generateDeleteSql(plan *Plan, stmt sqlparser.Statement) error {
 		tableCount := len(plan.RouteTableIndexs)
 		for i := 0; i < tableCount; i++ {
 			buf := sqlparser.NewTrackedBuffer(nil)
-			buf.Fprintf("delete %vfrom %v",
-				node.Comments,
-				node.Table,
-			)
-			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
+			buf.Fprintf("delete %vfrom ", node.Comments)
+			table := sqlparser.String(node.Table)
+			if table[len(table)-1] == '`' {
+				fmt.Fprintf(buf, "%s_%04d`", table[:len(table)-1], plan.RouteTableIndexs[i])
+			} else {
+				fmt.Fprintf(buf, "%s_%04d", table, plan.RouteTableIndexs[i])
+			}
 			buf.Fprintf("%v%v%v",
 				node.Where,
 				node.OrderBy,
@@ -814,11 +824,13 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 			nodeName := r.Nodes[nodeIndex]
 
 			buf := sqlparser.NewTrackedBuffer(nil)
-			buf.Fprintf("replace %vinto %v",
-				node.Comments,
-				node.Table,
-			)
-			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
+			buf.Fprintf("replace %vinto ", node.Comments)
+			table := sqlparser.String(node.Table)
+			if table[len(table)-1] == '`' {
+				fmt.Fprintf(buf, "%s_%04d`", table[:len(table)-1], plan.RouteTableIndexs[i])
+			} else {
+				fmt.Fprintf(buf, "%s_%04d", table, plan.RouteTableIndexs[i])
+			}
 			buf.Fprintf("%v %v",
 				node.Columns,
 				plan.Rows[tableIndex],
