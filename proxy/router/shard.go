@@ -177,7 +177,7 @@ func (s *DateYearShard) FindForKey(key interface{}) (int, error) {
 			return 0, fmt.Errorf("invalid date format %s", val)
 		}
 
-		tm, err := ParseDateTime(s.TimeFormat, val[:len(s.TimeFormat)])
+		tm, err := ParseDateTime(s.TimeFormat, val)
 		if err != nil {
 			return 0, NewKeyError("invalid date format %s", val)
 		}
@@ -195,23 +195,23 @@ func (s *DateMonthShard) FindForKey(key interface{}) (int, error) {
 	switch val := key.(type) {
 	case int:
 		tm := time.Unix(int64(val), 0)
-		return int(tm.Year())*100 + int(tm.Month()), nil
+		return tm.Year()*100 + int(tm.Month()), nil
 	case uint64:
 		tm := time.Unix(int64(val), 0)
-		return int(tm.Year())*100 + int(tm.Month()), nil
+		return tm.Year()*100 + int(tm.Month()), nil
 	case int64:
 		tm := time.Unix(val, 0)
-		return int(tm.Year())*100 + int(tm.Month()), nil
+		return tm.Year()*100 + int(tm.Month()), nil
 	case string:
 		if len(val) < len(s.TimeFormat) {
 			return 0, fmt.Errorf("invalid date format %s", val)
 		}
 
-		tm, err := ParseDateTime(s.TimeFormat, val[:len(s.TimeFormat)])
+		tm, err := ParseDateTime(s.TimeFormat, val)
 		if err != nil {
 			return 0, NewKeyError("invalid date format %s", val)
 		}
-		return int(tm.Year())*100 + int(tm.Month()), nil
+		return tm.Year()*100 + int(tm.Month()), nil
 	}
 	panic(NewKeyError("Unexpected key variable type %T", key))
 }
@@ -225,23 +225,23 @@ func (s *DateDayShard) FindForKey(key interface{}) (int, error) {
 	switch val := key.(type) {
 	case int:
 		tm := time.Unix(int64(val), 0)
-		return int(tm.Year())*10000 + int(tm.Month())*100 + int(tm.Day()), nil
+		return tm.Year()*10000 + int(tm.Month())*100 + tm.Day(), nil
 	case uint64:
 		tm := time.Unix(int64(val), 0)
-		return int(tm.Year())*10000 + int(tm.Month())*100 + int(tm.Day()), nil
+		return tm.Year()*10000 + int(tm.Month())*100 + tm.Day(), nil
 	case int64:
 		tm := time.Unix(val, 0)
-		return int(tm.Year())*10000 + int(tm.Month())*100 + int(tm.Day()), nil
+		return tm.Year()*10000 + int(tm.Month())*100 + tm.Day(), nil
 	case string:
 		if len(val) < len(s.TimeFormat) {
 			return 0, fmt.Errorf("invalid date format %s", val)
 		}
 
-		tm, err := ParseDateTime(s.TimeFormat, val[:len(s.TimeFormat)])
+		tm, err := ParseDateTime(s.TimeFormat, val)
 		if err != nil {
 			return 0, NewKeyError("invalid date format %s", val)
 		}
-		return int(tm.Year())*10000 + int(tm.Month())*100 + int(tm.Day()), nil
+		return tm.Year()*10000 + int(tm.Month())*100 + tm.Day(), nil
 	}
 	panic(NewKeyError("Unexpected key variable type %T", key))
 }
