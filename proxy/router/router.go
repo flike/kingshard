@@ -549,59 +549,89 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	buf.Fprintf(" from ")
 	switch v := (node.From[0]).(type) {
 	case *sqlparser.AliasedTableExpr:
-		if len(v.As) != 0 {
-			fmt.Fprintf(buf, "%s_%04d as %s",
-				sqlparser.String(v.Expr),
+		table := sqlparser.String(v.Expr)
+		if table[-1] == "`" {
+			fmt.Fprintf(buf, "%s_%04d`",
+				table[:-1],
 				tableIndex,
-				string(v.As),
 			)
 		} else {
 			fmt.Fprintf(buf, "%s_%04d",
-				sqlparser.String(v.Expr),
+				table,
 				tableIndex,
+			)
+		}
+
+		if len(v.As) != 0 {
+			fmt.Fprintf(buf, " as %s",
+				string(v.As),
 			)
 		}
 	case *sqlparser.JoinTableExpr:
 		if ate, ok := (v.LeftExpr).(*sqlparser.AliasedTableExpr); ok {
-			if len(ate.As) != 0 {
-				fmt.Fprintf(buf, "%s_%04d as %s",
-					sqlparser.String(ate.Expr),
+			table := sqlparser.String(ate.Expr)
+			if table[-1] == "`" {
+				fmt.Fprintf(buf, "%s_%04d`",
+					table[:-1],
 					tableIndex,
-					string(ate.As),
 				)
 			} else {
 				fmt.Fprintf(buf, "%s_%04d",
-					sqlparser.String(ate.Expr),
+					table,
 					tableIndex,
 				)
 			}
+
+			if len(ate.As) != 0 {
+				fmt.Fprintf(buf, " as %s",
+					string(ate.As),
+				)
+			}
 		} else {
-			fmt.Fprintf(buf, "%s_%04d",
-				sqlparser.String(v.LeftExpr),
-				tableIndex,
-			)
+			table := sqlparser.String(v.LeftExpr)
+			if table[-1] == "`" {
+				fmt.Fprintf(buf, "%s_%04d`",
+					table[:-1],
+					tableIndex,
+				)
+			} else {
+				fmt.Fprintf(buf, "%s_%04d",
+					table,
+					tableIndex,
+				)
+			}
+
 		}
 		buf.Fprintf(" %s %v", v.Join, v.RightExpr)
 		if v.On != nil {
 			buf.Fprintf(" on %v", v.On)
 		}
 	default:
-		fmt.Fprintf(buf, "%s_%04d",
-			sqlparser.String(node.From[0]),
-			tableIndex,
-		)
+		table := sqlparser.String(node.From[0])
+		if table[-1] == "`" {
+			fmt.Fprintf(buf, "%s_%04d`",
+				table[:-1],
+				tableIndex,
+			)
+		} else {
+			fmt.Fprintf(buf, "%s_%04d",
+				table,
+				tableIndex,
+			)
+		}
 	}
 	//append other tables
 	prefix = ", "
 	for i := 1; i < len(node.From); i++ {
 		buf.Fprintf("%s%v", prefix, node.From[i])
 	}
-	buf.Fprintf("%v%v%v%v%s",
+	buf.Fprintf("%v%v%v%v%s%v",
 		node.Where,
 		node.GroupBy,
 		node.Having,
 		node.OrderBy,
 		node.Lock,
+		node.Limit,
 	)
 	return buf.String()
 }
