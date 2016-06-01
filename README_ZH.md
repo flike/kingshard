@@ -2,7 +2,7 @@
 
 # kingshard简介
 
-kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作；能够让DBA通过kingshard轻松平滑地实现MySQL数据库扩容。 **kingshard的性能大约是直连MySQL性能的80%以上**。
+kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作；能够让DBA通过kingshard轻松平滑地实现MySQL数据库扩容。 **kingshard的性能是直连MySQL性能的80%以上**。
 
 ## 主要功能：
 
@@ -19,6 +19,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 - 支持SQL黑名单机制。
 - 支持客户端IP访问白名单机制，只有白名单中的IP才能访问kingshard。
 - 支持字符集设置。
+- 支持last_insert_id功能。
 - 支持动态修改kingshard部分配置项（具体参考管理端命令）。
 
 ### 2. sharding功能
@@ -64,6 +65,10 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 - 感谢[mixer](https://github.com/siddontang/mixer)作者siddontang, kingshard最初的版本正是基于mixer开发而来的。
 - 感谢[bigpyer](https://github.com/bigpyer)，他对kingshard做了详细的性能测试，并撰写了一份非常详细的测试报告。
 - 感谢以下[开源爱好者](https://github.com/flike/kingshard/graphs/contributors)为kingshard做出的贡献。
+
+## kingshard用户列表
+
+https://github.com/flike/kingshard/issues/148
 
 ## 打赏
 https://github.com/flike/kingshard/blob/master/doc/KingDoc/support.md

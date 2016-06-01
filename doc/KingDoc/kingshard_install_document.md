@@ -114,6 +114,6 @@ schema :
 
 **3. windows下安装kingshard，参考[文档](https://github.com/flike/kingshard/wiki/%E5%9C%A8window%E4%B8%8B%E5%AE%89%E8%A3%85kingshard)**
 
-**4. 可以通过`./bin/kingshard -v`来查看kingshard的commit hash和编译时间，从而维持kingshard的版本。
+**4. 可以通过`./bin/kingshard -v`来查看kingshard的commit hash和编译时间，从而维持kingshard的版本。**
 
 

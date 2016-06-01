@@ -31,6 +31,7 @@ var (
 	ErrDatabaseClose = errors.New("database is close")
 	ErrConnIsNil     = errors.New("connection is nil")
 	ErrBadConn       = errors.New("connection was bad")
+	ErrIgnoreSQL     = errors.New("ignore this sql")
 
 	ErrAddressNull     = errors.New("address is nil")
 	ErrInvalidArgument = errors.New("argument is invalid")

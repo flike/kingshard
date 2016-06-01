@@ -548,7 +548,7 @@ var CollationNames = map[string]CollationId{
 	"utf8mb4_vietnamese_ci":    247,
 }
 
-const (
+var (
 	DEFAULT_CHARSET                    = "utf8"
 	DEFAULT_COLLATION_ID   CollationId = 33
 	DEFAULT_COLLATION_NAME string      = "utf8_general_ci"

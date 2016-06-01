@@ -289,6 +289,9 @@ func (c *ClientConn) Run() {
 				err.Error(), c.connectionId,
 			)
 			c.writeError(err)
+			if err == mysql.ErrBadConn {
+				c.Close()
+			}
 		}
 
 		if c.closed {
@@ -306,6 +309,7 @@ func (c *ClientConn) dispatch(data []byte) error {
 
 	switch cmd {
 	case mysql.COM_QUIT:
+		c.handleRollback()
 		c.Close()
 		return nil
 	case mysql.COM_QUERY:

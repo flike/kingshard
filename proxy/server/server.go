@@ -54,9 +54,6 @@ type Server struct {
 	user     string
 	password string
 	db       string
-	charset  string
-
-	collation mysql.CollationId
 
 	logSqlIndex        int32
 	logSql             [2]string
@@ -219,11 +216,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		if !ok {
 			return nil, errors.ErrInvalidCharset
 		}
-		s.charset = cfg.Charset
-		s.collation = cid
-	} else {
-		s.charset = mysql.DEFAULT_CHARSET
-		s.collation = mysql.DEFAULT_COLLATION_ID
+		//change the default charset
+		mysql.DEFAULT_CHARSET = cfg.Charset
+		mysql.DEFAULT_COLLATION_ID = cid
+		mysql.DEFAULT_COLLATION_NAME = mysql.Collations[cid]
 	}
 
 	if err := s.parseBlackListSqls(); err != nil {
@@ -295,8 +291,8 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 
 	c.closed = false
 
-	c.collation = s.collation
-	c.charset = s.charset
+	c.charset = mysql.DEFAULT_CHARSET
+	c.collation = mysql.DEFAULT_COLLATION_ID
 
 	c.stmtId = 0
 	c.stmts = make(map[uint32]*Stmt)
