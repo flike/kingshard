@@ -127,6 +127,9 @@ func (c *ClientConn) GetTransExecDB(tokens []string, sql string) (*ExecuteDB, er
 	tokensLen := len(tokens)
 	executeDB := new(ExecuteDB)
 
+	//transaction execute in master db
+	executeDB.IsSlave = false
+
 	if 2 <= tokensLen {
 		if tokens[0][0] == mysql.COMMENT_PREFIX {
 			nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
@@ -144,8 +147,6 @@ func (c *ClientConn) GetTransExecDB(tokens []string, sql string) (*ExecuteDB, er
 		if executeDB == nil {
 			return nil, nil
 		}
-		//transaction execute in master db
-		executeDB.IsSlave = false
 		return executeDB, nil
 	}
 	if len(c.txConns) == 1 && c.txConns[executeDB.ExecNode] == nil {
@@ -171,6 +172,8 @@ func (c *ClientConn) GetExecDB(tokens []string, sql string) (*ExecuteDB, error) 
 				return c.getUpdateExecDB(tokens, tokensLen)
 			case mysql.TK_ID_SET:
 				return c.getSetExecDB(tokens, tokensLen, sql)
+			case mysql.TK_ID_SHOW:
+				return c.getShowExecDB(tokens, tokensLen)
 			default:
 				return nil, nil
 			}
@@ -351,6 +354,20 @@ func (c *ClientConn) getSetExecDB(tokens []string, tokensLen int, sql string) (*
 			}
 		}
 	}
+
+	err := c.setExecuteNode(tokens, tokensLen, executeDB)
+	if err != nil {
+		return nil, err
+	}
+
+	return executeDB, nil
+}
+
+//get the execute database for show sql
+//choose slave preferentially
+func (c *ClientConn) getShowExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
+	executeDB := new(ExecuteDB)
+	executeDB.IsSlave = true
 
 	err := c.setExecuteNode(tokens, tokensLen, executeDB)
 	if err != nil {

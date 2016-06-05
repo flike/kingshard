@@ -173,6 +173,7 @@ var (
 	TK_ID_SELECT      = 11
 	TK_ID_START       = 12
 	TK_ID_TRANSACTION = 13
+	TK_ID_SHOW        = 14
 
 	PARSE_TOKEN_MAP = map[string]int{
 		"insert":      TK_ID_INSERT,
@@ -188,6 +189,7 @@ var (
 		"use":         TK_ID_USE,
 		"start":       TK_ID_START,
 		"transaction": TK_ID_TRANSACTION,
+		"show":        TK_ID_SHOW,
 	}
 	// '/'
 	COMMENT_PREFIX uint8 = 47

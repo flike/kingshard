@@ -93,7 +93,7 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	case *sqlparser.AdminHelp:
 		return c.handleAdminHelp(v)
 	case *sqlparser.UseDB:
-		return c.handleUseDB(v)
+		return c.handleUseDB(v.DB)
 	case *sqlparser.SimpleSelect:
 		return c.handleSimpleSelect(v)
 	default:
