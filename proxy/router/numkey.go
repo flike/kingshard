@@ -220,3 +220,79 @@ func ParseYearRange(dateRange string) ([]int, error) {
 
 	return dateYear, nil
 }
+
+func ParseDateTime(layout, dateString string) (time.Time, error) {
+	year, month, day, hour, minute, second := 0, 0, 0, 0, 0, 0
+	i := 0
+	for {
+		f := layout[i]
+		switch f {
+		case 'Y':
+			y, err := strconv.Atoi(dateString[i : i+4])
+			if err != nil {
+				return time.Date(0, time.Month(0), 0, 0, 0, 0, 0, time.UTC), err
+			}
+
+			i += 4
+			if y > 0 {
+				year = y
+			}
+		case 'm':
+			m, err := strconv.Atoi(dateString[i : i+2])
+			if err != nil {
+				return time.Date(0, time.Month(0), 0, 0, 0, 0, 0, time.UTC), err
+			}
+
+			i += 2
+			if m > 0 && m <= 12 {
+				month = m
+			}
+		case 'd':
+			d, err := strconv.Atoi(dateString[i : i+2])
+			if err != nil {
+				return time.Date(0, time.Month(0), 0, 0, 0, 0, 0, time.UTC), err
+			}
+
+			i += 2
+			if d >= 0 && d <= 31 {
+				day = d
+			}
+		case 'H':
+			h, err := strconv.Atoi(dateString[i : i+2])
+			if err != nil {
+				return time.Date(0, time.Month(0), 0, 0, 0, 0, 0, time.UTC), err
+			}
+
+			i += 2
+			if h >= 0 && h <= 24 {
+				hour = h
+			}
+		case 'M':
+			m, err := strconv.Atoi(dateString[i : i+2])
+			if err != nil {
+				return time.Date(0, time.Month(0), 0, 0, 0, 0, 0, time.UTC), err
+			}
+
+			i += 2
+			if m >= 0 && m <= 60 {
+				minute = m
+			}
+		case 'S':
+			s, err := strconv.Atoi(dateString[i : i+2])
+			if err != nil {
+				return time.Date(0, time.Month(0), 0, 0, 0, 0, 0, time.UTC), err
+			}
+
+			i += 2
+			if s >= 0 && s <= 60 {
+				second = s
+			}
+		default:
+			i += 1
+		}
+		if i >= len(layout) || i >= len(dateString) {
+			break
+		}
+	}
+	return time.Date(year, time.Month(month), day, hour, minute, second, 0, time.UTC), nil
+}
