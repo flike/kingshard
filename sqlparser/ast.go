@@ -20,7 +20,9 @@ package sqlparser
 
 import (
 	"errors"
+	"strconv"
 
+	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/sqltypes"
 )
 
@@ -829,6 +831,41 @@ func (node *Order) Format(buf *TrackedBuffer) {
 // Limit represents a LIMIT clause.
 type Limit struct {
 	Offset, Rowcount ValExpr
+}
+
+func (node *Limit) RewriteLimit() (*Limit, error) {
+	if node == nil {
+		return nil, nil
+	}
+
+	var offset, count int64
+	var err error
+	newLimit := new(Limit)
+
+	if node.Offset == nil {
+		offset = 0
+	} else {
+		if o, ok := node.Offset.(NumVal); !ok {
+			return nil, errors.New("Limit.offset is not number")
+		} else {
+			if offset, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if r, ok := node.Rowcount.(NumVal); !ok {
+		return nil, errors.New("Limit.RowCount is not number")
+	} else {
+		if count, err = strconv.ParseInt(hack.String([]byte(r)), 10, 64); err != nil {
+			return nil, err
+		}
+	}
+
+	allRowCount := strconv.FormatInt((offset + count), 10)
+	newLimit.Rowcount = NumVal(allRowCount)
+
+	return newLimit, nil
 }
 
 func (node *Limit) Format(buf *TrackedBuffer) {
