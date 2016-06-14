@@ -140,7 +140,7 @@ func (c *ClientConn) buildResultset(fields []*mysql.Field, names []string, value
 
 func (c *ClientConn) writeResultset(status uint16, r *mysql.Resultset) error {
 	c.affectedRows = int64(-1)
-	total := make([]byte, 0, 1024)
+	total := make([]byte, 0, 4096)
 	data := make([]byte, 4, 512)
 	var err error
 
