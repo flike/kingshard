@@ -252,10 +252,7 @@ func (c *ClientConn) readHandshakeResponse() error {
 		//if connect without database, use default db
 		db = c.proxy.schema.db
 	}
-
-	if err := c.useDB(db); err != nil {
-		return err
-	}
+	c.db = db
 
 	return nil
 }
@@ -317,11 +314,7 @@ func (c *ClientConn) dispatch(data []byte) error {
 	case mysql.COM_PING:
 		return c.writeOK(nil)
 	case mysql.COM_INIT_DB:
-		if err := c.useDB(hack.String(data)); err != nil {
-			return err
-		} else {
-			return c.writeOK(nil)
-		}
+		return c.handleUseDB(hack.String(data))
 	case mysql.COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case mysql.COM_STMT_PREPARE:
@@ -342,27 +335,6 @@ func (c *ClientConn) dispatch(data []byte) error {
 		return mysql.NewError(mysql.ER_UNKNOWN_ERROR, msg)
 	}
 
-	return nil
-}
-
-func (c *ClientConn) useDB(db string) error {
-	if c.schema == nil {
-		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
-	}
-
-	nodeName := c.schema.rule.DefaultRule.Nodes[0]
-
-	n := c.proxy.GetNode(nodeName)
-	co, err := n.GetMasterConn()
-	defer c.closeConn(co, false)
-	if err != nil {
-		return err
-	}
-
-	if err = co.UseDB(db); err != nil {
-		return err
-	}
-	c.db = db
 	return nil
 }
 

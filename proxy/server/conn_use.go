@@ -17,13 +17,16 @@ package server
 import (
 	"fmt"
 
+	"github.com/flike/kingshard/backend"
 	"github.com/flike/kingshard/mysql"
-	"github.com/flike/kingshard/sqlparser"
 )
 
-func (c *ClientConn) handleUseDB(stmt *sqlparser.UseDB) error {
-	if len(stmt.DB) == 0 {
-		return fmt.Errorf("must have database, not %s", sqlparser.String(stmt))
+func (c *ClientConn) handleUseDB(dbName string) error {
+	var co *backend.BackendConn
+	var err error
+
+	if len(dbName) == 0 {
+		return fmt.Errorf("must have database, the length of dbName is zero")
 	}
 	if c.schema == nil {
 		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
@@ -32,15 +35,19 @@ func (c *ClientConn) handleUseDB(stmt *sqlparser.UseDB) error {
 	nodeName := c.schema.rule.DefaultRule.Nodes[0]
 
 	n := c.proxy.GetNode(nodeName)
-	co, err := n.GetMasterConn()
+	//get the connection from slave preferentially
+	co, err = n.GetSlaveConn()
+	if err != nil {
+		co, err = n.GetMasterConn()
+	}
 	defer c.closeConn(co, false)
 	if err != nil {
 		return err
 	}
 
-	if err = co.UseDB(string(stmt.DB)); err != nil {
+	if err = co.UseDB(dbName); err != nil {
 		return err
 	}
-	c.db = string(stmt.DB)
+	c.db = dbName
 	return c.writeOK(nil)
 }

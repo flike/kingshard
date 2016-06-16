@@ -31,7 +31,7 @@ type PacketIO struct {
 func NewPacketIO(conn net.Conn) *PacketIO {
 	p := new(PacketIO)
 
-	p.rb = bufio.NewReaderSize(conn, 1024)
+	p.rb = bufio.NewReaderSize(conn, 8192)
 	p.wb = conn
 
 	p.Sequence = 0

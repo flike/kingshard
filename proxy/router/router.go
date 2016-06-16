@@ -585,11 +585,18 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	for i := 1; i < len(node.From); i++ {
 		buf.Fprintf("%s%v", prefix, node.From[i])
 	}
-	buf.Fprintf("%v%v%v%v%s",
+
+	newLimit, err := node.Limit.RewriteLimit()
+	if err != nil {
+		//do not change limit
+		newLimit = node.Limit
+	}
+	buf.Fprintf("%v%v%v%v%v%s",
 		node.Where,
 		node.GroupBy,
 		node.Having,
 		node.OrderBy,
+		newLimit,
 		node.Lock,
 	)
 	return buf.String()
