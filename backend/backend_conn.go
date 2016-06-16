@@ -354,7 +354,7 @@ func (c *Conn) Ping() error {
 }
 
 func (c *Conn) UseDB(dbName string) error {
-	if c.db == dbName {
+	if c.db == dbName || len(dbName) < 1 {
 		return nil
 	}
 
