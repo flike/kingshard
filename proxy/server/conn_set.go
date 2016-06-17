@@ -57,9 +57,12 @@ func (c *ClientConn) handleSet(stmt *sqlparser.Set, sql string) (err error) {
 
 	k := string(stmt.Exprs[0].Name.Name)
 	switch strings.ToUpper(k) {
-	case `AUTOCOMMIT`:
+	case `AUTOCOMMIT`, `@@AUTOCOMMIT`, `@@SESSION.AUTOCOMMIT`:
 		return c.handleSetAutoCommit(stmt.Exprs[0].Expr)
-	case `NAMES`, `CHARACTER_SET_RESULTS`, `CHARACTER_SET_CLIENT`, `CHARACTER_SET_CONNECTION`:
+	case `NAMES`,
+		`CHARACTER_SET_RESULTS`, `@@CHARACTER_SET_RESULTS`, `@@SESSION.CHARACTER_SET_RESULTS`,
+		`CHARACTER_SET_CLIENT`, `@@CHARACTER_SET_CLIENT`, `@@SESSION.CHARACTER_SET_CLIENT`,
+		`CHARACTER_SET_CONNECTION`, `@@CHARACTER_SET_CONNECTION`, `@@SESSION.CHARACTER_SET_CONNECTION`:
 		if len(stmt.Exprs) == 2 {
 			//SET NAMES 'charset_name' COLLATE 'collation_name'
 			return c.handleSetNames(stmt.Exprs[0].Expr, stmt.Exprs[1].Expr)

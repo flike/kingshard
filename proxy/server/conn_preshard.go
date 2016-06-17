@@ -339,9 +339,17 @@ func (c *ClientConn) getSetExecDB(tokens []string, tokensLen int, sql string) (*
 		secondWord := strings.ToLower(uncleanWord[1])
 		if secondWord == mysql.TK_STR_NAMES ||
 			secondWord == mysql.TK_STR_RESULTS ||
+			secondWord == "@@character_set_results" ||
+			secondWord == "@@session.character_set_results" ||
 			secondWord == mysql.TK_STR_CLIENT ||
+			secondWord == "@@character_set_client" ||
+			secondWord == "@@session.character_set_client" ||
 			secondWord == mysql.TK_STR_CONNECTION ||
-			secondWord == mysql.TK_STR_AUTOCOMMIT {
+			secondWord == "@@character_set_connection" ||
+			secondWord == "@@session.character_set_connection" ||
+			secondWord == mysql.TK_STR_AUTOCOMMIT ||
+			secondWord == "@@autocommit" ||
+			secondWord == "@@session.autocommit" {
 			return nil, nil
 		}
 
