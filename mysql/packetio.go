@@ -21,6 +21,10 @@ import (
 	"net"
 )
 
+const (
+	defaultReaderSize = 8 * 1024
+)
+
 type PacketIO struct {
 	rb *bufio.Reader
 	wb io.Writer
@@ -31,7 +35,7 @@ type PacketIO struct {
 func NewPacketIO(conn net.Conn) *PacketIO {
 	p := new(PacketIO)
 
-	p.rb = bufio.NewReaderSize(conn, 8192)
+	p.rb = bufio.NewReaderSize(conn, defaultReaderSize)
 	p.wb = conn
 
 	p.Sequence = 0
