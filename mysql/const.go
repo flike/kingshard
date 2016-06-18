@@ -199,12 +199,27 @@ var (
 	TK_STR_FROM = "from"
 	TK_STR_INTO = "into"
 	TK_STR_SET  = "set"
-	//set
-	TK_STR_NAMES          = "names"
-	TK_STR_RESULTS        = "character_set_results"
-	TK_STR_CLIENT         = "character_set_client"
-	TK_STR_CONNECTION     = "character_set_connection"
-	TK_STR_AUTOCOMMIT     = "autocommit"
+
 	TK_STR_TRANSACTION    = "transaction"
 	TK_STR_LAST_INSERT_ID = "last_insert_id()"
+
+	SET_KEY_WORDS = map[string]struct{}{
+		"names": struct{}{},
+
+		"character_set_results":           struct{}{},
+		"@@character_set_results":         struct{}{},
+		"@@session.character_set_results": struct{}{},
+
+		"character_set_client":           struct{}{},
+		"@@character_set_client":         struct{}{},
+		"@@session.character_set_client": struct{}{},
+
+		"character_set_connection":           struct{}{},
+		"@@character_set_connection":         struct{}{},
+		"@@session.character_set_connection": struct{}{},
+
+		"autocommit":           struct{}{},
+		"@@autocommit":         struct{}{},
+		"@@session.autocommit": struct{}{},
+	}
 )
