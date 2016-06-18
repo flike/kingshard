@@ -127,6 +127,7 @@ var (
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> distinct_opt
+%type <str> ignore_opt
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
 %type <bytes> as_lower_opt as_opt
@@ -165,7 +166,7 @@ var (
 %type <updateExprs> on_dup_opt
 %type <updateExprs> update_list
 %type <updateExpr> update_expression
-%type <empty> exists_opt not_exists_opt ignore_opt non_rename_operation to_opt constraint_opt using_opt
+%type <empty> exists_opt not_exists_opt non_rename_operation to_opt constraint_opt using_opt
 %type <bytes> sql_id
 %type <empty> force_eof
 
@@ -218,19 +219,19 @@ select_statement:
 
 
 insert_statement:
-  INSERT comment_opt INTO dml_table_expression column_list_opt row_list on_dup_opt
+  INSERT comment_opt ignore_opt INTO dml_table_expression column_list_opt row_list on_dup_opt
   {
-    $$ = &Insert{Comments: Comments($2), Table: $4, Columns: $5, Rows: $6, OnDup: OnDup($7)}
+    $$ = &Insert{Comments: Comments($2), Ignore:$3, Table: $5, Columns: $6, Rows: $7, OnDup: OnDup($8)}
   }
-| INSERT comment_opt INTO dml_table_expression SET update_list on_dup_opt
+| INSERT comment_opt ignore_opt INTO dml_table_expression SET update_list on_dup_opt
   {
-    cols := make(Columns, 0, len($6))
-    vals := make(ValTuple, 0, len($6))
-    for _, col := range $6 {
+    cols := make(Columns, 0, len($7))
+    vals := make(ValTuple, 0, len($7))
+    for _, col := range $7 {
       cols = append(cols, &NonStarExpr{Expr: col.Name})
       vals = append(vals, col.Expr)
     }
-    $$ = &Insert{Comments: Comments($2), Table: $4, Columns: cols, Rows: Values{vals}, OnDup: OnDup($7)}
+    $$ = &Insert{Comments: Comments($2), Ignore:$3, Table: $5, Columns: cols, Rows: Values{vals}, OnDup: OnDup($8)}
   }
 
 replace_statement:
@@ -343,12 +344,12 @@ create_statement:
 alter_statement:
   ALTER ignore_opt TABLE ID non_rename_operation force_eof
   {
-    $$ = &DDL{Action: AST_ALTER, Table: $4, NewName: $4}
+    $$ = &DDL{Action: AST_ALTER, Ignore: $2, Table: $4, NewName: $4}
   }
 | ALTER ignore_opt TABLE ID RENAME to_opt ID
   {
     // Change this to a rename statement
-    $$ = &DDL{Action: AST_RENAME, Table: $4, NewName: $7}
+    $$ = &DDL{Action: AST_RENAME, Ignore: $2, Table: $4, NewName: $7}
   }
 | ALTER VIEW sql_id force_eof
   {
@@ -1071,9 +1072,9 @@ not_exists_opt:
   { $$ = struct{}{} }
 
 ignore_opt:
-  { $$ = struct{}{} }
+  { $$ = "" }
 | IGNORE
-  { $$ = struct{}{} }
+  { $$ = AST_IGNORE }
 
 non_rename_operation:
   ALTER

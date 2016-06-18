@@ -142,6 +142,7 @@ func (node *Union) Format(buf *TrackedBuffer) {
 // Insert represents an INSERT statement.
 type Insert struct {
 	Comments Comments
+	Ignore   string
 	Table    *TableName
 	Columns  Columns
 	Rows     InsertRows
@@ -149,8 +150,8 @@ type Insert struct {
 }
 
 func (node *Insert) Format(buf *TrackedBuffer) {
-	buf.Fprintf("insert %vinto %v%v %v%v",
-		node.Comments,
+	buf.Fprintf("insert %v%s into %v%v %v%v",
+		node.Comments, node.Ignore,
 		node.Table, node.Columns, node.Rows, node.OnDup)
 }
 
@@ -209,7 +210,9 @@ func (node *Set) Format(buf *TrackedBuffer) {
 // Table is set for AST_ALTER, AST_DROP, AST_RENAME.
 // NewName is set for AST_ALTER, AST_CREATE, AST_RENAME.
 type DDL struct {
-	Action  string
+	Action string
+	//or alter and rename
+	Ignore  string
 	Table   []byte
 	NewName []byte
 }
@@ -226,7 +229,9 @@ func (node *DDL) Format(buf *TrackedBuffer) {
 	case AST_CREATE:
 		buf.Fprintf("%s table %s", node.Action, node.NewName)
 	case AST_RENAME:
-		buf.Fprintf("%s table %s %s", node.Action, node.Table, node.NewName)
+		buf.Fprintf("%s %s table %s %s", node.Action, node.Ignore, node.Table, node.NewName)
+	case AST_ALTER:
+		buf.Fprintf("%s %s table %s", node.Action, node.Ignore, node.Table)
 	default:
 		buf.Fprintf("%s table %s", node.Action, node.Table)
 	}

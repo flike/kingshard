@@ -237,6 +237,13 @@ func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB
 		}
 	}
 
+	//if send to master
+	if 2 < tokensLen {
+		if strings.ToLower(tokens[1]) == mysql.TK_STR_MASTER_HINT {
+			executeDB.IsSlave = false
+		}
+	}
+
 	err := c.setExecuteNode(tokens, tokensLen, executeDB)
 	if err != nil {
 		return nil, err

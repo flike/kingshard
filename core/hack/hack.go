@@ -41,5 +41,5 @@ func Slice(s string) (b []byte) {
 }
 
 func IsSqlSep(r rune) bool {
-	return r == ' ' || r == ',' || r == '\t'
+	return r == ' ' || r == ',' || r == '\t' || r == '/'
 }

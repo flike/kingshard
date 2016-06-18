@@ -655,7 +655,7 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
 			nodeName := r.Nodes[nodeIndex]
 
-			buf.Fprintf("insert %vinto %v", node.Comments, node.Table)
+			buf.Fprintf("insert %v%s into %v", node.Comments, node.Ignore, node.Table)
 			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			buf.Fprintf("%v %v%v",
 				node.Columns,
