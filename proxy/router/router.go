@@ -233,7 +233,7 @@ func parseShard(r *Rule, cfg *config.ShardConfig) error {
 	case HashRuleType:
 		r.Shard = &HashShard{ShardNum: len(r.TableToNode)}
 	case RangeRuleType:
-		rs, err := ParseNumSharding(cfg.Locations, cfg.TableRowLimit)
+		rs, err := ParseNumSharding(cfg.Locations, cfg.TableRowLimit, cfg.TableRowBase)
 		if err != nil {
 			return err
 		}
