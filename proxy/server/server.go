@@ -64,9 +64,10 @@ type Server struct {
 	allowipsIndex      int32
 	allowips           [2][]net.IP
 
-	counter *Counter
-	nodes   map[string]*backend.Node
-	schema  *Schema
+	counter     *Counter
+	nodes       map[string]*backend.Node
+	schemaIndex int32
+	schema      [2]*Schema
 
 	listener net.Listener
 	running  bool
@@ -189,7 +190,8 @@ func (s *Server) parseSchema() error {
 		return err
 	}
 
-	s.schema = &Schema{
+	atomic.StoreInt32(&s.schemaIndex, 0)
+	s.schema[s.schemaIndex] = &Schema{
 		db:    schemaCfg.DB,
 		nodes: nodes,
 		rule:  rule,
@@ -273,8 +275,6 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 	//I set this option false.
 	tcpConn.SetNoDelay(false)
 	c.c = tcpConn
-
-	c.schema = s.GetSchema()
 
 	c.pkg = mysql.NewPacketIO(tcpConn)
 	c.proxy = s
@@ -453,6 +453,49 @@ func (s *Server) addBlackSql(v string) error {
 	return nil
 }
 
+func (s *Server) addSchema(v string) error {
+	cfg := new(config.ShardConfig)
+	cfgArray := strings.Split(v, "|")
+	for _, v1 := range cfgArray {
+		tmp := strings.Split(v1, "=")
+		switch tmp[0] {
+		case router.TABLE:
+			cfg.Table = tmp[1]
+		case router.TYPE:
+			cfg.Type = tmp[1]
+		case router.KEY:
+			cfg.Key = tmp[1]
+		case router.NODES:
+			cfg.Nodes = strings.Split(tmp[1], ",")
+		case router.TABLE_ROW_LIMIT:
+			cfg.TableRowLimit, _ = strconv.Atoi(tmp[1])
+		case router.DATE_RANGE:
+			cfg.DateRange = strings.Split(tmp[1], ",")
+		case router.LOCATIONS:
+			for _, v2 := range strings.Split(tmp[1], ",") {
+				tmpItem, _ := strconv.Atoi(v2)
+				cfg.Locations = append(cfg.Locations, tmpItem)
+			}
+		}
+	}
+
+	rule, err := router.ParseRule(s.db, cfg)
+	if err != nil {
+		return err
+	}
+	if s.schemaIndex == 0 {
+		s.schema[1] = s.schema[0]
+		s.schema[1].rule.Rules[cfg.Table] = rule
+		atomic.StoreInt32(&s.schemaIndex, 1)
+	} else {
+		s.schema[0] = s.schema[1]
+		s.schema[0].rule.Rules[cfg.Table] = rule
+		atomic.StoreInt32(&s.schemaIndex, 0)
+	}
+	s.cfg.Schema.ShardRule = append(s.cfg.Schema.ShardRule, *cfg)
+	return nil
+}
+
 func (s *Server) delBlackSql(v string) error {
 	v = strings.TrimSpace(v)
 	fingerPrint := mysql.GetFingerprint(v)
@@ -591,8 +634,4 @@ func (s *Server) DownSlave(node, slaveAddr string) error {
 
 func (s *Server) GetNode(name string) *backend.Node {
 	return s.nodes[name]
-}
-
-func (s *Server) GetSchema() *Schema {
-	return s.schema
 }

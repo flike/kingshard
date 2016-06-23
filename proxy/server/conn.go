@@ -51,8 +51,6 @@ type ClientConn struct {
 
 	salt []byte
 
-	schema *Schema
-
 	txConns map[*backend.Node]*backend.BackendConn
 
 	closed bool
@@ -250,7 +248,7 @@ func (c *ClientConn) readHandshakeResponse() error {
 
 	} else {
 		//if connect without database, use default db
-		db = c.proxy.schema.db
+		db = c.proxy.schema[c.proxy.schemaIndex].db
 	}
 	c.db = db
 

@@ -342,7 +342,7 @@ func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *mysql.Resultset 
 }
 
 func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) error {
-	plan, err := c.schema.rule.BuildPlan(stmt)
+	plan, err := c.proxy.schema[c.proxy.schemaIndex].rule.BuildPlan(stmt)
 	if err != nil {
 		return err
 	}

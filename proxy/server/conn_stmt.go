@@ -56,7 +56,7 @@ func (s *Stmt) ResetParams() {
 }
 
 func (c *ClientConn) handleStmtPrepare(sql string) error {
-	if c.schema == nil {
+	if c.proxy.schema[c.proxy.schemaIndex] == nil {
 		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
 	}
 
@@ -72,7 +72,7 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 
 	s.sql = sql
 
-	defaultRule := c.schema.rule.DefaultRule
+	defaultRule := c.proxy.schema[c.proxy.schemaIndex].rule.DefaultRule
 
 	n := c.proxy.GetNode(defaultRule.Nodes[0])
 
@@ -82,7 +82,7 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 		return fmt.Errorf("prepare error %s", err)
 	}
 
-	err = co.UseDB(c.schema.db)
+	err = co.UseDB(c.proxy.schema[c.proxy.schemaIndex].db)
 	if err != nil {
 		return fmt.Errorf("prepare error %s", err)
 	}
@@ -256,7 +256,7 @@ func (c *ClientConn) handleStmtExecute(data []byte) error {
 }
 
 func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
-	defaultRule := c.schema.rule.DefaultRule
+	defaultRule := c.proxy.schema[c.proxy.schemaIndex].rule.DefaultRule
 	if len(defaultRule.Nodes) == 0 {
 		return errors.ErrNoDefaultNode
 	}
@@ -293,7 +293,7 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 }
 
 func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
-	defaultRule := c.schema.rule.DefaultRule
+	defaultRule := c.proxy.schema[c.proxy.schemaIndex].rule.DefaultRule
 	if len(defaultRule.Nodes) == 0 {
 		return errors.ErrNoDefaultNode
 	}
