@@ -28,11 +28,11 @@ func (c *ClientConn) handleUseDB(dbName string) error {
 	if len(dbName) == 0 {
 		return fmt.Errorf("must have database, the length of dbName is zero")
 	}
-	if c.schema == nil {
+	if c.proxy.schema[c.proxy.schemaIndex] == nil {
 		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
 	}
 
-	nodeName := c.schema.rule.DefaultRule.Nodes[0]
+	nodeName := c.proxy.schema[c.proxy.schemaIndex].rule.DefaultRule.Nodes[0]
 
 	n := c.proxy.GetNode(nodeName)
 	//get the connection from slave preferentially

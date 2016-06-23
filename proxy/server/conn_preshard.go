@@ -133,8 +133,8 @@ func (c *ClientConn) GetTransExecDB(tokens []string, sql string) (*ExecuteDB, er
 	if 2 <= tokensLen {
 		if tokens[0][0] == mysql.COMMENT_PREFIX {
 			nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
-			if c.schema.nodes[nodeName] != nil {
-				executeDB.ExecNode = c.schema.nodes[nodeName]
+			if c.proxy.schema[c.proxy.schemaIndex].nodes[nodeName] != nil {
+				executeDB.ExecNode = c.proxy.schema[c.proxy.schemaIndex].nodes[nodeName]
 			}
 		}
 	}
@@ -191,14 +191,14 @@ func (c *ClientConn) setExecuteNode(tokens []string, tokensLen int, executeDB *E
 	if 2 <= tokensLen {
 		if tokens[0][0] == mysql.COMMENT_PREFIX {
 			nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
-			if c.schema.nodes[nodeName] != nil {
-				executeDB.ExecNode = c.schema.nodes[nodeName]
+			if c.proxy.schema[c.proxy.schemaIndex].nodes[nodeName] != nil {
+				executeDB.ExecNode = c.proxy.schema[c.proxy.schemaIndex].nodes[nodeName]
 			}
 		}
 	}
 
 	if executeDB.ExecNode == nil {
-		defaultRule := c.schema.rule.DefaultRule
+		defaultRule := c.proxy.schema[c.proxy.schemaIndex].rule.DefaultRule
 		if len(defaultRule.Nodes) == 0 {
 			return errors.ErrNoDefaultNode
 		}
@@ -211,7 +211,7 @@ func (c *ClientConn) setExecuteNode(tokens []string, tokensLen int, executeDB *E
 //get the execute database for select sql
 func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
-	schema := c.proxy.schema
+	schema := c.proxy.schema[c.proxy.schemaIndex]
 
 	rules := schema.rule.Rules
 	executeDB.IsSlave = true
@@ -248,7 +248,7 @@ func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB
 //get the execute database for delete sql
 func (c *ClientConn) getDeleteExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
-	schema := c.proxy.schema
+	schema := c.proxy.schema[c.proxy.schemaIndex]
 	rules := schema.rule.Rules
 
 	if len(rules) != 0 {
@@ -275,7 +275,7 @@ func (c *ClientConn) getDeleteExecDB(tokens []string, tokensLen int) (*ExecuteDB
 //get the execute database for insert or replace sql
 func (c *ClientConn) getInsertOrReplaceExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
-	schema := c.proxy.schema
+	schema := c.proxy.schema[c.proxy.schemaIndex]
 	rules := schema.rule.Rules
 
 	if len(rules) != 0 {
@@ -302,7 +302,7 @@ func (c *ClientConn) getInsertOrReplaceExecDB(tokens []string, tokensLen int) (*
 //get the execute database for update sql
 func (c *ClientConn) getUpdateExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
-	schema := c.proxy.schema
+	schema := c.proxy.schema[c.proxy.schemaIndex]
 	rules := schema.rule.Rules
 
 	if len(rules) != 0 {

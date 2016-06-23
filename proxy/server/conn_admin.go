@@ -374,6 +374,10 @@ func (c *ClientConn) handleAdminAdd(k, v string) error {
 		return c.handleAddBlackSql(v)
 	}
 
+	if k == ADMIN_SCHEMA {
+		return c.handleAddSchema(v)
+	}
+
 	return errors.ErrCmdUnsupport
 }
 
@@ -400,7 +404,7 @@ func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
 	const (
 		Column = 2
 	)
-	for name := range c.schema.nodes {
+	for name := range c.proxy.schema[c.proxy.schemaIndex].nodes {
 		nodeNames = append(nodeNames, name)
 	}
 
@@ -444,7 +448,7 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 	)
 
 	//var nodeRows [][]string
-	for name, node := range c.schema.nodes {
+	for name, node := range c.proxy.schema[c.proxy.schemaIndex].nodes {
 		//"master"
 		rows = append(
 			rows,
@@ -500,7 +504,7 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 	}
 
 	//default Rule
-	var defaultRule = c.schema.rule.DefaultRule
+	var defaultRule = c.proxy.schema[c.proxy.schemaIndex].rule.DefaultRule
 	rows = append(
 		rows,
 		[]string{
@@ -635,6 +639,12 @@ func (c *ClientConn) handleDelAllowIP(v string) error {
 func (c *ClientConn) handleAddBlackSql(v string) error {
 	v = strings.TrimSpace(v)
 	err := c.proxy.addBlackSql(v)
+	return err
+}
+
+func (c *ClientConn) handleAddSchema(v string) error {
+	v = strings.TrimSpace(v)
+	err := c.proxy.addSchema(v)
 	return err
 }
 

@@ -50,11 +50,11 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 	table := string(data[0:index])
 	wildcard := string(data[index+1:])
 
-	if c.schema == nil {
+	if c.proxy.schema[c.proxy.schemaIndex] == nil {
 		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
 	}
 
-	nodeName := c.schema.rule.GetRule(table).Nodes[0]
+	nodeName := c.proxy.schema[c.proxy.schemaIndex].rule.GetRule(table).Nodes[0]
 
 	n := c.proxy.GetNode(nodeName)
 
@@ -97,7 +97,7 @@ func (c *ClientConn) writeFieldList(status uint16, fs []*mysql.Field) error {
 //处理select语句
 func (c *ClientConn) handleSelect(stmt *sqlparser.Select, args []interface{}) error {
 	var fromSlave bool = true
-	plan, err := c.schema.rule.BuildPlan(stmt)
+	plan, err := c.proxy.schema[c.proxy.schemaIndex].rule.BuildPlan(stmt)
 	if err != nil {
 		return err
 	}

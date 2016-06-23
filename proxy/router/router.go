@@ -25,6 +25,14 @@ import (
 )
 
 var (
+	TABLE           = "table"
+	TYPE            = "type"
+	KEY             = "key"
+	NODES           = "nodes"
+	LOCATIONS       = "locations"
+	TABLE_ROW_LIMIT = "table_row_limit"
+	DATE_RANGE      = "date_range"
+
 	DefaultRuleType   = "default"
 	HashRuleType      = "hash"
 	RangeRuleType     = "range"
@@ -123,7 +131,7 @@ func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 					shard.Table, node, strings.Join(shard.Nodes, ","))
 			}
 		}
-		rule, err := parseRule(rt.DB, &shard)
+		rule, err := ParseRule(rt.DB, &shard)
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +163,7 @@ func (r *Router) GetRule(table string) *Rule {
 	}
 }
 
-func parseRule(db string, cfg *config.ShardConfig) (*Rule, error) {
+func ParseRule(db string, cfg *config.ShardConfig) (*Rule, error) {
 	r := new(Rule)
 	r.DB = db
 	r.Table = cfg.Table

@@ -122,6 +122,21 @@ admin server(opt,k,v) values('add','black_sql','select count(*) from sbtest1')
 #删除黑名单sql语句
 admin server(opt,k,v) values('del','black_sql','select count(*) from sbtest1')
 
+#添加hash分表
+admin server(opt,k,v) values('add','schema','table=test_shard_hash|type=hash|key=id|nodes=node1,node2|locations=4,4')
+
+#添加range分表
+admin server(opt,k,v) values('add','schema','table=test_shard_range|type=range|key=id|nodes=node1,node2|locations=4,4|table_row_limit=10000')
+
+#添加按年分表
+admin server(opt,k,v) values('add','schema','table=test_shard_year|type=date_year|key=ctime|nodes=node1,node2|date_range=2015-2016,2017-2018')
+
+#添加按月分表
+admin server(opt,k,v) values('add','schema','table=test_shard_month|type=date_month|key=mtime|nodes=node1,node2|date_range=201603-201605,201609-201612')
+
+#添加按日分表
+admin server(opt,k,v) values('add','schema','table=test_shard_day|type=date_day|key=dtime|nodes=node1,node2|date_range=20160306-20160307,20160308-20160309|')
+
 #保存当前配置
 admin server(opt,k,v) values('save','proxy','config')
 
