@@ -191,9 +191,9 @@ var (
 		"transaction": TK_ID_TRANSACTION,
 		"show":        TK_ID_SHOW,
 	}
-	// '/'
-	COMMENT_PREFIX uint8 = 47
-	COMMENT_STRING       = "/*"
+	// '*'
+	COMMENT_PREFIX uint8 = 42
+	COMMENT_STRING       = "*"
 
 	//
 	TK_STR_FROM = "from"
