@@ -79,23 +79,29 @@ var (
 
 %token LEX_ERROR
 %token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR
-%token <empty> ALL DISTINCT AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
+%token <empty> ALL DISTINCT AS EXISTS NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
-%token <empty> LE GE NE NULL_SAFE_EQUAL
-%token <empty> '(' '=' '<' '>' '~'
+%token <empty> '(' '~'
 
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> ','
 %left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS NATURAL USE FORCE
 %left <empty> ON
-%left <empty> AND OR
+%left <empty> OR
+%left <empty> AND
 %right <empty> NOT
-%left <empty> '&' '|' '^'
+%left <empty> BETWEEN CASE WHEN THEN ELSE
+//REGEXP 
+%left <empty> '=' '<' '>' LE GE NE NULL_SAFE_EQUAL IS LIKE IN
+%left <empty> '|'
+%left <empty> '&'
+//%left <empty> SHIFT_LEFT SHIFT_RIGHT
 %left <empty> '+' '-'
 %left <empty> '*' '/' '%'
+%left <empty> '^'
 %nonassoc <empty> '.'
 %left <empty> UNARY
-%right <empty> CASE, WHEN, THEN, ELSE
+
 %left <empty> END
 
 // Transaction Tokens
