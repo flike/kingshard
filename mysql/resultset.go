@@ -62,7 +62,7 @@ func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 				} else {
 					data[i], err = strconv.ParseInt(string(v), 10, 64)
 				}
-			case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
+			case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE, MYSQL_TYPE_NEWDECIMAL:
 				data[i], err = strconv.ParseFloat(string(v), 64)
 			case MYSQL_TYPE_VARCHAR, MYSQL_TYPE_VAR_STRING, MYSQL_TYPE_STRING:
 				data[i] = string(v)

@@ -103,6 +103,7 @@ const (
 	CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
 )
 
+//https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnType
 const (
 	MYSQL_TYPE_DECIMAL byte = iota
 	MYSQL_TYPE_TINY
@@ -191,9 +192,9 @@ var (
 		"transaction": TK_ID_TRANSACTION,
 		"show":        TK_ID_SHOW,
 	}
-	// '/'
-	COMMENT_PREFIX uint8 = 47
-	COMMENT_STRING       = "/*"
+	// '*'
+	COMMENT_PREFIX uint8 = 42
+	COMMENT_STRING       = "*"
 
 	//
 	TK_STR_FROM = "from"
