@@ -1,9 +1,9 @@
-//line ./sqlparser/sql.y:20
+//line ./sqlparser/sql.y:19
 package sqlparser
 
 import __yyfmt__ "fmt"
 
-//line ./sqlparser/sql.y:20
+//line ./sqlparser/sql.y:21
 import "bytes"
 
 func SetParseTree(yylex interface{}, stmt Statement) {

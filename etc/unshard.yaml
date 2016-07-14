@@ -1,3 +1,5 @@
+pidfile : /uc/etc/ucdbsql.pid
+
 # server listen addr
 addr : 0.0.0.0:9696
 
