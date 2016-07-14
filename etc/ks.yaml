@@ -61,13 +61,8 @@ schema :
         table: user_group
         key: id
         type: range
-<<<<<<< HEAD
         nodes: [node1]
         locations: [4]
-=======
-        nodes: [node1, node2]
-        locations: [4,4]
->>>>>>> origin/master
         table_row_base: 2000
         table_row_limit: 10000
     -
