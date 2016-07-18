@@ -219,7 +219,7 @@ mysql> select * from test_shard_year where id = 1457410310;
 该配置表示：
 
 - sharding key是ctime。
-- 按年的分表类型是:`date_month`。
+- 按月的分表类型是:`date_month`。
 - `test_shard_month_201512, test_shard_month_201601, test_shard_month_201602`两个子表落在node1上，`test_shard_month_201609，test_shard_month_201610`两个子表落在node2上。
 - 如果你一个node上只包含一张子表，你可以这样配置`date_range[201501,201609-201610]`。
 
@@ -230,7 +230,7 @@ mysql> select * from test_shard_year where id = 1457410310;
 ### 3.3 按天分表
 
 #### 配置说明
-按月分表的配置项设置如下：
+按天分表的配置项设置如下：
 
 ```
        table: test_shard_day
@@ -242,7 +242,7 @@ mysql> select * from test_shard_year where id = 1457410310;
 该配置表示：
 
 - sharding key是ctime。
-- 按年的分表类型是:`date_day`。
+- 按天的分表类型是:`date_day`。
 - `test_shard_day_20151222, test_shard_day_20151223, test_shard_day_20151224`两个子表落在node1上，`test_shard_day_20160901，test_shard_day_20160902`两个子表落在node2上。
 - 如果你一个node上只包含一张子表，你可以这样配置`date_range[20150101,20160901-20161010]`。
 
