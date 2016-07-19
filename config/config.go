@@ -67,6 +67,7 @@ type ShardConfig struct {
 	Nodes         []string `yaml:"nodes"`
 	Locations     []int    `yaml:"locations"`
 	Type          string   `yaml:"type"`
+	TableRowBase  int      `yaml:"table_row_base"`
 	TableRowLimit int      `yaml:"table_row_limit"`
 	DateRange     []string `yaml:"date_range"`
 }

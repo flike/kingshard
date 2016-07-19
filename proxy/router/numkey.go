@@ -47,7 +47,7 @@ func (kr NumKeyRange) String() string {
 	return fmt.Sprintf("{Start: %d, End: %d}", kr.Start, kr.End)
 }
 
-func ParseNumSharding(Locations []int, TableRowLimit int) ([]NumKeyRange, error) {
+func ParseNumSharding(Locations []int, TableRowLimit int, TableRowBase int) ([]NumKeyRange, error) {
 	tableCount := 0
 	length := len(Locations)
 
@@ -57,8 +57,8 @@ func ParseNumSharding(Locations []int, TableRowLimit int) ([]NumKeyRange, error)
 
 	ranges := make([]NumKeyRange, tableCount)
 	for i := 0; i < tableCount; i++ {
-		ranges[i].Start = int64(i * TableRowLimit)
-		ranges[i].End = int64((i + 1) * TableRowLimit)
+		ranges[i].Start = int64(TableRowBase + i*TableRowLimit)
+		ranges[i].End = int64(TableRowBase + (i+1)*TableRowLimit)
 	}
 	return ranges, nil
 }
