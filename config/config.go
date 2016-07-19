@@ -23,6 +23,7 @@ import (
 
 //整个config文件对应的结构
 type Config struct {
+	PidPath     string       `yaml:"pidfile"`
 	Addr        string       `yaml:"addr"`
 	User        string       `yaml:"user"`
 	Password    string       `yaml:"password"`

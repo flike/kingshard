@@ -1,3 +1,4 @@
+pidfile : /uc/etc/kingshard.pid
 # server listen addr
 addr : 0.0.0.0:9696
 
