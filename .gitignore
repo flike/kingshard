@@ -5,3 +5,4 @@ y.output
 .idea
 *.iml
 core/hack/version.go
+.vscode/
