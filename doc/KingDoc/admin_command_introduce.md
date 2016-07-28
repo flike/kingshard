@@ -126,3 +126,14 @@ admin server(opt,k,v) values('del','black_sql','select count(*) from sbtest1')
 admin server(opt,k,v) values('save','proxy','config')
 
 ```
+
+## 支持LVS/Keepalived
+
+```
+#查看kingshard运行状态
+admin server(opt,k,v) values('show','proxy','status')
+
+#改变kingshard运行状态 online: 在线 offline: 下线
+admin server(opt,k,v) values('change','proxy','online')
+
+```

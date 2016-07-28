@@ -54,6 +54,7 @@ const (
 	ADMIN_BLACK_SQL     = "black_sql"
 
 	ADMIN_CONFIG = "config"
+	ADMIN_STATUS = "status"
 )
 
 var cmdServerOrder = []string{"opt", "k", "v"}
@@ -328,6 +329,10 @@ func (c *ClientConn) handleAdminShow(k, v string) (*mysql.Resultset, error) {
 		return c.handleShowProxyConfig()
 	}
 
+	if k == ADMIN_PROXY && v == ADMIN_STATUS {
+		return c.handleShowProxyStatus()
+	}
+
 	if k == ADMIN_NODE && v == ADMIN_CONFIG {
 		return c.handleShowNodeConfig()
 	}
@@ -357,6 +362,10 @@ func (c *ClientConn) handleAdminChange(k, v string) error {
 
 	if k == ADMIN_SLOW_LOG_TIME {
 		return c.handleChangeSlowLogTime(v)
+	}
+
+	if k == ADMIN_PROXY {
+		return c.handleChangeProxy(v)
 	}
 
 	return errors.ErrCmdUnsupport
@@ -579,6 +588,31 @@ func (c *ClientConn) handleShowAllowIPConfig() (*mysql.Resultset, error) {
 	return c.buildResultset(nil, names, values)
 }
 
+func (c *ClientConn) handleShowProxyStatus() (*mysql.Resultset, error) {
+	var Column = 1
+	var rows [][]string
+	var names []string = []string{
+		"status",
+	}
+
+	var status string
+	status = c.proxy.Status()
+	rows = append(rows,
+		[]string{
+			status,
+		})
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, Column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	return c.buildResultset(nil, names, values)
+}
+
 func (c *ClientConn) handleShowBlackSqlConfig() (*mysql.Resultset, error) {
 	var Column = 1
 	var rows [][]string
@@ -610,6 +644,10 @@ func (c *ClientConn) handleShowBlackSqlConfig() (*mysql.Resultset, error) {
 	}
 
 	return c.buildResultset(nil, names, values)
+}
+
+func (c *ClientConn) handleChangeProxy(v string) error {
+	return c.proxy.changeProxy(v)
 }
 
 func (c *ClientConn) handleChangeLogSql(v string) error {
