@@ -591,8 +591,9 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		//do not change limit
 		newLimit = node.Limit
 	}
-
-	if(plan.InRightToReplace!=nil){
+	//keep the old right to be restore
+	oldright :=plan.InRightToReplace.Right;
+	if(plan.InRightToReplace!=nil&&plan.SubTableValueGroups[tableIndex]!=nil){
 		//assign corresponding values to different table index
 		plan.InRightToReplace.Right=plan.SubTableValueGroups[tableIndex]
 
@@ -607,6 +608,8 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		newLimit,
 		node.Lock,
 	)
+	//restore old right
+	plan.InRightToReplace.Right=oldright;
 	return buf.String()
 }
 
