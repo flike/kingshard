@@ -592,12 +592,11 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		newLimit = node.Limit
 	}
 
-	if(plan.InRightToReplace!=nil){
+	if plan.InRightToReplace != nil {
 		//assign corresponding values to different table index
-		plan.InRightToReplace.Right=plan.SubTableValueGroups[tableIndex]
+		plan.InRightToReplace.Right = plan.SubTableValueGroups[tableIndex]
 
 	}
-
 
 	buf.Fprintf("%v%v%v%v%v%s",
 		node.Where,

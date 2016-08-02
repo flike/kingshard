@@ -342,13 +342,13 @@ func checkPlan(t *testing.T, sql string, tableIndexs []int, nodeIndexs []int) {
 	t.Logf("rewritten_sql=%v", plan.RewrittenSqls)
 
 }
-func TestWhereInPartitionByTableIndex(t *testing.T){
+func TestWhereInPartitionByTableIndex(t *testing.T) {
 	var sql string
 	//2016-03-06 13:37:26
 	sql = "select * from test1 where id in (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22) "
 	checkPlan(t, sql,
-		[]int{0,1,2,3,4,5,6,7,8,9,10,11},
-		[]int{0,1,2},
+		[]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+		[]int{0, 1, 2},
 	)
 }
 
