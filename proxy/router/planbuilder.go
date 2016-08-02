@@ -21,6 +21,7 @@ import (
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/sqlparser"
+	"strings"
 )
 
 const (
@@ -39,11 +40,21 @@ type Plan struct {
 	//the rows for insert or replace.
 	Rows map[int]sqlparser.Values
 
-	SubTableValueGroups map[int]sqlparser.ValTuple  //按照tableIndex存放ValueExpr
-	InRightToReplace *sqlparser.ComparisonExpr      //记录in的右边Expr,用来动态替换不同table in的值
-	RouteTableIndexs []int
-	RouteNodeIndexs  []int
-	RewrittenSqls    map[string][]string
+	SubTableValueGroups map[int]sqlparser.ValTuple //按照tableIndex存放ValueExpr
+	InRightToReplace    *sqlparser.ComparisonExpr  //记录in的右边Expr,用来动态替换不同table in的值
+	RouteTableIndexs    []int
+	RouteNodeIndexs     []int
+	RewrittenSqls       map[string][]string
+}
+
+func (plan *Plan) rewriteWhereIn(tableIndex int) (sqlparser.ValExpr, error) {
+	var oldright sqlparser.ValExpr
+	if plan.InRightToReplace != nil && plan.SubTableValueGroups[tableIndex] != nil {
+		//assign corresponding values to different table index
+		oldright = plan.InRightToReplace.Right
+		plan.InRightToReplace.Right = plan.SubTableValueGroups[tableIndex]
+	}
+	return oldright, nil
 }
 
 func (plan *Plan) notList(l []int) []int {
@@ -388,7 +399,9 @@ func (plan *Plan) getTableIndexByBoolExpr(node sqlparser.BoolExpr) ([]int, error
 			left := plan.getValueType(node.Left)
 			right := plan.getValueType(node.Right)
 			if left == EID_NODE && right == LIST_NODE {
-				plan.InRightToReplace=node
+				if strings.EqualFold(node.Operator, "in") { //only deal with in expr, it's impossible to process not in here.
+					plan.InRightToReplace = node
+				}
 				return plan.getTableIndexs(node)
 			}
 		}
@@ -417,10 +430,10 @@ func (plan *Plan) getTableIndexsByTuple(valExpr sqlparser.ValExpr) ([]int, error
 			}
 			valExprs := shardset[index]
 
-			if(valExprs==nil){
+			if valExprs == nil {
 				valExprs = make([]sqlparser.ValExpr, 0)
 			}
-			valExprs=append(valExprs,n)
+			valExprs = append(valExprs, n)
 			shardset[index] = valExprs
 		}
 	}
