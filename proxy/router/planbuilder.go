@@ -39,9 +39,11 @@ type Plan struct {
 	//the rows for insert or replace.
 	Rows map[int]sqlparser.Values
 
-	RouteTableIndexs []int
-	RouteNodeIndexs  []int
-	RewrittenSqls    map[string][]string
+	SubTableValueGroups map[int]sqlparser.ValTuple //按照tableIndex存放ValueExpr
+	InRightToReplace    *sqlparser.ComparisonExpr  //记录in的右边Expr,用来动态替换不同table in的值
+	RouteTableIndexs    []int
+	RouteNodeIndexs     []int
+	RewrittenSqls       map[string][]string
 }
 
 func (plan *Plan) notList(l []int) []int {
@@ -386,6 +388,8 @@ func (plan *Plan) getTableIndexByBoolExpr(node sqlparser.BoolExpr) ([]int, error
 			left := plan.getValueType(node.Left)
 			right := plan.getValueType(node.Right)
 			if left == EID_NODE && right == LIST_NODE {
+				//save the node of in operation,will replace in
+				plan.InRightToReplace = node
 				return plan.getTableIndexs(node)
 			}
 		}
@@ -402,17 +406,24 @@ func (plan *Plan) getTableIndexByBoolExpr(node sqlparser.BoolExpr) ([]int, error
 
 //获得(12,14,23)对应的table index
 func (plan *Plan) getTableIndexsByTuple(valExpr sqlparser.ValExpr) ([]int, error) {
-	shardset := make(map[int]bool)
+	shardset := make(map[int]sqlparser.ValTuple)
 	switch node := valExpr.(type) {
 	case sqlparser.ValTuple:
 		for _, n := range node {
+			//n.Format()
 			index, err := plan.getTableIndexByValue(n)
 			if err != nil {
 				return nil, err
 			}
-			shardset[index] = true
+			valExprs := shardset[index]
+			if valExprs == nil {
+				valExprs = make([]sqlparser.ValExpr, 0)
+			}
+			valExprs = append(valExprs, n)
+			shardset[index] = valExprs
 		}
 	}
+	plan.SubTableValueGroups = shardset
 	shardlist := make([]int, len(shardset))
 	index := 0
 	for k := range shardset {
