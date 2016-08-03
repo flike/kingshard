@@ -152,7 +152,7 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 }
 
 //获取shard的conn，第一个参数表示是不是select
-func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[string]*backend.BackendConn, error) {
+func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[string][]*backend.BackendConn, error) {
 	var err error
 	if plan == nil || len(plan.RouteNodeIndexs) == 0 {
 		return nil, errors.ErrNoRouteNode
@@ -173,7 +173,7 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 			return nil, errors.ErrTransInMulti
 		}
 	}
-	conns := make(map[string]*backend.BackendConn)
+	conns := make(map[string][]*backend.BackendConn)
 	var co *backend.BackendConn
 	for _, n := range nodes {
 		co, err = c.getBackendConn(n, fromSlave)
@@ -181,7 +181,7 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 			break
 		}
 
-		conns[n.Cfg.Name] = co
+		conns[n.Cfg.Name] = append(conns[n.Cfg.Name], co)
 	}
 
 	return conns, err
@@ -215,20 +215,10 @@ func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args [
 	return []*mysql.Result{r}, err
 }
 
-func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {
-	if len(conns) != len(sqls) {
-		golog.Error("ClientConn", "executeInMultiNodes", errors.ErrConnNotEqual.Error(), c.connectionId,
-			"conns", conns,
-			"sqls", sqls,
-		)
-		return nil, errors.ErrConnNotEqual
-	}
+func (c *ClientConn) _executeInMutiNodes(conns map[string][]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {
 
 	var wg sync.WaitGroup
 
-	if len(conns) == 0 {
-		return nil, errors.ErrNoPlan
-	}
 
 	wg.Add(len(conns))
 
@@ -268,9 +258,9 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 	}
 
 	offsert := 0
-	for nodeName, co := range conns {
+	for nodeName, connpool := range conns {
 		s := sqls[nodeName] //[]string
-		go f(rs, offsert, s, co)
+		go f(rs, offsert, s, connpool[0])
 		offsert += len(s)
 	}
 
@@ -289,6 +279,108 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 	return r, err
 }
 
+func (c *ClientConn) _executeInMultiNodesByConns(conns map[string][]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {
+	resultCount := 0
+	for _, sqlSlice := range sqls {
+		resultCount += len(sqlSlice)
+	}
+	var wg sync.WaitGroup
+	wg.Add(resultCount)
+	rs := make([]interface{}, resultCount)
+	f := func(rs []interface{}, i int, execSqls []string, co *backend.BackendConn) {
+		var state string
+		for _, v := range execSqls {
+			startTime := time.Now().UnixNano()
+			r, err := co.Execute(v, args...)
+			if err != nil {
+				state = "ERROR"
+				rs[i] = err
+			} else {
+				state = "OK"
+				rs[i] = r
+			}
+			execTime := float64(time.Now().UnixNano()-startTime) / float64(time.Millisecond)
+			if c.proxy.logSql[c.proxy.logSqlIndex] != golog.LogSqlOff &&
+				execTime > float64(c.proxy.slowLogTime[c.proxy.slowLogTimeIndex]) {
+				c.proxy.counter.IncrSlowLogTotal()
+				golog.OutputSql(state, "%.1fms - %s->%s:%s",
+					execTime,
+					c.c.RemoteAddr(),
+					co.GetAddr(),
+					v,
+				)
+			}
+			i++
+		}
+		wg.Done()
+	}
+	offsert := 0
+	lockCount := 0
+	for nodeName, connpool := range conns {
+		s := sqls[nodeName] //[]string
+		sc := len(s)
+		backendDB, err := connpool[0].GetBackendDB()
+		if err != nil {
+			golog.Error("ClientConn", "_executeInMultiNodesByConns", err.Error(), c.connectionId)
+			return nil, err
+		}
+		backendConns, err := backendDB.GetConns(sc, c.db, c.charset)
+		if err != nil {
+			golog.Error("ClientConn", "_executeInMultiNodesByConns", err.Error(), c.connectionId)
+			return nil, err
+		}
+		lockCount += len(backendConns)
+		stepLen := len(s) / len(backendConns)
+		pos := 0
+		for k, v := range backendConns {
+			conns[nodeName] = append(conns[nodeName], v)
+			if k < len(backendConns)-1 {
+				subSqls := s[pos : pos+stepLen]
+				go f(rs, offsert, subSqls, v)
+				offsert += len(subSqls)
+				pos += stepLen
+			} else {
+				subSqls := s[pos:]
+				go f(rs, offsert, subSqls, v)
+				offsert += len(subSqls)
+			}
+		}
+	}
+	leftLockCount := resultCount - lockCount
+	for leftLockCount > 0 {
+		wg.Done()
+		leftLockCount--
+	}
+	wg.Wait()
+	var err error
+	r := make([]*mysql.Result, resultCount)
+	for i, v := range rs {
+		if e, ok := v.(error); ok {
+			err = e
+			break
+		}
+		r[i] = rs[i].(*mysql.Result)
+	}
+	return r, err
+}
+func (c *ClientConn) executeInMultiNodes(conns map[string][]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {
+	if len(conns) != len(sqls) {
+		golog.Error("ClientConn", "executeInMultiNodes", errors.ErrConnNotEqual.Error(), c.connectionId,
+			"conns", conns,
+			"sqls", sqls,
+		)
+		return nil, errors.ErrConnNotEqual
+	}
+	if len(conns) == 0 {
+		return nil, errors.ErrNoPlan
+	}
+	if c.isInTransaction() {
+		golog.Info("ClientConn", "executeInMultiNodes", "_executeInMutiNodes", c.connectionId)
+		return c._executeInMutiNodes(conns, sqls, args)
+	}
+	golog.Info("ClientConn", "executeInMultiNodes", "_executeInMultiNodesByConns", c.connectionId)
+	return c._executeInMultiNodesByConns(conns, sqls, args)
+}
 func (c *ClientConn) closeConn(conn *backend.BackendConn, rollback bool) {
 	if c.isInTransaction() {
 		return
@@ -301,16 +393,18 @@ func (c *ClientConn) closeConn(conn *backend.BackendConn, rollback bool) {
 	conn.Close()
 }
 
-func (c *ClientConn) closeShardConns(conns map[string]*backend.BackendConn, rollback bool) {
+func (c *ClientConn) closeShardConns(conns map[string][]*backend.BackendConn, rollback bool) {
 	if c.isInTransaction() {
 		return
 	}
 
-	for _, co := range conns {
+	for _, connpool := range conns {
+		for _, co := range connpool {
 		if rollback {
 			co.Rollback()
 		}
 		co.Close()
+		}
 	}
 }
 

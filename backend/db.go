@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/flike/kingshard/core/errors"
+	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 )
 
@@ -264,6 +265,31 @@ func (db *DB) PopConn() (*Conn, error) {
 	return co, nil
 }
 
+func (db *DB) calcDBConnsCount(n int) int {
+	cacheConnsCount := len(db.cacheConns)
+	var calcCount int
+	switch {
+	case cacheConnsCount < 5:
+		calcCount = 1
+	case n <= cacheConnsCount/2:
+		calcCount = n
+	case n > cacheConnsCount/2:
+		calcCount = cacheConnsCount / 2
+	default:
+		calcCount = 1
+	}
+	golog.Info("DB", "DBConnsCount", "calcDBConnsCount", 0,
+		"Count", calcCount)
+	return calcCount
+}
+func (db *DB) PopConns(n int) ([]*Conn, error) {
+	cacheConns, idleConns := db.getConns()
+	if cacheConns == nil || idleConns == nil {
+		return nil, errors.ErrDatabaseClose
+	}
+	calcCount := db.calcDBConnsCount(n)
+	return db.GetDBConns(calcCount)
+}
 func (db *DB) GetConnFromCache(cacheConns chan *Conn) *Conn {
 	var co *Conn
 	var err error
@@ -281,6 +307,47 @@ func (db *DB) GetConnFromCache(cacheConns chan *Conn) *Conn {
 		}
 	}
 	return co
+}
+func (db *DB) GetDBConns(n int) ([]*Conn, error) {
+	var co *Conn
+	var err error
+	conns := make([]*Conn, 0)
+	for 0 < len(db.cacheConns) {
+		co = <-db.cacheConns
+		if co != nil && PingPeroid < time.Now().Unix()-co.pushTimestamp {
+			err = co.Ping()
+			if err != nil {
+				db.closeConn(co)
+				co = nil
+				continue
+			}
+		}
+		if co != nil {
+			err = db.tryReuse(co)
+			if err != nil {
+				db.closeConn(co)
+				co = nil
+				continue
+			}
+			conns = append(conns, co)
+			if len(conns) >= n {
+				break
+			}
+		}
+	}
+	if len(conns) == 0 {
+		co, err = db.GetConnFromIdle(db.cacheConns, db.idleConns)
+		if err != nil {
+			return conns, err
+		}
+		err = db.tryReuse(co)
+		if err != nil {
+			db.closeConn(co)
+			return conns, err
+		}
+		conns = append(conns, co)
+	}
+	return conns, nil
 }
 
 func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
@@ -348,10 +415,33 @@ func (p *BackendConn) Close() {
 	}
 }
 
+func (p *BackendConn) GetBackendDB() (*DB, error) {
+	if p == nil {
+		return nil, errors.ErrNoDatabase
+	}
+	return p.db, nil
+}
 func (db *DB) GetConn() (*BackendConn, error) {
 	c, err := db.PopConn()
 	if err != nil {
 		return nil, err
 	}
 	return &BackendConn{c, db}, nil
+}
+func (db *DB) GetConns(n int, dbname, charset string) ([]*BackendConn, error) {
+	backendConn := make([]*BackendConn, 0)
+	conns, err := db.PopConns(n)
+	if err != nil {
+		return backendConn, err
+	}
+	for _, c := range conns {
+		if err = c.UseDB(dbname); err != nil {
+			golog.Error("DB", "GetConns, UseDB", err.Error(), 0)
+		}
+		if err = c.SetCharset(charset); err != nil {
+			golog.Error("DB", "GetConns, SetCharset", err.Error(), 0)
+		}
+		backendConn = append(backendConn, &BackendConn{c, db})
+	}
+	return backendConn, nil
 }
