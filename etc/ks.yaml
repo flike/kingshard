@@ -1,6 +1,7 @@
 pidfile : /uc/etc/kingshard.pid
 # server listen addr
 addr : 0.0.0.0:9696
+monitor_addr : 0.0.0.0:19696
 
 # server user and password
 user :  kingshard

@@ -25,6 +25,7 @@ import (
 type Config struct {
 	PidPath     string       `yaml:"pidfile"`
 	Addr        string       `yaml:"addr"`
+	MonitorAddr string       `yaml:"monitor_addr"`
 	User        string       `yaml:"user"`
 	Password    string       `yaml:"password"`
 	LogPath     string       `yaml:"log_path"`

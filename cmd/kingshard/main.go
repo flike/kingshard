@@ -125,6 +125,14 @@ func main() {
 		return
 	}
 
+	var monitor_svr *server.ServerMonitor
+	monitor_svr, err = server.NewMonitorServer(cfg)
+	if err != nil {
+		golog.Error("main", "main", err.Error(), 0)
+		golog.GlobalSysLogger.Close()
+		golog.GlobalSqlLogger.Close()
+		return
+	}
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
 		syscall.SIGINT,
@@ -137,9 +145,11 @@ func main() {
 		golog.GlobalSysLogger.Close()
 		golog.GlobalSqlLogger.Close()
 		svr.Close()
+		monitor_svr.Close()
 	}()
 
 	writePID(cfg)
+	go monitor_svr.Run()
 	svr.Run()
 }
 
