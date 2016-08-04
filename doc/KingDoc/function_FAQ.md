@@ -73,9 +73,9 @@ mysql -h127.0.0.1 -ukingshard -pkingshard -P9696 -c;
 如果你需要分表功能，请基于ks.yaml修改你的配置。如果你不需要分表，请基于unshard.yaml修改你的配置。
 当然你如果能够完全掌握如何配置kingshard，你也可以自己编写配置文件。
 
-**9. kingshard如何配合LVS切流量? **
+**9. kingshard如何配合LVS切流量？**
 
-kingshard提供了查看和改变系统状态的管理命令，在高可用状态检测、LVS流量切换、系统无损升级都可以使用该命令，详情见[管理端命令介绍](./admin_command_introduce.md)
+kingshard提供了查看和改变系统状态的管理命令，在高可用状态检测、LVS流量切换、系统无损升级都可以使用该命令，详情见[如何配合LVS实现完美集群](./how_to_use_lvs.md)
 
 **10. 如何给kingshard贡献代码？**
 
