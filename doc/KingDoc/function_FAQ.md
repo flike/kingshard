@@ -75,7 +75,7 @@ mysql -h127.0.0.1 -ukingshard -pkingshard -P9696 -c;
 
 **9. kingshard如何配合LVS切流量？**
 
-kingshard提供了查看和改变系统状态的管理命令，在高可用状态检测、LVS流量切换、系统无损升级都可以使用该命令，详情见[如何配合LVS实现完美集群](./how_to_use_lvs.md)
+kingshard提供了查看和改变系统状态的管理命令，在高可用状态检测、LVS流量切换、系统无损升级都可以使用该命令，详情见[如何配合LVS实现集群部署](./how_to_use_lvs.md)
 
 **10. 如何给kingshard贡献代码？**
 
