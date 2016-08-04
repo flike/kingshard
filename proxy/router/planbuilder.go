@@ -21,6 +21,7 @@ import (
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/sqlparser"
+	"strings"
 )
 
 const (
@@ -44,6 +45,16 @@ type Plan struct {
 	RouteTableIndexs    []int
 	RouteNodeIndexs     []int
 	RewrittenSqls       map[string][]string
+}
+
+func (plan *Plan) rewriteWhereIn(tableIndex int) (sqlparser.ValExpr, error) {
+	var oldright sqlparser.ValExpr
+	if plan.InRightToReplace != nil && plan.SubTableValueGroups[tableIndex] != nil {
+		//assign corresponding values to different table index
+		oldright = plan.InRightToReplace.Right
+		plan.InRightToReplace.Right = plan.SubTableValueGroups[tableIndex]
+	}
+	return oldright, nil
 }
 
 func (plan *Plan) notList(l []int) []int {
@@ -388,8 +399,9 @@ func (plan *Plan) getTableIndexByBoolExpr(node sqlparser.BoolExpr) ([]int, error
 			left := plan.getValueType(node.Left)
 			right := plan.getValueType(node.Right)
 			if left == EID_NODE && right == LIST_NODE {
-				//save the node of in operation,will replace in
-				plan.InRightToReplace = node
+				if strings.EqualFold(node.Operator, "in") { //only deal with in expr, it's impossible to process not in here.
+					plan.InRightToReplace = node
+				}
 				return plan.getTableIndexs(node)
 			}
 		}
@@ -412,10 +424,12 @@ func (plan *Plan) getTableIndexsByTuple(valExpr sqlparser.ValExpr) ([]int, error
 		for _, n := range node {
 			//n.Format()
 			index, err := plan.getTableIndexByValue(n)
+
 			if err != nil {
 				return nil, err
 			}
 			valExprs := shardset[index]
+
 			if valExprs == nil {
 				valExprs = make([]sqlparser.ValExpr, 0)
 			}
