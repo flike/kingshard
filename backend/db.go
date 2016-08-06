@@ -443,5 +443,8 @@ func (db *DB) GetConns(n int, dbname, charset string) ([]*BackendConn, error) {
 		}
 		backendConn = append(backendConn, &BackendConn{c, db})
 	}
+	if len(backendConn) == 0 {
+		return backendConn, errors.ErrConnIsNil
+	}
 	return backendConn, nil
 }

@@ -339,10 +339,14 @@ func (c *ClientConn) _executeInMultiNodesByConns(conns map[string][]*backend.Bac
 				go f(rs, offsert, subSqls, v)
 				offsert += len(subSqls)
 				pos += stepLen
+				golog.Info("ClientConn", "_executeInMultiNodesByConns in process", "subsqls", c.connectionId,
+					"subsqls", subSqls, "pos", pos, "offsert", offsert)
 			} else {
 				subSqls := s[pos:]
 				go f(rs, offsert, subSqls, v)
 				offsert += len(subSqls)
+				golog.Info("ClientConn", "_executeInMultiNodesByConns in end", "subsqls", c.connectionId,
+					"subsqls", subSqls, "pos", pos, "offsert", offsert)
 			}
 		}
 	}

@@ -5,6 +5,8 @@ admin node(opt,node,k,v) values('up','node1','slave','127.0.0.1:3306')|set slave
 admin node(opt,node,k,v) values('down','node1','master','127.0.0.1:3306')|set master(127.0.0.1:3306) in node1 offline
 admin node(opt,node,k,v) values('up','node1','master','127.0.0.1:3306'|set master(127.0.0.1:3306) in node1 online
 admin server(opt,k,v) values('show','proxy','config')|show the config of proxy
+admin server(opt,k,v) values('show','proxy','status')|show the status of proxy
+admin server(opt,k,v) values('change','proxy','online')|change the status of proxy online/offline
 admin server(opt,k,v) values('show','node','config')|show the config of schema
 admin server(opt,k,v) values('show','schema','config')|show the config of schema
 admin server(opt,k,v) values('show','allow_ip','config')|show the allow ip of kingshard

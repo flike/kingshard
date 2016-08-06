@@ -48,6 +48,12 @@ type BlacklistSqls struct {
 	sqlsLen int
 }
 
+const (
+	Offline = iota
+	Online
+	Unknown
+)
+
 type Server struct {
 	cfg      *config.Config
 	addr     string
@@ -55,6 +61,8 @@ type Server struct {
 	password string
 	db       string
 
+	statusIndex        int32
+	status             [2]int32
 	logSqlIndex        int32
 	logSql             [2]string
 	slowLogTimeIndex   int32
@@ -70,6 +78,21 @@ type Server struct {
 
 	listener net.Listener
 	running  bool
+}
+
+func (s *Server) Status() string {
+	var status string
+	switch s.status[s.statusIndex] {
+	case Online:
+		status = "online"
+	case Offline:
+		status = "offline"
+	case Unknown:
+		status = "unknown"
+	default:
+		status = "unknown"
+	}
+	return status
 }
 
 //TODO
@@ -207,6 +230,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s.addr = cfg.Addr
 	s.user = cfg.User
 	s.password = cfg.Password
+	atomic.StoreInt32(&s.statusIndex, 0)
+	s.status[s.statusIndex] = Online
 	atomic.StoreInt32(&s.logSqlIndex, 0)
 	s.logSql[s.logSqlIndex] = cfg.LogSql
 	atomic.StoreInt32(&s.slowLogTimeIndex, 0)
@@ -333,6 +358,31 @@ func (s *Server) onConn(c net.Conn) {
 	}
 
 	conn.Run()
+}
+
+func (s *Server) changeProxy(v string) error {
+	var status int32
+	switch v {
+	case "online":
+		status = Online
+	case "offline":
+		status = Offline
+	default:
+		status = Unknown
+	}
+	if status == Unknown {
+		return errors.ErrCmdUnsupport
+	}
+
+	if s.statusIndex == 0 {
+		s.status[1] = status
+		atomic.StoreInt32(&s.statusIndex, 1)
+	} else {
+		s.status[0] = status
+		atomic.StoreInt32(&s.statusIndex, 0)
+	}
+
+	return nil
 }
 
 func (s *Server) changeLogSql(v string) error {

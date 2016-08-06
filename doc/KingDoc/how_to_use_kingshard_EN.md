@@ -511,6 +511,17 @@ admin server(opt,k,v) values('del','black_sql','select count(*) from sbtest1')
 admin server(opt,k,v) values('save','proxy','config')
 ```
 
+### 5.4 support LVS/Keepalived
+
+```
+#show status of kingshard
+admin server(opt,k,v) values('show','proxy','status')
+
+#change status of kingshard online/offline
+admin server(opt,k,v) values('change','proxy','online')
+
+`````
+
 ## 6.Requirement and feedback
 
 If You have new functional requirements about kingshard in the production environment, or find a bug in the process of using kingshard. Welcome to send a mail to `flikecn#126.com`, I will reply you as soon as possible.

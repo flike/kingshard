@@ -617,7 +617,8 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		newLimit = node.Limit
 	}
 
-
+	//rewrite where
+	oldright, err := plan.rewriteWhereIn(tableIndex)
 
 	buf.Fprintf("%v%v%v%v%v%s",
 		node.Where,
@@ -627,6 +628,10 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		newLimit,
 		node.Lock,
 	)
+	//restore old right
+	if oldright != nil {
+		plan.InRightToReplace.Right = oldright
+	}
 	return buf.String()
 }
 
