@@ -616,7 +616,7 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		//do not change limit
 		newLimit = node.Limit
 	}
-
+	
 	//rewrite where
 	oldright, err := plan.rewriteWhereIn(tableIndex)
 
