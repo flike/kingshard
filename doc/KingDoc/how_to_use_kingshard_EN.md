@@ -58,7 +58,7 @@ nodes :
     # master represents a real mysql master server 
     master : 127.0.0.1:3306
 
-    # slave represents a real mysql salve server,and the number after '@' is 
+    # slave represents a real mysql slave server,and the number after '@' is 
     # read load weight of this slave.
     slave : 
     down_after_noalive : 32
@@ -75,7 +75,7 @@ nodes :
     # master represents a real mysql master server 
     master : 192.168.59.103:3307
 
-    # slave represents a real mysql salve server 
+    # slave represents a real mysql slave server 
     slave : 
 
     # down mysql after N seconds noalive
