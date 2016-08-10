@@ -335,18 +335,18 @@ func (db *DB) GetDBConns(n int) ([]*Conn, error) {
 			}
 		}
 	}
-	if len(conns) == 0 {
-		co, err = db.GetConnFromIdle(db.cacheConns, db.idleConns)
-		if err != nil {
-			return conns, err
-		}
-		err = db.tryReuse(co)
-		if err != nil {
-			db.closeConn(co)
-			return conns, err
-		}
-		conns = append(conns, co)
-	}
+	//	if len(conns) == 0 {
+	//		co, err = db.GetConnFromIdle(db.cacheConns, db.idleConns)
+	//		if err != nil {
+	//			return conns, err
+	//		}
+	//		err = db.tryReuse(co)
+	//		if err != nil {
+	//			db.closeConn(co)
+	//			return conns, err
+	//		}
+	//		conns = append(conns, co)
+	//	}
 	return conns, nil
 }
 
@@ -430,6 +430,9 @@ func (db *DB) GetConn() (*BackendConn, error) {
 }
 func (db *DB) GetConns(n int, dbname, charset string) ([]*BackendConn, error) {
 	backendConn := make([]*BackendConn, 0)
+	if n <= 0 {
+		return backendConn, nil
+	}
 	conns, err := db.PopConns(n)
 	if err != nil {
 		return backendConn, err
@@ -443,8 +446,8 @@ func (db *DB) GetConns(n int, dbname, charset string) ([]*BackendConn, error) {
 		}
 		backendConn = append(backendConn, &BackendConn{c, db})
 	}
-	if len(backendConn) == 0 {
-		return backendConn, errors.ErrConnIsNil
-	}
+	//	if len(backendConn) == 0 {
+	//		return backendConn, errors.ErrConnIsNil
+	//	}
 	return backendConn, nil
 }

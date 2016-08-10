@@ -324,16 +324,22 @@ func (c *ClientConn) _executeInMultiNodesByConns(conns map[string][]*backend.Bac
 			golog.Error("ClientConn", "_executeInMultiNodesByConns", err.Error(), c.connectionId)
 			return nil, err
 		}
-		backendConns, err := backendDB.GetConns(sc, c.db, c.charset)
+		backendConns, err := backendDB.GetConns(sc-1, c.db, c.charset)
 		if err != nil {
 			golog.Error("ClientConn", "_executeInMultiNodesByConns", err.Error(), c.connectionId)
 			return nil, err
 		}
+		backendConns = append(backendConns, connpool[0])
+		golog.Info("ClientConn", "_executeInMultiNodesByConns", "backendConns", c.connectionId,
+			"counts", len(backendConns))
 		lockCount += len(backendConns)
-		stepLen := len(s) / len(backendConns)
+		stepLen := sc / len(backendConns)
 		pos := 0
 		for k, v := range backendConns {
+			if connpool[0] != v {
+				golog.Info("ClientConn", "_executeInMultiNodesByConns", "add co in conns", c.connectionId)
 			conns[nodeName] = append(conns[nodeName], v)
+			}
 			if k < len(backendConns)-1 {
 				subSqls := s[pos : pos+stepLen]
 				go f(rs, offsert, subSqls, v)
@@ -378,7 +384,14 @@ func (c *ClientConn) executeInMultiNodes(conns map[string][]*backend.BackendConn
 	if len(conns) == 0 {
 		return nil, errors.ErrNoPlan
 	}
-	if c.isInTransaction() {
+	mutilRouter := false
+	for _, sqlSlice := range sqls {
+		if len(sqlSlice) > 1 {
+			mutilRouter = true
+			break
+		}
+	}
+	if c.isInTransaction() || !mutilRouter {
 		golog.Info("ClientConn", "executeInMultiNodes", "_executeInMutiNodes", c.connectionId)
 		return c._executeInMutiNodes(conns, sqls, args)
 	}
