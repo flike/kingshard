@@ -1,0 +1,14 @@
+#!/bin/sh
+#make root file system for debian pakcage
+#EnvirmentVar: DEB_ROOTFS, DEB_CTRLDIR
+
+mkdir -p -m 755 "${DEB_ROOTFS}" || exit 1
+mkdir -p -m 755 "${DEB_ROOTFS}"/${UC_ROOT}/sbin || exit 2
+install -m 755 "bin/ucdbproxy" "${DEB_ROOTFS}"/${UC_ROOT}/sbin || exit 3
+mkdir -p -m 755 "${DEB_ROOTFS}/${UC_ROOT}/etc" || exit 4
+mkdir -p -m 755 "${DEB_ROOTFS}/${UC_ROOT}/etc/init.d" || exit 5
+mkdir -p -m 755 "${DEB_ROOTFS}/${UC_ROOT}/share" || exit 6
+install -m 644 "etc/ks.yaml" "${DEB_ROOTFS}/${UC_ROOT}/etc" || exit 7
+install -m 744 "ucdbproxy.sh" "${DEB_ROOTFS}/${UC_ROOT}/etc/init.d" || exit 8
+chown -R root:root "${DEB_ROOTFS}/${UC_ROOT}" || exit 9
+

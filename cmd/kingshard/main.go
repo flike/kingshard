@@ -49,6 +49,28 @@ const banner string = `
              /____/
 `
 
+func writePID(cfg *config.Config) {
+	pidpath := cfg.PidPath
+	if pidpath == "" {
+		fmt.Println("WritePid failed, please confirm that the pidfile configuration item are correctly filed")
+		os.Exit(-1)
+	}
+
+	fp, err := os.Create(pidpath)
+	if err != nil {
+		fmt.Println("WritePID failed, create pidfile failed %s", err.Error())
+		os.Exit(-1)
+	}
+	defer fp.Close()
+
+	pid := os.Getpid()
+	_, err = fp.WriteString(fmt.Sprintf("%d", pid))
+	if err != nil {
+		fmt.Println("WritePID failed, %s", err.Error())
+		os.Exit(-1)
+	}
+}
+
 func main() {
 	fmt.Print(banner)
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -117,6 +139,7 @@ func main() {
 		svr.Close()
 	}()
 
+	writePID(cfg)
 	svr.Run()
 }
 

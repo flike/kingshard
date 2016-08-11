@@ -1,15 +1,13 @@
-all: build
+TOPDIR=../../../../../
+include ${TOPDIR}/build-scripts/Macros.mk
 
-build: kingshard
+DEB_PACKAGE=ucdbproxy
+DEB_VERSION=1.0.0.0
+#DEB_MAINTAINER=
+#DEB_DESCRIPTION=
+DEB_DEPENDS=
 
-kingshard:
-	go tool yacc -o ./sqlparser/sql.go ./sqlparser/sql.y
-	gofmt -w ./sqlparser/sql.go
-	@bash genver.sh
-	go build -o ./bin/kingshard ./cmd/kingshard
-clean:
-	@rm -rf bin
-	@rm -f ./sqlparser/y.output ./sqlparser/sql.go
+include ${TOPDIR}/build-scripts/deb.mk
 
-test:
-	go test ./go/... -race
+
+

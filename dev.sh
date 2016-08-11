@@ -8,11 +8,8 @@ if [[ "$VTTOP" == "${VTTOP/\/src\/github.com\/flike\/kingshard/}" ]]; then
 fi
 
 export GOTOP=$VTTOP
-
 function prepend_path()
 {
-  # $1 path variable
-  # $2 path to add
   if [ -d "$2" ] && [[ ":$1:" != *":$2:"* ]]; then
     echo "$2:$1"
   else
@@ -21,4 +18,3 @@ function prepend_path()
 }
 
 export GOPATH=$(prepend_path $GOPATH $VTROOT)
-
