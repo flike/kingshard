@@ -491,12 +491,20 @@ func (s *Server) addBlackSql(v string) error {
 	fingerPrint := mysql.GetFingerprint(v)
 	md5 := mysql.GetMd5(fingerPrint)
 	if s.blacklistSqlsIndex == 0 {
+		if _, ok := s.blacklistSqls[0].sqls[md5]; ok {
+			return errors.ErrBlackSqlExist
+		}
 		s.blacklistSqls[1] = s.blacklistSqls[0]
 		s.blacklistSqls[1].sqls[md5] = v
+		s.blacklistSqls[1].sqlsLen += 1
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 1)
 	} else {
+		if _, ok := s.blacklistSqls[1].sqls[md5]; ok {
+			return errors.ErrBlackSqlExist
+		}
 		s.blacklistSqls[0] = s.blacklistSqls[1]
 		s.blacklistSqls[0].sqls[md5] = v
+		s.blacklistSqls[0].sqlsLen += 1
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 0)
 	}
 
@@ -509,14 +517,22 @@ func (s *Server) delBlackSql(v string) error {
 	md5 := mysql.GetMd5(fingerPrint)
 
 	if s.blacklistSqlsIndex == 0 {
+		if _, ok := s.blacklistSqls[0].sqls[md5]; !ok {
+			return errors.ErrBlackSqlNotExist
+		}
 		s.blacklistSqls[1] = s.blacklistSqls[0]
 		s.blacklistSqls[1].sqls[md5] = v
 		delete(s.blacklistSqls[1].sqls, md5)
+		s.blacklistSqls[1].sqlsLen -= 1
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 1)
 	} else {
+		if _, ok := s.blacklistSqls[1].sqls[md5]; !ok {
+			return errors.ErrBlackSqlNotExist
+		}
 		s.blacklistSqls[0] = s.blacklistSqls[1]
 		s.blacklistSqls[0].sqls[md5] = v
 		delete(s.blacklistSqls[0].sqls, md5)
+		s.blacklistSqls[0].sqlsLen -= 1
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 0)
 	}
 
