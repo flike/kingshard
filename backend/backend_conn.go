@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/flike/kingshard/mysql"
+	"github.com/flike/kingshard/sqlparser"
 )
 
 var (
@@ -203,7 +204,8 @@ func (c *Conn) readInitialHandshake() error {
 func (c *Conn) writeAuthHandshake() error {
 	// Adjust client capability flags based on server support
 	capability := mysql.CLIENT_PROTOCOL_41 | mysql.CLIENT_SECURE_CONNECTION |
-		mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_TRANSACTIONS | mysql.CLIENT_LONG_FLAG
+		mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_TRANSACTIONS | mysql.CLIENT_LONG_FLAG |
+		mysql.CLIENT_MULTI_STATEMENTS
 
 	capability &= c.capability
 
@@ -484,11 +486,24 @@ func (c *Conn) FieldList(table string, wildcard string) ([]*mysql.Field, error) 
 }
 
 func (c *Conn) exec(query string) (*mysql.Result, error) {
-	if err := c.writeCommandStr(mysql.COM_QUERY, query); err != nil {
-		return nil, err
+	var result *mysql.Result
+	var err error
+	if c.capability&mysql.CLIENT_MULTI_STATEMENTS == 0 {
+		if err := c.writeCommandStr(mysql.COM_QUERY, query); err != nil {
+			return nil, err
+		}
+		result, err = c.readResult(false)
+	} else {
+		sqlStatementList := sqlparser.SplitSQLStatement(query)
+		for _, sqlStatement := range sqlStatementList {
+			if err := c.writeCommandStr(mysql.COM_QUERY, sqlStatement); err != nil {
+				return nil, err
+			}
+			result, err = c.readResult(false)
+		}
 	}
 
-	return c.readResult(false)
+	return result, err
 }
 
 func (c *Conn) readResultset(data []byte, binary bool) (*mysql.Result, error) {
