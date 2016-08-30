@@ -177,7 +177,7 @@ func (n *Node) AddSlave(addr string) error {
 	n.Lock()
 	defer n.Unlock()
 	for _, v := range n.Slave {
-		if v.addr == addr {
+		if strings.Split(v.addr, WeightSplit)[0] == strings.Split(addr, WeightSplit)[0] {
 			return errors.ErrSlaveExist
 		}
 	}
