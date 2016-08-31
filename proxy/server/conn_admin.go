@@ -462,7 +462,7 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 				node.Master.Addr(),
 				"master",
 				node.Master.State(),
-				fmt.Sprintf("%v", time.Unix(node.LastMasterPing, 0)),
+				fmt.Sprintf("%v", time.Unix(node.Master.GetLastPing(), 0)),
 				strconv.Itoa(node.Cfg.MaxConnNum),
 				strconv.Itoa(node.Master.IdleConnCount()),
 			})
@@ -476,7 +476,7 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 						slave.Addr(),
 						"slave",
 						slave.State(),
-						fmt.Sprintf("%v", time.Unix(node.LastSlavePing, 0)),
+						fmt.Sprintf("%v", time.Unix(slave.GetLastPing(), 0)),
 						strconv.Itoa(node.Cfg.MaxConnNum),
 						strconv.Itoa(slave.IdleConnCount()),
 					})
