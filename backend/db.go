@@ -48,6 +48,7 @@ type DB struct {
 	idleConns   chan *Conn
 	cacheConns  chan *Conn
 	checkConn   *Conn
+	lastPing    int64
 }
 
 func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB, error) {
@@ -94,6 +95,7 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 			db.idleConns <- conn
 		}
 	}
+	db.SetLastPing()
 
 	return db, nil
 }
@@ -354,4 +356,12 @@ func (db *DB) GetConn() (*BackendConn, error) {
 		return nil, err
 	}
 	return &BackendConn{c, db}, nil
+}
+
+func (db *DB) SetLastPing() {
+	db.lastPing = time.Now().Unix()
+}
+
+func (db *DB) GetLastPing() int64 {
+	return db.lastPing
 }
