@@ -89,11 +89,11 @@ schema :
         locations: [4,4]
         table_row_limit: 10000
     -
-        table: test_shard_year
-        key: ctime
-        type: date_year
-        nodes: [node1,node2]
-        date_range: [2015-2016,2017-2018]
+        table: test_shard_time
+        key: id
+        nodes: [node1, node2]
+        type: hash
+        locations: [2,2]
     -
         table: test_shard_month
         key: dtime
