@@ -176,7 +176,7 @@ func SplitSQLStatement(multiSQL string) []string {
 	sqlStatementList := regSQLStatement.FindAll([]byte(strings.TrimRight(multiSQL, ";")+";"), -1)
 	var sqlStrArray = make([]string, len(sqlStatementList))
 	for i, sqlStatement := range sqlStatementList {
-		query := string(sqlStatement)
+		query := string(sqlStatement[:len(sqlStatement)-1])
 		sqlStrArray[i] = query
 	}
 	return sqlStrArray
