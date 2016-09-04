@@ -189,10 +189,15 @@ func (c *ClientConn) GetExecDB(tokens []string, sql string) (*ExecuteDB, error) 
 
 func (c *ClientConn) setExecuteNode(tokens []string, tokensLen int, executeDB *ExecuteDB) error {
 	if 2 <= tokensLen {
-		if tokens[0][0] == mysql.COMMENT_PREFIX {
+		//for /*node1*/
+		if 1 < len(tokens) && tokens[0][0] == mysql.COMMENT_PREFIX {
 			nodeName := strings.Trim(tokens[0], mysql.COMMENT_STRING)
 			if c.schema.nodes[nodeName] != nil {
 				executeDB.ExecNode = c.schema.nodes[nodeName]
+			}
+			//for /*node1*/ select
+			if strings.ToLower(tokens[1]) == mysql.TK_STR_SELECT {
+				executeDB.IsSlave = true
 			}
 		}
 	}
@@ -243,12 +248,10 @@ func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB
 			executeDB.IsSlave = false
 		}
 	}
-
 	err := c.setExecuteNode(tokens, tokensLen, executeDB)
 	if err != nil {
 		return nil, err
 	}
-
 	return executeDB, nil
 }
 
