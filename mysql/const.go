@@ -197,9 +197,10 @@ var (
 	COMMENT_STRING       = "*"
 
 	//
-	TK_STR_FROM = "from"
-	TK_STR_INTO = "into"
-	TK_STR_SET  = "set"
+	TK_STR_SELECT = "select"
+	TK_STR_FROM   = "from"
+	TK_STR_INTO   = "into"
+	TK_STR_SET    = "set"
 
 	TK_STR_TRANSACTION    = "transaction"
 	TK_STR_LAST_INSERT_ID = "last_insert_id()"

@@ -67,4 +67,6 @@ var (
 	ErrDateRangeCount   = errors.New("date range count is not equal")
 	ErrSlaveExist       = errors.New("slave has exist")
 	ErrSlaveNotExist    = errors.New("slave has not exist")
+	ErrBlackSqlExist    = errors.New("black sql has exist")
+	ErrBlackSqlNotExist = errors.New("black sql has not exist")
 )

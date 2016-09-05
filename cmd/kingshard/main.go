@@ -138,23 +138,19 @@ func main() {
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
-		syscall.SIGPIPE)
+		syscall.SIGPIPE,
+	)
 
 	go func() {
 		for {
-			select {
-			case sig := <-sc:
-				if sig == syscall.SIGINT || sig == syscall.SIGTERM || sig == syscall.SIGQUIT {
-		golog.Info("main", "main", "Got signal", 0, "signal", sig)
-		golog.GlobalSysLogger.Close()
-		golog.GlobalSqlLogger.Close()
-		svr.Close()
-		monitor_svr.Close()
-					return
-				}
-				if sig == syscall.SIGPIPE {
-					golog.Info("main", "main", "Ignore broken pipe signal", 0)
-				}
+			sig := <-sc
+			if sig == syscall.SIGINT || sig == syscall.SIGTERM || sig == syscall.SIGQUIT {
+				golog.Info("main", "main", "Got signal", 0, "signal", sig)
+				golog.GlobalSysLogger.Close()
+				golog.GlobalSqlLogger.Close()
+				svr.Close()
+			} else if sig == syscall.SIGPIPE {
+				golog.Info("main", "main", "Ignore broken pipe signal", 0)
 			}
 		}
 	}()

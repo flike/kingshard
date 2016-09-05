@@ -40,11 +40,11 @@ nodes :
     max_conns_limit : 32
 
     # all mysql in a node must have the same user and password
-    user :  kingshard 
-    password : kingshard
+    user :  root 
+    password : root
 
     # master represents a real mysql master server 
-    master : 127.0.0.1:3306
+    master : 127.0.0.1:3307
 
     # slave represents a real mysql salve server,and the number after '@' is 
     # read load weight of this slave.
@@ -57,11 +57,11 @@ nodes :
     max_conns_limit : 32
 
     # all mysql in a node must have the same user and password
-    user :  kingshard 
-    password : kingshard
+    user :  root 
+    password : root
 
     # master represents a real mysql master server 
-    master : 192.168.59.103:3307
+    master : 127.0.0.1:3309
 
     # slave represents a real mysql salve server 
     slave : 
@@ -92,11 +92,11 @@ schema :
         table_row_base: 2000
         table_row_limit: 10000
     -
-        table: test_shard_year
-        key: ctime
-        type: date_year
-        nodes: [node1,node2]
-        date_range: [2015-2016,2017-2018]
+        table: test_shard_time
+        key: id
+        nodes: [node1, node2]
+        type: hash
+        locations: [2,2]
     -
         table: test_shard_month
         key: dtime

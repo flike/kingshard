@@ -20,11 +20,13 @@ admin server(opt,k,v) values('change','proxy','offline')
 
 ## 3.配合keepalived做高可用架构
 ![keepalived部署图](./keepalived.png)
+
 3.1keepalived检测脚本通过该命令进行real server保活检测
 ```
 admin server(opt,k,v) values('show','proxy','status')
 ```
 如果得到的结果是"online", keepalived虚拟IP绑定在主ks实例上，不会漂移;如果检测到状态是"offline"或者"连接错误",keepalived认为主ks实例不可用，虚拟IP漂移到从ks实例上，从而实现高可用。
+
 3.2高可用手动触发流程
 ```
 admin server(opt,k,v) values('change','proxy','offline')

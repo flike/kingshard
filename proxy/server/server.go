@@ -491,12 +491,20 @@ func (s *Server) addBlackSql(v string) error {
 	fingerPrint := mysql.GetFingerprint(v)
 	md5 := mysql.GetMd5(fingerPrint)
 	if s.blacklistSqlsIndex == 0 {
+		if _, ok := s.blacklistSqls[0].sqls[md5]; ok {
+			return errors.ErrBlackSqlExist
+		}
 		s.blacklistSqls[1] = s.blacklistSqls[0]
 		s.blacklistSqls[1].sqls[md5] = v
+		s.blacklistSqls[1].sqlsLen += 1
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 1)
 	} else {
+		if _, ok := s.blacklistSqls[1].sqls[md5]; ok {
+			return errors.ErrBlackSqlExist
+		}
 		s.blacklistSqls[0] = s.blacklistSqls[1]
 		s.blacklistSqls[0].sqls[md5] = v
+		s.blacklistSqls[0].sqlsLen += 1
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 0)
 	}
 
@@ -509,14 +517,22 @@ func (s *Server) delBlackSql(v string) error {
 	md5 := mysql.GetMd5(fingerPrint)
 
 	if s.blacklistSqlsIndex == 0 {
+		if _, ok := s.blacklistSqls[0].sqls[md5]; !ok {
+			return errors.ErrBlackSqlNotExist
+		}
 		s.blacklistSqls[1] = s.blacklistSqls[0]
 		s.blacklistSqls[1].sqls[md5] = v
 		delete(s.blacklistSqls[1].sqls, md5)
+		s.blacklistSqls[1].sqlsLen -= 1
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 1)
 	} else {
+		if _, ok := s.blacklistSqls[1].sqls[md5]; !ok {
+			return errors.ErrBlackSqlNotExist
+		}
 		s.blacklistSqls[0] = s.blacklistSqls[1]
 		s.blacklistSqls[0].sqls[md5] = v
 		delete(s.blacklistSqls[0].sqls, md5)
+		s.blacklistSqls[0].sqlsLen -= 1
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 0)
 	}
 
@@ -588,12 +604,32 @@ func (s *Server) Close() {
 }
 
 func (s *Server) DeleteSlave(node string, addr string) error {
+	addr = strings.Split(addr, backend.WeightSplit)[0]
 	n := s.GetNode(node)
 	if n == nil {
 		return fmt.Errorf("invalid node %s", node)
 	}
 
-	return n.DeleteSlave(addr)
+	if err := n.DeleteSlave(addr); err != nil {
+		return err
+	}
+
+	//sync node slave to global config
+	for i, v1 := range s.cfg.Nodes {
+		if node == v1.Name {
+			s1 := strings.Split(v1.Slave, backend.SlaveSplit)
+			s2 := make([]string, 0, len(s1)-1)
+			for _, v2 := range s1 {
+				hostPort := strings.Split(v2, backend.WeightSplit)[0]
+				if addr != hostPort {
+					s2 = append(s2, v2)
+				}
+			}
+			s.cfg.Nodes[i].Slave = strings.Join(s2, backend.SlaveSplit)
+		}
+	}
+
+	return nil
 }
 
 func (s *Server) AddSlave(node string, addr string) error {
@@ -602,7 +638,20 @@ func (s *Server) AddSlave(node string, addr string) error {
 		return fmt.Errorf("invalid node %s", node)
 	}
 
-	return n.AddSlave(addr)
+	if err := n.AddSlave(addr); err != nil {
+		return err
+	}
+
+	//sync node slave to global config
+	for i, v1 := range s.cfg.Nodes {
+		if v1.Name == node {
+			s1 := strings.Split(v1.Slave, backend.SlaveSplit)
+			s1 = append(s1, addr)
+			s.cfg.Nodes[i].Slave = strings.Join(s1, backend.SlaveSplit)
+		}
+	}
+
+	return nil
 }
 
 func (s *Server) UpMaster(node string, addr string) error {
