@@ -149,6 +149,8 @@ func main() {
 				golog.GlobalSysLogger.Close()
 				golog.GlobalSqlLogger.Close()
 				svr.Close()
+				monitor_svr.Close()
+				return
 			} else if sig == syscall.SIGPIPE {
 				golog.Info("main", "main", "Ignore broken pipe signal", 0)
 			}
