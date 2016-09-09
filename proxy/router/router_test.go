@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/flike/kingshard/core/yaml"
+	"gopkg.in/yaml.v2"
 
 	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/sqlparser"
