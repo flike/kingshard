@@ -177,3 +177,12 @@ func TestConn_SetAutoCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestConn_ChangeUser(t *testing.T) {
+	c := newTestConn()
+	defer c.Close()
+
+	if err := c.ChangeUser("kingshard", "kingshard", "kingshard", c.collation); err != nil {
+		t.Fatal(err)
+	}
+}
