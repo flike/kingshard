@@ -1,9 +1,8 @@
 # server listen addr
 addr : 0.0.0.0:9696
 
-# server user and password
-user :  kingshard
-password : kingshard
+# server user and password list
+ups:  root:root,kingshard:kingshard
 
 # if set log_path, the sql log will write into log_path/sql.log,the system log
 # will write into log_path/sys.log

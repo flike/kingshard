@@ -55,11 +55,10 @@ const (
 )
 
 type Server struct {
-	cfg      *config.Config
-	addr     string
-	user     string
-	password string
-	db       string
+	cfg  *config.Config
+	addr string
+	UPs  map[string]string
+	db   string
 
 	statusIndex        int32
 	status             [2]int32
@@ -228,14 +227,23 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s.cfg = cfg
 	s.counter = new(Counter)
 	s.addr = cfg.Addr
-	s.user = cfg.User
-	s.password = cfg.Password
 	atomic.StoreInt32(&s.statusIndex, 0)
 	s.status[s.statusIndex] = Online
 	atomic.StoreInt32(&s.logSqlIndex, 0)
 	s.logSql[s.logSqlIndex] = cfg.LogSql
 	atomic.StoreInt32(&s.slowLogTimeIndex, 0)
 	s.slowLogTime[s.slowLogTimeIndex] = cfg.SlowLogTime
+
+	s.UPs = make(map[string]string, 10)
+	ups := strings.Split(cfg.Ups, ",")
+	for _, up := range ups {
+		kv := strings.Split(up, ":")
+		if len(kv) != 2 {
+			return nil, errors.ErrInvalidUserPassword
+		}
+		s.UPs[kv[0]] = kv[1]
+	}
+
 	if len(cfg.Charset) != 0 {
 		cid, ok := mysql.CharsetIds[cfg.Charset]
 		if !ok {

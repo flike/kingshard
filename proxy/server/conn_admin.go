@@ -414,7 +414,8 @@ func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
 	}
 
 	rows = append(rows, []string{"Addr", c.proxy.cfg.Addr})
-	rows = append(rows, []string{"User", c.proxy.cfg.User})
+	//TODO show all user
+	rows = append(rows, []string{"User", ""})
 	rows = append(rows, []string{"LogPath", c.proxy.cfg.LogPath})
 	rows = append(rows, []string{"LogLevel", c.proxy.cfg.LogLevel})
 	rows = append(rows, []string{"LogSql", c.proxy.logSql[c.proxy.logSqlIndex]})

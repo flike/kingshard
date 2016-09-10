@@ -341,6 +341,31 @@ func (c *Conn) writeCommandStrStr(command byte, arg1 string, arg2 string) error 
 	return c.writePacket(data)
 }
 
+func (c *Conn) writeCommand4Str(command byte, arg1, arg2, arg3 string, arg4 mysql.CollationId) error {
+	c.pkg.Sequence = 0
+	auth := mysql.CalcPassword(c.salt, []byte(arg2))
+	length := 4 + 1 + len(arg1) + 1 + 1 + len(auth) + len(arg3) + 1 + 2
+	data := make([]byte, length, length)
+	pos := 4
+	data[4] = command
+	pos += 1
+	//user [null terminated string]
+	pos += copy(data[pos:], arg1)
+	//data[pos]=0x00
+	pos++
+
+	//auth [length encoded string]
+	data[pos] = byte(len(auth))
+	pos += 1 + copy(data[pos:], auth)
+
+	//db [null terminated string]
+	pos += copy(data[pos:], arg3)
+	//data[pos]=0x00
+	pos++
+	data[pos] = byte(arg4)
+	return c.writePacket(data)
+}
+
 func (c *Conn) Ping() error {
 	if err := c.writeCommand(mysql.COM_PING); err != nil {
 		return err
@@ -481,6 +506,23 @@ func (c *Conn) FieldList(table string, wildcard string) ([]*mysql.Field, error) 
 		}
 	}
 	return nil, fmt.Errorf("field list error")
+}
+
+func (c *Conn) ChangeUser(user, password, db string, collation mysql.CollationId) error {
+	if c.user == user && c.password == password && c.db == db && c.collation == collation {
+		return nil
+	}
+	err := c.writeCommand4Str(mysql.COM_CHANGE_USER, user, password, db, collation)
+	if err != nil {
+		return err
+	}
+
+	c.user = user
+	c.password = password
+	c.db = db
+	c.collation = collation
+
+	return nil
 }
 
 func (c *Conn) exec(query string) (*mysql.Result, error) {

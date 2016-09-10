@@ -33,10 +33,11 @@ var (
 	ErrBadConn       = errors.New("connection was bad")
 	ErrIgnoreSQL     = errors.New("ignore this sql")
 
-	ErrAddressNull     = errors.New("address is nil")
-	ErrInvalidArgument = errors.New("argument is invalid")
-	ErrInvalidCharset  = errors.New("charset is invalid")
-	ErrCmdUnsupport    = errors.New("command unsupport")
+	ErrAddressNull         = errors.New("address is nil")
+	ErrInvalidArgument     = errors.New("argument is invalid")
+	ErrInvalidUserPassword = errors.New("user or password is invalid")
+	ErrInvalidCharset      = errors.New("charset is invalid")
+	ErrCmdUnsupport        = errors.New("command unsupport")
 
 	ErrLocationsCount = errors.New("locations count is not equal")
 	ErrNoCriteria     = errors.New("plan have no criteria")

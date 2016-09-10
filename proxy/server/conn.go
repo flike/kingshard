@@ -226,14 +226,20 @@ func (c *ClientConn) readHandshakeResponse() error {
 	pos++
 	auth := data[pos : pos+authLen]
 
-	checkAuth := mysql.CalcPassword(c.salt, []byte(c.proxy.cfg.Password))
-	if c.user != c.proxy.cfg.User || !bytes.Equal(auth, checkAuth) {
+	if _, ok := c.proxy.UPs[c.user]; !ok {
+		golog.Error("ClientConn", "readHandshakeResponse", "error", 0,
+			"client_user", c.user,
+			"config_set_user", "")
+		return mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.user, c.c.RemoteAddr().String(), "Yes")
+	}
+	checkAuth := mysql.CalcPassword(c.salt, []byte(c.proxy.UPs[c.user]))
+	if !bytes.Equal(auth, checkAuth) {
 		golog.Error("ClientConn", "readHandshakeResponse", "error", 0,
 			"auth", auth,
 			"checkAuth", checkAuth,
 			"client_user", c.user,
-			"config_set_user", c.proxy.cfg.User,
-			"passworld", c.proxy.cfg.Password)
+			"config_set_user", c.user,
+			"password", c.proxy.UPs[c.user])
 		return mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.user, c.c.RemoteAddr().String(), "Yes")
 	}
 

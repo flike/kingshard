@@ -82,9 +82,15 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 		return fmt.Errorf("prepare error %s", err)
 	}
 
-	err = co.UseDB(c.schema.db)
-	if err != nil {
-		return fmt.Errorf("prepare error %s", err)
+	if len(c.proxy.UPs) > 1 {
+		if err = co.ChangeUser(c.user, c.proxy.UPs[c.user], c.db, c.collation); err != nil {
+			return fmt.Errorf("prepare error %s", err)
+		}
+	} else {
+		err = co.UseDB(c.schema.db)
+		if err != nil {
+			return fmt.Errorf("prepare error %s", err)
+		}
 	}
 
 	t, err := co.Prepare(sql)

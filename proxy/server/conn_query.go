@@ -140,12 +140,18 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 		}
 	}
 
-	if err = co.UseDB(c.db); err != nil {
-		return
-	}
+	if len(c.proxy.UPs) > 1 {
+		if err = co.ChangeUser(c.user, c.proxy.UPs[c.user], c.db, c.collation); err != nil {
+			return
+		}
+	} else {
+		if err = co.UseDB(c.db); err != nil {
+			return
+		}
 
-	if err = co.SetCharset(c.charset); err != nil {
-		return
+		if err = co.SetCharset(c.charset); err != nil {
+			return
+		}
 	}
 
 	return
