@@ -46,7 +46,7 @@ func (c *ClientConn) handleUseDB(dbName string) error {
 	}
 
 	if len(c.proxy.UPs) > 1 {
-		if err = co.ChangeUser(c.user, c.proxy.UPs[c.user], c.db, c.collation); err != nil {
+		if err = co.ChangeUser(c.user, c.proxy.UPs[c.user], dbName, c.collation); err != nil {
 			return err
 		}
 	} else {

@@ -356,11 +356,10 @@ func (c *Conn) writeCommand4Str(command byte, arg1, arg2, arg3 string, arg4 mysq
 
 	//auth [length encoded string]
 	data[pos] = byte(len(auth))
-	pos += 1 + copy(data[pos:], auth)
+	pos += 1 + copy(data[pos+1:], auth)
 
 	//db [null terminated string]
 	pos += copy(data[pos:], arg3)
-	//data[pos]=0x00
 	pos++
 	data[pos] = byte(arg4)
 	return c.writePacket(data)
@@ -513,6 +512,10 @@ func (c *Conn) ChangeUser(user, password, db string, collation mysql.CollationId
 		return nil
 	}
 	err := c.writeCommand4Str(mysql.COM_CHANGE_USER, user, password, db, collation)
+	if err != nil {
+		return err
+	}
+	_, err = c.readPacket()
 	if err != nil {
 		return err
 	}
