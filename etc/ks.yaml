@@ -1,5 +1,7 @@
+pidfile : /uc/etc/kingshard.pid
 # server listen addr
 addr : 0.0.0.0:9696
+monitor_addr : 0.0.0.0:19696
 
 # server user and password
 user :  kingshard
@@ -87,6 +89,7 @@ schema :
         type: range
         nodes: [node1, node2]
         locations: [4,4]
+        table_row_base: 2000
         table_row_limit: 10000
     -
         table: test_shard_time

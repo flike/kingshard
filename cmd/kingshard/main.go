@@ -49,6 +49,28 @@ const banner string = `
              /____/
 `
 
+func writePID(cfg *config.Config) {
+	pidpath := cfg.PidPath
+	if pidpath == "" {
+		fmt.Println("WritePid failed, please confirm that the pidfile configuration item are correctly filed")
+		os.Exit(-1)
+	}
+
+	fp, err := os.Create(pidpath)
+	if err != nil {
+		fmt.Println("WritePID failed, create pidfile failed %s", err.Error())
+		os.Exit(-1)
+	}
+	defer fp.Close()
+
+	pid := os.Getpid()
+	_, err = fp.WriteString(fmt.Sprintf("%d", pid))
+	if err != nil {
+		fmt.Println("WritePID failed, %s", err.Error())
+		os.Exit(-1)
+	}
+}
+
 func main() {
 	fmt.Print(banner)
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -103,6 +125,14 @@ func main() {
 		return
 	}
 
+	var monitor_svr *server.ServerMonitor
+	monitor_svr, err = server.NewMonitorServer(cfg)
+	if err != nil {
+		golog.Error("main", "main", err.Error(), 0)
+		golog.GlobalSysLogger.Close()
+		golog.GlobalSqlLogger.Close()
+		return
+	}
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
 		syscall.SIGINT,
@@ -119,12 +149,16 @@ func main() {
 				golog.GlobalSysLogger.Close()
 				golog.GlobalSqlLogger.Close()
 				svr.Close()
+				monitor_svr.Close()
+				return
 			} else if sig == syscall.SIGPIPE {
 				golog.Info("main", "main", "Ignore broken pipe signal", 0)
 			}
 		}
 	}()
 
+	writePID(cfg)
+	go monitor_svr.Run()
 	svr.Run()
 }
 

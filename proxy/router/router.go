@@ -233,7 +233,7 @@ func parseShard(r *Rule, cfg *config.ShardConfig) error {
 	case HashRuleType:
 		r.Shard = &HashShard{ShardNum: len(r.TableToNode)}
 	case RangeRuleType:
-		rs, err := ParseNumSharding(cfg.Locations, cfg.TableRowLimit)
+		rs, err := ParseNumSharding(cfg.Locations, cfg.TableRowLimit, cfg.TableRowBase)
 		if err != nil {
 			return err
 		}
@@ -570,7 +570,32 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 				tableIndex,
 			)
 		}
-		buf.Fprintf(" %s %v", v.Join, v.RightExpr)
+
+		if ate_r, ok_r := (v.RightExpr).(*sqlparser.AliasedTableExpr); ok_r {
+			if len(ate_r.As) != 0 {
+				fmt.Fprintf(buf, " %s %s_%04d as %s",
+					sqlparser.AST_LEFT_JOIN,
+					sqlparser.String(ate_r.Expr),
+					tableIndex,
+					string(ate_r.As),
+				)
+			} else {
+				fmt.Fprintf(buf, " %s %s_%04d",
+					sqlparser.AST_LEFT_JOIN,
+					sqlparser.String(ate_r.Expr),
+					tableIndex,
+				)
+			}
+		} else {
+			fmt.Fprintf(buf, " %s %s_%04d",
+				sqlparser.AST_LEFT_JOIN,
+				sqlparser.String(v.RightExpr),
+				tableIndex,
+			)
+		}
+
+		//buf.Fprintf(" %s %v", v.Join, v.RightExpr)
+		//golog.Info("router", "sqlparser.JoinTableExpr and v.Join, v.RightExpr", buf.String(), 0)
 		if v.On != nil {
 			buf.Fprintf(" on %v", v.On)
 		}
@@ -591,6 +616,7 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		//do not change limit
 		newLimit = node.Limit
 	}
+	
 	//rewrite where
 	oldright, err := plan.rewriteWhereIn(tableIndex)
 

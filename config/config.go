@@ -23,7 +23,9 @@ import (
 
 //整个config文件对应的结构
 type Config struct {
+	PidPath     string       `yaml:"pidfile"`
 	Addr        string       `yaml:"addr"`
+	MonitorAddr string       `yaml:"monitor_addr"`
 	User        string       `yaml:"user"`
 	Password    string       `yaml:"password"`
 	LogPath     string       `yaml:"log_path"`
@@ -66,6 +68,7 @@ type ShardConfig struct {
 	Nodes         []string `yaml:"nodes"`
 	Locations     []int    `yaml:"locations"`
 	Type          string   `yaml:"type"`
+	TableRowBase  int      `yaml:"table_row_base"`
 	TableRowLimit int      `yaml:"table_row_limit"`
 	DateRange     []string `yaml:"date_range"`
 }
