@@ -215,7 +215,7 @@ func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args [
 	return []*mysql.Result{r}, err
 }
 
-func (c *ClientConn) _executeInMutiNodes(conns map[string][]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {
+func (c *ClientConn) _executeInMultiNodes(conns map[string][]*backend.BackendConn, sqls map[string][]string, args []interface{}) ([]*mysql.Result, error) {
 
 	var wg sync.WaitGroup
 
@@ -257,11 +257,11 @@ func (c *ClientConn) _executeInMutiNodes(conns map[string][]*backend.BackendConn
 		wg.Done()
 	}
 
-	offsert := 0
+	offset := 0
 	for nodeName, connpool := range conns {
 		s := sqls[nodeName] //[]string
-		go f(rs, offsert, s, connpool[0])
-		offsert += len(s)
+		go f(rs, offset, s, connpool[0])
+		offset += len(s)
 	}
 
 	wg.Wait()
@@ -314,7 +314,7 @@ func (c *ClientConn) _executeInMultiNodesByConns(conns map[string][]*backend.Bac
 		}
 		wg.Done()
 	}
-	offsert := 0
+	offset := 0
 	lockCount := 0
 	for nodeName, connpool := range conns {
 		s := sqls[nodeName] //[]string
@@ -342,17 +342,17 @@ func (c *ClientConn) _executeInMultiNodesByConns(conns map[string][]*backend.Bac
 			}
 			if k < len(backendConns)-1 {
 				subSqls := s[pos : pos+stepLen]
-				go f(rs, offsert, subSqls, v)
-				offsert += len(subSqls)
+				go f(rs, offset, subSqls, v)
+				offset += len(subSqls)
 				pos += stepLen
 				golog.Info("ClientConn", "_executeInMultiNodesByConns in process", "subsqls", c.connectionId,
-					"subsqls", subSqls, "pos", pos, "offsert", offsert)
+					"subsqls", subSqls, "pos", pos, "offset", offset)
 			} else {
 				subSqls := s[pos:]
-				go f(rs, offsert, subSqls, v)
-				offsert += len(subSqls)
+				go f(rs, offset, subSqls, v)
+				offset += len(subSqls)
 				golog.Info("ClientConn", "_executeInMultiNodesByConns in end", "subsqls", c.connectionId,
-					"subsqls", subSqls, "pos", pos, "offsert", offsert)
+					"subsqls", subSqls, "pos", pos, "offset", offset)
 			}
 		}
 	}
@@ -392,8 +392,8 @@ func (c *ClientConn) executeInMultiNodes(conns map[string][]*backend.BackendConn
 		}
 	}
 	if c.isInTransaction() || !mutilRouter {
-		golog.Info("ClientConn", "executeInMultiNodes", "_executeInMutiNodes", c.connectionId)
-		return c._executeInMutiNodes(conns, sqls, args)
+		golog.Info("ClientConn", "executeInMultiNodes", "_executeInMultiNodes", c.connectionId)
+		return c._executeInMultiNodes(conns, sqls, args)
 	}
 	golog.Info("ClientConn", "executeInMultiNodes", "_executeInMultiNodesByConns", c.connectionId)
 	return c._executeInMultiNodesByConns(conns, sqls, args)
