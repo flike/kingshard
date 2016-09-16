@@ -18,7 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/siddontang/go-yaml/yaml"
+	"gopkg.in/yaml.v2"
 )
 
 //整个config文件对应的结构
