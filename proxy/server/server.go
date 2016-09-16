@@ -360,7 +360,7 @@ func (s *Server) onConn(c net.Conn) {
 	conn.Run()
 }
 
-func (s *Server) changeProxy(v string) error {
+func (s *Server) ChangeProxy(v string) error {
 	var status int32
 	switch v {
 	case "online":
@@ -385,7 +385,11 @@ func (s *Server) changeProxy(v string) error {
 	return nil
 }
 
-func (s *Server) changeLogSql(v string) error {
+func (s *Server) ChangeLogSql(v string) error {
+	v = strings.ToLower(v)
+	if v != golog.LogSqlOn && v != golog.LogSqlOff {
+		return errors.ErrCmdUnsupport
+	}
 	if s.logSqlIndex == 0 {
 		s.logSql[1] = v
 		atomic.StoreInt32(&s.logSqlIndex, 1)
@@ -398,7 +402,7 @@ func (s *Server) changeLogSql(v string) error {
 	return nil
 }
 
-func (s *Server) changeSlowLogTime(v string) error {
+func (s *Server) ChangeSlowLogTime(v string) error {
 	tmp, err := strconv.Atoi(v)
 	if err != nil {
 		return err
@@ -416,7 +420,7 @@ func (s *Server) changeSlowLogTime(v string) error {
 	return err
 }
 
-func (s *Server) addAllowIP(v string) error {
+func (s *Server) AddAllowIP(v string) error {
 	clientIP := net.ParseIP(v)
 
 	for _, ip := range s.allowips[s.allowipsIndex] {
@@ -444,7 +448,7 @@ func (s *Server) addAllowIP(v string) error {
 	return nil
 }
 
-func (s *Server) delAllowIP(v string) error {
+func (s *Server) DelAllowIP(v string) error {
 	clientIP := net.ParseIP(v)
 
 	if s.allowipsIndex == 0 {
@@ -486,7 +490,15 @@ func (s *Server) delAllowIP(v string) error {
 	return nil
 }
 
-func (s *Server) addBlackSql(v string) error {
+func (s *Server) GetAllBlackSqls() []string {
+	blackSQLs := make([]string, 0, 10)
+	for _, SQL := range s.blacklistSqls[s.blacklistSqlsIndex].sqls {
+		blackSQLs = append(blackSQLs, SQL)
+	}
+	return blackSQLs
+}
+
+func (s *Server) AddBlackSql(v string) error {
 	v = strings.TrimSpace(v)
 	fingerPrint := mysql.GetFingerprint(v)
 	md5 := mysql.GetMd5(fingerPrint)
@@ -511,7 +523,7 @@ func (s *Server) addBlackSql(v string) error {
 	return nil
 }
 
-func (s *Server) delBlackSql(v string) error {
+func (s *Server) DelBlackSql(v string) error {
 	v = strings.TrimSpace(v)
 	fingerPrint := mysql.GetFingerprint(v)
 	md5 := mysql.GetMd5(fingerPrint)
@@ -563,7 +575,7 @@ func (s *Server) saveBlackSql() error {
 	return nil
 }
 
-func (s *Server) handleSaveProxyConfig() error {
+func (s *Server) SaveProxyConfig() error {
 	err := config.WriteConfigFile(s.cfg)
 	if err != nil {
 		return err
@@ -692,6 +704,24 @@ func (s *Server) GetNode(name string) *backend.Node {
 	return s.nodes[name]
 }
 
+func (s *Server) GetAllNodes() map[string]*backend.Node {
+	return s.nodes
+}
+
 func (s *Server) GetSchema() *Schema {
 	return s.schema
+}
+
+func (s *Server) GetSlowLogTime() int {
+	return s.slowLogTime[s.slowLogTimeIndex]
+}
+
+func (s *Server) GetAllowIps() []string {
+	var ips []string
+	for _, v := range s.allowips[s.allowipsIndex] {
+		if v != nil {
+			ips = append(ips, v.String())
+		}
+	}
+	return ips
 }

@@ -27,6 +27,7 @@ addr : 0.0.0.0:9696
 user : root
 password : root
 log_level : error
+allow_ips : 127.0.0.1,192.168.0.13
 
 nodes :
 - 
@@ -78,7 +79,9 @@ schema :
 	if len(cfg.Nodes) != 3 {
 		t.Fatal(len(cfg.Nodes))
 	}
-
+	if cfg.AllowIps != "127.0.0.1,192.168.0.13" {
+		t.Fatal(len(cfg.AllowIps))
+	}
 	testNode := NodeConfig{
 		Name:             "node1",
 		DownAfterNoAlive: 300,
