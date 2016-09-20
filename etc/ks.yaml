@@ -1,7 +1,7 @@
 # server listen addr
 addr : 0.0.0.0:9696
 
-# server user and password list
+# server user and password, the first group is also the default user/password to init backend connection pool
 ups:  root:root,kingshard:kingshard
 
 # if set log_path, the sql log will write into log_path/sql.log,the system log
@@ -36,10 +36,6 @@ nodes :
     # default max conns for mysql server
     max_conns_limit : 32
 
-    # all mysql in a node must have the same user and password
-    user :  root 
-    password : root
-
     # master represents a real mysql master server 
     master : 127.0.0.1:3307
 
@@ -52,10 +48,6 @@ nodes :
 
     # default max conns for mysql server
     max_conns_limit : 32
-
-    # all mysql in a node must have the same user and password
-    user :  root 
-    password : root
 
     # master represents a real mysql master server 
     master : 127.0.0.1:3309

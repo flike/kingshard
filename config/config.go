@@ -43,9 +43,6 @@ type NodeConfig struct {
 	DownAfterNoAlive int    `yaml:"down_after_noalive"`
 	MaxConnNum       int    `yaml:"max_conns_limit"`
 
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-
 	Master string `yaml:"master"`
 	Slave  string `yaml:"slave"`
 }

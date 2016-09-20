@@ -44,6 +44,9 @@ type Node struct {
 	RoundRobinQ    []int
 	SlaveWeights   []int
 
+	DefaultUser     string
+	DefaultPassword string
+
 	DownAfterNoAlive time.Duration
 }
 
@@ -228,7 +231,7 @@ func (n *Node) DeleteSlave(addr string) error {
 }
 
 func (n *Node) OpenDB(addr string) (*DB, error) {
-	db, err := Open(addr, n.Cfg.User, n.Cfg.Password, "", n.Cfg.MaxConnNum)
+	db, err := Open(addr, n.DefaultUser, n.DefaultPassword, "", n.Cfg.MaxConnNum)
 	return db, err
 }
 

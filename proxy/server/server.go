@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -55,10 +56,13 @@ const (
 )
 
 type Server struct {
-	cfg  *config.Config
-	addr string
-	UPs  map[string]string
-	db   string
+	cfg             *config.Config
+	addr            string
+	UPs             map[string]string
+	defaultInit     sync.Once
+	defaultUser     string
+	defaultPassword string
+	db              string
 
 	statusIndex        int32
 	status             [2]int32
@@ -151,6 +155,8 @@ func (s *Server) parseNode(cfg config.NodeConfig) (*backend.Node, error) {
 	var err error
 	n := new(backend.Node)
 	n.Cfg = cfg
+	n.DefaultUser = s.defaultUser
+	n.DefaultPassword = s.defaultPassword
 
 	n.DownAfterNoAlive = time.Duration(cfg.DownAfterNoAlive) * time.Second
 	err = n.ParseMaster(cfg.Master)
@@ -241,6 +247,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		if len(kv) != 2 {
 			return nil, errors.ErrInvalidUserPassword
 		}
+		s.defaultInit.Do(func() {
+			s.defaultUser = kv[0]
+			s.defaultPassword = kv[1]
+		})
 		s.UPs[kv[0]] = kv[1]
 	}
 
