@@ -1,4 +1,4 @@
-[![Author](https://img.shields.io/badge/author-@flike-blue.svg?style=flat)](http://weibo.com/chenfei001) [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)](https://travis-ci.org/flike/kingshard) [![Project Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/flike/kingshard) [![Platform](https://img.shields.io/badge/platform-%20Linux%20Windows%20macOS-green.svg?style=flat)](https://github.com/flike/kingshard)
+[![Author](https://img.shields.io/badge/author-@flike-blue.svg?style=flat)](http://weibo.com/chenfei001) [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)](https://travis-ci.org/flike/kingshard) [![Project Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/flike/kingshard) [![Platform](https://img.shields.io/badge/platform-%20Linux%20Windows%20macOS-green.svg?style=flat)](https://github.com/flike/kingshard) [![Foundation](https://img.shields.io/badge/Golang-Foundation-green.svg)](http://golangfoundation.org)
 
 # kingshard简介
 
