@@ -28,6 +28,7 @@ import (
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/proxy/server"
+	"github.com/flike/kingshard/web"
 )
 
 var configFile *string = flag.String("config", "/etc/ks.yaml", "kingshard config file")
@@ -95,11 +96,20 @@ func main() {
 	}
 
 	var svr *server.Server
+	var apiSvr *web.ApiServer
 	svr, err = server.NewServer(cfg)
 	if err != nil {
 		golog.Error("main", "main", err.Error(), 0)
 		golog.GlobalSysLogger.Close()
 		golog.GlobalSqlLogger.Close()
+		return
+	}
+	apiSvr, err = web.NewApiServer(cfg, svr)
+	if err != nil {
+		golog.Error("main", "main", err.Error(), 0)
+		golog.GlobalSysLogger.Close()
+		golog.GlobalSqlLogger.Close()
+		svr.Close()
 		return
 	}
 
@@ -124,7 +134,7 @@ func main() {
 			}
 		}
 	}()
-
+	go apiSvr.Run()
 	svr.Run()
 }
 

@@ -3,16 +3,118 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "XeOje6FklwIZfFMTgE583al/ZDo=",
-			"path": "gopkg.in/check.v1",
-			"revision": "64131543e7896d5bcc6bd5a76287eb75ea96c673",
-			"revisionTime": "2014-10-24T13:38:53Z"
+			"checksumSHA1": "EsJksAKyY2+r3mY+rdNocSCe1wg=",
+			"path": "github.com/dgrijalva/jwt-go",
+			"revision": "24c63f56522a87ec5339cc3567883f1039378fdb",
+			"revisionTime": "2016-08-31T18:35:34Z"
 		},
 		{
-			"checksumSHA1": "Ww6wiSKdA8LwxoJz4DNUF+crH4g=",
+			"checksumSHA1": "YojBxConkda2Bh0J7oQxugqUMb0=",
+			"path": "github.com/labstack/echo",
+			"revision": "03efe4d61b73979961720b92c3cee985c29a24f2",
+			"revisionTime": "2016-09-09T22:30:07Z"
+		},
+		{
+			"checksumSHA1": "arbpSvi1eBUSuSaEZap+osiG+P8=",
+			"path": "github.com/labstack/echo/context",
+			"revision": "03efe4d61b73979961720b92c3cee985c29a24f2",
+			"revisionTime": "2016-09-09T22:30:07Z"
+		},
+		{
+			"checksumSHA1": "iSCVYY4+iVuYwlrKSkmCkZLnhrc=",
+			"path": "github.com/labstack/echo/engine",
+			"revision": "03efe4d61b73979961720b92c3cee985c29a24f2",
+			"revisionTime": "2016-09-09T22:30:07Z"
+		},
+		{
+			"checksumSHA1": "Bep2h7to4GARqpv+zVIOVSAoUcY=",
+			"path": "github.com/labstack/echo/engine/standard",
+			"revision": "03efe4d61b73979961720b92c3cee985c29a24f2",
+			"revisionTime": "2016-09-09T22:30:07Z"
+		},
+		{
+			"checksumSHA1": "iDCjk9XfJyeiobpsw3E1UXXde/0=",
+			"path": "github.com/labstack/echo/log",
+			"revision": "03efe4d61b73979961720b92c3cee985c29a24f2",
+			"revisionTime": "2016-09-09T22:30:07Z"
+		},
+		{
+			"checksumSHA1": "VH/B0GtkQc9tw/o7glmJSHgj+4Q=",
+			"path": "github.com/labstack/echo/middleware",
+			"revision": "03efe4d61b73979961720b92c3cee985c29a24f2",
+			"revisionTime": "2016-09-09T22:30:07Z"
+		},
+		{
+			"checksumSHA1": "NvfQq6Y6kh9cMw+y1m00ivEd5b4=",
+			"path": "github.com/labstack/gommon/bytes",
+			"revision": "431777a5117c8de4352a400dad1e2a55f484b189",
+			"revisionTime": "2016-08-19T15:13:15Z"
+		},
+		{
+			"checksumSHA1": "CPh1wcGiIzRIsj1DzMdcviqbjMk=",
+			"path": "github.com/labstack/gommon/color",
+			"revision": "431777a5117c8de4352a400dad1e2a55f484b189",
+			"revisionTime": "2016-08-19T15:13:15Z"
+		},
+		{
+			"checksumSHA1": "ah+/KsSqG19bfvYwpNwHbCFhJJE=",
+			"path": "github.com/labstack/gommon/log",
+			"revision": "431777a5117c8de4352a400dad1e2a55f484b189",
+			"revisionTime": "2016-08-19T15:13:15Z"
+		},
+		{
+			"checksumSHA1": "XvsHo25Kr69E5xxTDatXzCQc6sI=",
+			"path": "github.com/labstack/gommon/random",
+			"revision": "431777a5117c8de4352a400dad1e2a55f484b189",
+			"revisionTime": "2016-08-19T15:13:15Z"
+		},
+		{
+			"checksumSHA1": "ZAlzPBSsaGe/k5pbISRQvSiVhfc=",
+			"path": "github.com/mattn/go-colorable",
+			"revision": "ed8eb9e318d7a84ce5915b495b7d35e0cfe7b5a8",
+			"revisionTime": "2016-07-31T23:54:17Z"
+		},
+		{
+			"checksumSHA1": "xZuhljnmBysJPta/lMyYmJdujCg=",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8",
+			"revisionTime": "2016-08-06T12:27:52Z"
+		},
+		{
+			"checksumSHA1": "Ou99xuMbcqGvKsyrxqlvqZKZ0n4=",
+			"path": "github.com/tylerb/graceful",
+			"revision": "48afeb21e2fcbcff0f30bd5ad6b97747b0fae38e",
+			"revisionTime": "2015-10-12T18:13:41Z"
+		},
+		{
+			"checksumSHA1": "PQy6kV2rK5B3qtCRpANzgRQPnFs=",
+			"path": "github.com/valyala/fasttemplate",
+			"revision": "3b874956e03f1636d171bda64b130f9135f42cff",
+			"revisionTime": "2016-03-15T19:31:34Z"
+		},
+		{
+			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
+			"path": "golang.org/x/net/context",
+			"revision": "9313baa13d9262e49d07b20ed57dceafcd7240cc",
+			"revisionTime": "2016-09-07T15:25:26Z"
+		},
+		{
+			"checksumSHA1": "7WASrg0PEueWDDRHkFhEEN6Qrms=",
+			"path": "golang.org/x/net/netutil",
+			"revision": "9313baa13d9262e49d07b20ed57dceafcd7240cc",
+			"revisionTime": "2016-09-07T15:25:26Z"
+		},
+		{
+			"checksumSHA1": "NFciPxQ6MYS7CfmqAu3Cs0bsKpw=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "d9157a9621b69ad1d8d77a1933590c416593f24f",
+			"revisionTime": "2015-02-01T16:04:03Z"
+		},
+		{
+			"checksumSHA1": "SPMXWeoFQa5z0pLPmqpcFzyHqQQ=",
 			"path": "gopkg.in/yaml.v2",
-			"revision": "f7716cbe52baa25d2e9b0d0da546fcf909fc16b4",
-			"revisionTime": "2015-12-01T16:27:45Z"
+			"revision": "31c299268d302dd0aa9a0dcf765a3d58971ac83f",
+			"revisionTime": "2016-09-12T16:56:03Z"
 		}
 	],
 	"rootPath": "github.com/flike/kingshard"

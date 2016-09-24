@@ -21,6 +21,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 - 支持字符集设置。
 - 支持last_insert_id功能。
 - 支持动态修改kingshard部分配置项（具体参考管理端命令）。
+- 支持以Web API调用的方式管理kingshard。
 
 ### 2. sharding功能
 
@@ -50,13 +51,15 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 
 [6.管理端命令介绍](./doc/KingDoc/admin_command_introduce.md)
 
-[7.kingshard SQL黑名单功能介绍](./doc/KingDoc/sql_blacklist_introduce.md)
+[7.管理端Web API接口介绍](./doc/KingDoc/kingshard_admin_api.md)
 
-[8.kingshard的FAQ](./doc/KingDoc/function_FAQ.md)
+[8.kingshard SQL黑名单功能介绍](./doc/KingDoc/sql_blacklist_introduce.md)
 
-[9.kingshard SQL支持范围](./doc/KingDoc/kingshard_support_sql.md)
+[9.kingshard的FAQ](./doc/KingDoc/function_FAQ.md)
 
-[10.如何配合LVS实现集群部署](./doc/KingDoc/how_to_use_lvs.md)
+[10.kingshard SQL支持范围](./doc/KingDoc/kingshard_support_sql.md)
+
+[11.如何配合LVS实现集群部署](./doc/KingDoc/how_to_use_lvs.md)
 
 ### kingshard架构与设计
 
@@ -73,9 +76,6 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 ## kingshard用户列表
 
 https://github.com/flike/kingshard/issues/148
-
-## 打赏
-https://github.com/flike/kingshard/blob/master/doc/KingDoc/support.md
 
 ## 反馈
 kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。 **目前已有上十家公司在生产环境使用kingshard作为MySQL代理。** 如果您在使用kingshard的过程中发现BUG或者有新的功能需求，非常欢迎您发邮件至hiflike#gmail.com与作者取得联系，或者加入QQ群(147926796)交流。

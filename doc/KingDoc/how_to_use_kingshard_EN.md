@@ -20,6 +20,11 @@ kingshard run with a configuration file (ks.yaml). Before running kingshard, the
 ```
 # server listen addr
 addr : 0.0.0.0:9696
+# the web api server
+web_addr : 0.0.0.0:9797
+#HTTP Basic Auth
+web_user : admin
+web_password : admin
 
 # server user and password
 user :  kingshard

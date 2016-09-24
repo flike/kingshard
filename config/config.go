@@ -23,9 +23,14 @@ import (
 
 //整个config文件对应的结构
 type Config struct {
-	Addr        string       `yaml:"addr"`
-	User        string       `yaml:"user"`
-	Password    string       `yaml:"password"`
+	Addr     string `yaml:"addr"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+
+	WebAddr     string `yaml:"web_addr"`
+	WebUser     string `yaml:"web_user"`
+	WebPassword string `yaml:"web_password"`
+
 	LogPath     string       `yaml:"log_path"`
 	LogLevel    string       `yaml:"log_level"`
 	LogSql      string       `yaml:"log_sql"`

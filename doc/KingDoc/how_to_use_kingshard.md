@@ -27,6 +27,11 @@ addr : 0.0.0.0:9696
 # 连接kingshard的用户名和密码
 user :  kingshard
 password : kingshard
+#kingshard的web API 端口
+web_addr : 0.0.0.0:9797
+#调用API的用户名和密码
+web_user : admin
+web_password : admin
 
 # log级别，[debug|info|warn|error],默认是error
 log_level : debug

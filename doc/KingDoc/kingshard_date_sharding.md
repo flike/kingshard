@@ -29,6 +29,11 @@ addr : 0.0.0.0:9696
 # server user and password
 user :  kingshard
 password : kingshard
+# the web api server
+web_addr : 0.0.0.0:9797
+#HTTP Basic Auth
+web_user : admin
+web_password : admin
 
 # if set log_path, the sql log will write into log_path/sql.log,the system log
 # will write into log_path/sys.log
