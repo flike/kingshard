@@ -4,7 +4,26 @@
 - 采用restful风格API设计。
 - 假设kingshard的Web Server IP和端口是：127.0.0.1：9797，web用户名：admin，密码：admin
 
-###查看node的状态
+## API接口导航
+- [查看node的状态](#nodes_status)
+- [添加slave](#nodes_slaves)
+- [删除slave](#delete_slaves)
+- [设置slave状态](#slaves_status)
+- [设置master状态](#masters_status)
+- [查看proxy状态](#proxy_status)
+- [设置proxy状态](#set_proxy_status)
+- [查看proxy的schema](#proxy_schema)
+- [添加proxy的客户端白名单](#proxy_allow_ips)
+- [删除proxy的客户端白名单](#delete_allow_ips)
+- [查看proxy的black_sql](#proxy_black_sqls)
+- [增加proxy的black_sql](#add_black_sqls)
+- [删除proxy的black_sql](#delete_black_sqls)
+- [设置proxy的slow sql开关](#slow_sql_status)
+- [查看proxy的slow sql的时间](#slow_sql_time)
+- [设置proxy的slow sql的时间](#set_slow_sql_time)
+- [保存proxy的配置](#save_config)
+
+<h3 id="nodes_status">查看node的状态</h3>
 
 ```
 Action:GET
@@ -42,7 +61,7 @@ curl -X GET \
 ]
 ```
 
-###添加slave
+<h3 id="nodes_slaves">添加slave</h3>
 
 ```
 Action:POST
@@ -61,7 +80,7 @@ URL:http://127.0.0.1:9797/api/v1/nodes/slaves
   127.0.0.1:9797/api/v1/nodes/slaves
   返回结果："ok"
 ```
-###删除slave
+<h3 id="delete_slaves">删除slave</h3>
 
 ```
 Action:DELETE
@@ -80,7 +99,7 @@ URL:http://127.0.0.1:9797/api/v1/nodes/slaves
   127.0.0.1:9797/api/v1/nodes/slaves
   返回结果："ok"
 ```
-###设置slave状态
+<h3 id="slaves_status">设置slave状态</h3>
 
 ```
 Action:PUT
@@ -103,7 +122,7 @@ URL：http://127.0.0.1:9797/api/v1/nodes/slaves/status
 
 ```
 
-###设置master状态
+<h3 id="masters_status">设置master状态</h3>
 
 ```
 Action:PUT
@@ -125,8 +144,7 @@ URL：http://127.0.0.1:9797/api/v1/nodes/masters/status
   返回结果："ok"
 ```
 
-
-###查看proxy状态
+<h3 id="proxy_status">查看proxy状态</h3>
 
 ```
 Action:GET
@@ -144,7 +162,7 @@ curl -X GET \
   http://127.0.0.1:9797/api/v1/proxy/status
  返回结果:"online"
 ```
-###设置proxy状态
+<h3 id="set_proxy_status">设置proxy状态</h3>
 
 ```
 Action:PUT
@@ -164,7 +182,7 @@ curl -X PUT \
   http://127.0.0.1:9797/api/v1/proxy/status
   返回结果："ok"
 ```
-###查看proxy的schema
+<h3 id="proxy_schema">查看proxy的schema</h3>
 
 ```
 Action：GET
@@ -294,7 +312,7 @@ curl -X GET \
  
 ```
 
-###添加proxy的客户端白名单
+<h3 id="proxy_allow_ips">添加proxy的客户端白名单</h3>
 
 ```
 Action：POST
@@ -312,7 +330,7 @@ curl -X POST \
   返回结果："ok"
  
 ```
-###删除proxy的客户端白名单
+<h3 id="delete_allow_ips">删除proxy的客户端白名单</h3>
 
 ```
 Action：DELETE
@@ -330,8 +348,7 @@ curl -X DELETE \
   返回结果："ok"
  
 ```
-
-###查看proxy的black_sql
+<h3 id="proxy_black_sqls">查看proxy的black_sql</h3>
 
 ```
 Action:GET
@@ -347,7 +364,7 @@ curl -X GET \
   127.0.0.1:9797/api/v1/proxy/black_sqls
 返回结果：["delete from test_shard_range","delete from test_shard_hash"]
 ```
-###增加proxy的black_sql
+<h3 id="add_black_sqls">增加proxy的black_sql</h3>
 
 ```
 Action:POST
@@ -365,7 +382,7 @@ curl -X POST \
   127.0.0.1:9797/api/v1/proxy/black_sqls
   返回结果："ok"
 ```
-###删除proxy的black_sql
+<h3 id="delete_black_sqls">删除proxy的black_sql</h3>
 
 ```
 Action:DELETE
@@ -382,8 +399,7 @@ curl -X DELETE \
   127.0.0.1:9797/api/v1/proxy/black_sqls
   返回结果："ok"
 ```
-
-###设置proxy的slow sql开关
+<h3 id="slow_sql_status">设置proxy的slow sql开关</h3>
 
 ```
 Action:PUT
@@ -400,7 +416,7 @@ curl -X PUT \
   127.0.0.1:9797/api/v1/proxy/slow_sql/status
   返回结果："ok"
 ```
-###查看proxy的slow sql的时间
+<h3 id="slow_sql_time">查看proxy的slow sql的时间</h3>
 
 ```
 Action:GET
@@ -416,8 +432,7 @@ curl -X GET \
   127.0.0.1:9797/api/v1/proxy/slow_sql/time
   返回结果：500
 ```
-
-###设置proxy的slow sql的时间
+<h3 id="set_slow_sql_time">设置proxy的slow sql的时间</h3>
 
 ```
 Action:PUT
@@ -434,7 +449,7 @@ curl -X PUT \
   127.0.0.1:9797/api/v1/proxy/slow_sql/time
   返回结果："ok"
 ```
-###保存proxy的配置
+<h3 id="save_config">保存proxy的配置</h3>
 
 ```
 Action:PUT
