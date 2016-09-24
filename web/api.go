@@ -18,9 +18,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	ksError "github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/labstack/echo"
 )
@@ -291,6 +293,10 @@ func (s *ApiServer) DelOneBlackSQL(c echo.Context) error {
 	}
 	err = s.proxy.DelBlackSql(args.SQL)
 	if err != nil {
+		if err == ksError.ErrBlackSqlNotExist {
+			errMsg := fmt.Sprintf("`%s` isn't exist in black sql", args.SQL)
+			return c.JSON(http.StatusNotFound, errMsg)
+		}
 		return err
 	}
 	return c.JSON(http.StatusOK, "ok")
@@ -319,15 +325,15 @@ func (s *ApiServer) SwitchSlowSQL(c echo.Context) error {
 
 func (s *ApiServer) SetSlowLogTime(c echo.Context) error {
 	args := struct {
-		SlowTime string `json:"slow_time"`
+		SlowTime int64 `json:"slow_time"`
 	}{}
 
 	err := c.Bind(&args)
 	if err != nil {
 		return err
 	}
-
-	err = s.proxy.ChangeSlowLogTime(args.SlowTime)
+	slowTimeStr := strconv.FormatInt(args.SlowTime, 10)
+	err = s.proxy.ChangeSlowLogTime(slowTimeStr)
 	if err != nil {
 		return err
 	}

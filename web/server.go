@@ -60,18 +60,25 @@ func (s *ApiServer) Run() error {
 }
 
 func (s *ApiServer) RegisterMiddleware() {
-	s.Use(mw.Logger())
+	//s.Use(mw.Logger())
+	s.Use(mw.LoggerWithConfig(mw.LoggerConfig{
+		Format: `{"time":"${time_rfc3339}","remote_ip":"${remote_ip}",` +
+			`"method":"${method}","uri":"${uri}","status":${status}, "latency":${latency},` +
+			`"latency_human":"${latency_human}","bytes_in":${bytes_in},` +
+			`"bytes_out":${bytes_out}}` + "\n",
+		Output: golog.GlobalSqlLogger,
+	}))
 	s.Use(mw.Recover())
 	s.Use(mw.BasicAuth(s.CheckAuth))
-
 }
 
 func (s *ApiServer) RegisterURL() {
 	s.Get("/api/v1/nodes/status", s.GetNodesStatus)
+
 	s.Post("/api/v1/nodes/slaves", s.AddOneSlave)
 	s.Delete("/api/v1/nodes/slaves", s.DeleteOneSlave)
-
 	s.Put("/api/v1/nodes/slaves/status", s.ChangeSlaveStatus)
+
 	s.Put("/api/v1/nodes/masters/status", s.ChangeMasterStatus)
 
 	s.Get("/api/v1/proxy/status", s.GetProxyStatus)

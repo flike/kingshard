@@ -233,6 +233,11 @@ func GetLevel() int {
 var GlobalSysLogger *Logger = StdLogger()
 var GlobalSqlLogger *Logger = GlobalSysLogger
 
+func (l *Logger) Write(p []byte) (n int, err error) {
+	output(LevelInfo, "web", "api", string(p), 0)
+	return len(p), nil
+}
+
 func escape(s string, filterEqual bool) string {
 	dest := make([]byte, 0, 2*len(s))
 	for i := 0; i < len(s); i++ {
