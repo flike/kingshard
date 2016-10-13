@@ -65,6 +65,7 @@ func (c *ClientConn) handleSet(stmt *sqlparser.Set, sql string) (err error) {
 		`CHARACTER_SET_CONNECTION`, `@@CHARACTER_SET_CONNECTION`, `@@SESSION.CHARACTER_SET_CONNECTION`:
 		if len(stmt.Exprs) == 2 {
 			//SET NAMES 'charset_name' COLLATE 'collation_name'
+			// charset_name & collation_name ware ToLower format by default
 			return c.handleSetNames(stmt.Exprs[0].Expr, stmt.Exprs[1].Expr)
 		}
 		return c.handleSetNames(stmt.Exprs[0].Expr, nil)
@@ -105,29 +106,32 @@ func (c *ClientConn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 }
 
 func (c *ClientConn) handleSetNames(ch, ci sqlparser.ValExpr) error {
+	// ch & ci ware ToLower format by default
 	var cid mysql.CollationId
 	var ok bool
 
-	value := sqlparser.String(ch)
-	value = strings.Trim(value, "'`\"")
-
-	charset := strings.ToLower(value)
+	charset := sqlparser.String(ch)
+	charset = strings.Trim(charset, "'`\"")
 	if charset == "null" {
 		return c.writeOK(nil)
 	}
 	if ci == nil {
+		if charset == "default" {
+			charset = c.proxy.cfg.Charset
+		}
 		cid, ok = mysql.CharsetIds[charset]
 		if !ok {
 			return fmt.Errorf("invalid charset %s", charset)
 		}
 	} else {
 		collate := sqlparser.String(ci)
-		collate = strings.Trim(value, "'`\"")
+		collate = strings.Trim(collate, "'`\"")
 		cid, ok = mysql.CollationNames[collate]
 		if !ok {
-			return fmt.Errorf("invalid charset %s", charset)
+			return fmt.Errorf("invalid collation %s", collate)
 		}
 	}
+
 	c.charset = charset
 	c.collation = cid
 
