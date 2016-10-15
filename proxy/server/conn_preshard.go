@@ -23,12 +23,14 @@ import (
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/mysql"
+	"github.com/flike/kingshard/proxy/router"
 	"github.com/flike/kingshard/sqlparser"
 )
 
 type ExecuteDB struct {
 	ExecNode *backend.Node
 	IsSlave  bool
+	sql      string
 }
 
 func (c *ClientConn) isBlacklistSql(sql string) bool {
@@ -95,7 +97,8 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	rs, err = c.executeInNode(conn, sql, nil)
+	//execute.sql may be rewritten in getShowExecDB
+	rs, err = c.executeInNode(conn, executeDB.sql, nil)
 	if err != nil {
 		return false, err
 	}
@@ -126,6 +129,7 @@ func (c *ClientConn) GetTransExecDB(tokens []string, sql string) (*ExecuteDB, er
 	var err error
 	tokensLen := len(tokens)
 	executeDB := new(ExecuteDB)
+	executeDB.sql = sql
 
 	//transaction execute in master db
 	executeDB.IsSlave = false
@@ -163,23 +167,24 @@ func (c *ClientConn) GetExecDB(tokens []string, sql string) (*ExecuteDB, error) 
 		if ok == true {
 			switch tokenId {
 			case mysql.TK_ID_SELECT:
-				return c.getSelectExecDB(tokens, tokensLen)
+				return c.getSelectExecDB(sql, tokens, tokensLen)
 			case mysql.TK_ID_DELETE:
-				return c.getDeleteExecDB(tokens, tokensLen)
+				return c.getDeleteExecDB(sql, tokens, tokensLen)
 			case mysql.TK_ID_INSERT, mysql.TK_ID_REPLACE:
-				return c.getInsertOrReplaceExecDB(tokens, tokensLen)
+				return c.getInsertOrReplaceExecDB(sql, tokens, tokensLen)
 			case mysql.TK_ID_UPDATE:
-				return c.getUpdateExecDB(tokens, tokensLen)
+				return c.getUpdateExecDB(sql, tokens, tokensLen)
 			case mysql.TK_ID_SET:
-				return c.getSetExecDB(tokens, tokensLen, sql)
+				return c.getSetExecDB(sql, tokens, tokensLen)
 			case mysql.TK_ID_SHOW:
-				return c.getShowExecDB(tokens, tokensLen)
+				return c.getShowExecDB(sql, tokens, tokensLen)
 			default:
 				return nil, nil
 			}
 		}
 	}
 	executeDB := new(ExecuteDB)
+	executeDB.sql = sql
 	err := c.setExecuteNode(tokens, tokensLen, executeDB)
 	if err != nil {
 		return nil, err
@@ -214,12 +219,13 @@ func (c *ClientConn) setExecuteNode(tokens []string, tokensLen int, executeDB *E
 }
 
 //get the execute database for select sql
-func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
+func (c *ClientConn) getSelectExecDB(sql string, tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
-	schema := c.proxy.schema
-
-	rules := schema.rule.Rules
+	executeDB.sql = sql
 	executeDB.IsSlave = true
+
+	schema := c.proxy.schema
+	rules := schema.rule.Rules
 
 	if len(rules) != 0 {
 		for i := 1; i < tokensLen; i++ {
@@ -256,8 +262,9 @@ func (c *ClientConn) getSelectExecDB(tokens []string, tokensLen int) (*ExecuteDB
 }
 
 //get the execute database for delete sql
-func (c *ClientConn) getDeleteExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
+func (c *ClientConn) getDeleteExecDB(sql string, tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
+	executeDB.sql = sql
 	schema := c.proxy.schema
 	rules := schema.rule.Rules
 
@@ -283,8 +290,9 @@ func (c *ClientConn) getDeleteExecDB(tokens []string, tokensLen int) (*ExecuteDB
 }
 
 //get the execute database for insert or replace sql
-func (c *ClientConn) getInsertOrReplaceExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
+func (c *ClientConn) getInsertOrReplaceExecDB(sql string, tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
+	executeDB.sql = sql
 	schema := c.proxy.schema
 	rules := schema.rule.Rules
 
@@ -310,8 +318,9 @@ func (c *ClientConn) getInsertOrReplaceExecDB(tokens []string, tokensLen int) (*
 }
 
 //get the execute database for update sql
-func (c *ClientConn) getUpdateExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
+func (c *ClientConn) getUpdateExecDB(sql string, tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
+	executeDB.sql = sql
 	schema := c.proxy.schema
 	rules := schema.rule.Rules
 
@@ -335,8 +344,9 @@ func (c *ClientConn) getUpdateExecDB(tokens []string, tokensLen int) (*ExecuteDB
 }
 
 //get the execute database for set sql
-func (c *ClientConn) getSetExecDB(tokens []string, tokensLen int, sql string) (*ExecuteDB, error) {
+func (c *ClientConn) getSetExecDB(sql string, tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
+	executeDB.sql = sql
 
 	//handle three styles:
 	//set autocommit= 0
@@ -371,14 +381,54 @@ func (c *ClientConn) getSetExecDB(tokens []string, tokensLen int, sql string) (*
 
 //get the execute database for show sql
 //choose slave preferentially
-func (c *ClientConn) getShowExecDB(tokens []string, tokensLen int) (*ExecuteDB, error) {
+//tokens[0] is show
+func (c *ClientConn) getShowExecDB(sql string, tokens []string, tokensLen int) (*ExecuteDB, error) {
 	executeDB := new(ExecuteDB)
 	executeDB.IsSlave = true
+	executeDB.sql = sql
 
-	err := c.setExecuteNode(tokens, tokensLen, executeDB)
+	//handle show columns/fields
+	err := c.handleShowColumns(sql, tokens, tokensLen, executeDB)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.setExecuteNode(tokens, tokensLen, executeDB)
 	if err != nil {
 		return nil, err
 	}
 
 	return executeDB, nil
+}
+
+//handle show columns/fields
+func (c *ClientConn) handleShowColumns(sql string, tokens []string,
+	tokensLen int, executeDB *ExecuteDB) error {
+
+	for i := 0; i < tokensLen; i++ {
+		//handle SQL:
+		//SHOW [FULL] COLUMNS FROM tbl_name [FROM db_name] [like_or_where]
+		if (tokens[i] == mysql.TK_STR_FIELDS ||
+			tokens[i] == mysql.TK_STR_COLUMNS) &&
+			i+2 < tokensLen {
+			if tokens[i+1] == mysql.TK_STR_FROM {
+				tableName := strings.Trim(tokens[i+2], "`")
+				showRouter := c.schema.rule
+				showRule := showRouter.GetRule(tableName)
+				//this SHOW is sharding SQL
+				if showRule.Type != router.DefaultRuleType {
+					if 0 < len(showRule.SubTableIndexs) {
+						tableIndex := showRule.SubTableIndexs[0]
+						nodeIndex := showRule.TableToNode[tableIndex]
+						nodeName := showRule.Nodes[nodeIndex]
+						tokens[i+2] = fmt.Sprintf("%s_%04d", tableName, tableIndex)
+						executeDB.sql = strings.Join(tokens, " ")
+						executeDB.ExecNode = c.schema.nodes[nodeName]
+						return nil
+					}
+				}
+			}
+		}
+	}
+	return nil
 }

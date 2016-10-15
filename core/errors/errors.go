@@ -69,4 +69,5 @@ var (
 	ErrSlaveNotExist    = errors.New("slave has not exist")
 	ErrBlackSqlExist    = errors.New("black sql has exist")
 	ErrBlackSqlNotExist = errors.New("black sql has not exist")
+	ErrSQLNULL          = errors.New("sql is null")
 )
