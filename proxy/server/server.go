@@ -236,16 +236,19 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s.logSql[s.logSqlIndex] = cfg.LogSql
 	atomic.StoreInt32(&s.slowLogTimeIndex, 0)
 	s.slowLogTime[s.slowLogTimeIndex] = cfg.SlowLogTime
-	if len(cfg.Charset) != 0 {
-		cid, ok := mysql.CharsetIds[cfg.Charset]
-		if !ok {
-			return nil, errors.ErrInvalidCharset
-		}
-		//change the default charset
-		mysql.DEFAULT_CHARSET = cfg.Charset
-		mysql.DEFAULT_COLLATION_ID = cid
-		mysql.DEFAULT_COLLATION_NAME = mysql.Collations[cid]
+
+	// if not config proxy_charset use utf8 default, collation utf8_general_ci
+	if len(cfg.Charset) == 0 {
+		cfg.Charset = mysql.DEFAULT_CHARSET //utf8
 	}
+	cid, ok := mysql.CharsetIds[cfg.Charset]
+	if !ok {
+		return nil, errors.ErrInvalidCharset
+	}
+	//change the default charset
+	mysql.DEFAULT_CHARSET = cfg.Charset
+	mysql.DEFAULT_COLLATION_ID = cid
+	mysql.DEFAULT_COLLATION_NAME = mysql.Collations[cid]
 
 	if err := s.parseBlackListSqls(); err != nil {
 		return nil, err

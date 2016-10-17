@@ -429,21 +429,31 @@ func (c *Conn) SetAutoCommit(n uint8) error {
 	return nil
 }
 
-func (c *Conn) SetCharset(charset string) error {
+func (c *Conn) SetCharset(charset string, collation mysql.CollationId) error {
 	charset = strings.Trim(charset, "\"'`")
-	if c.charset == charset {
+
+	if collation == 0 {
+		collation = mysql.CollationNames[mysql.Charsets[charset]]
+	}
+
+	if c.charset == charset && c.collation == collation {
 		return nil
 	}
 
-	cid, ok := mysql.CharsetIds[charset]
+	_, ok := mysql.CharsetIds[charset]
 	if !ok {
 		return fmt.Errorf("invalid charset %s", charset)
 	}
 
-	if _, err := c.exec(fmt.Sprintf("set names %s", charset)); err != nil {
+	_, ok = mysql.Collations[collation]
+	if !ok {
+		return fmt.Errorf("invalid collation %s", collation)
+	}
+
+	if _, err := c.exec(fmt.Sprintf("SET NAMES %s COLLATE %s", charset, mysql.Collations[collation])); err != nil {
 		return err
 	} else {
-		c.collation = cid
+		c.collation = collation
 		c.charset = charset
 		return nil
 	}

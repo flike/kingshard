@@ -144,7 +144,7 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 		return
 	}
 
-	if err = co.SetCharset(c.charset); err != nil {
+	if err = co.SetCharset(c.charset, c.collation); err != nil {
 		return
 	}
 
