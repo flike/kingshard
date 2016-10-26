@@ -1,3 +1,17 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package server
 
 import (
@@ -118,43 +132,52 @@ func (c *ClientConn) buildResultset(fields []*mysql.Field, names []string, value
 
 		r.RowDatas = append(r.RowDatas, row)
 	}
+	//assign the values to the result
+	r.Values = values
 
 	return r, nil
 }
 
 func (c *ClientConn) writeResultset(status uint16, r *mysql.Resultset) error {
 	c.affectedRows = int64(-1)
+	total := make([]byte, 0, 4096)
+	data := make([]byte, 4, 512)
+	var err error
 
 	columnLen := mysql.PutLengthEncodedInt(uint64(len(r.Fields)))
 
-	data := make([]byte, 4, 1024)
-
 	data = append(data, columnLen...)
-	if err := c.writePacket(data); err != nil {
+	total, err = c.writePacketBatch(total, data, false)
+	if err != nil {
 		return err
 	}
 
 	for _, v := range r.Fields {
 		data = data[0:4]
 		data = append(data, v.Dump()...)
-		if err := c.writePacket(data); err != nil {
+		total, err = c.writePacketBatch(total, data, false)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
+	total, err = c.writeEOFBatch(total, status, false)
+	if err != nil {
 		return err
 	}
 
 	for _, v := range r.RowDatas {
 		data = data[0:4]
 		data = append(data, v...)
-		if err := c.writePacket(data); err != nil {
+		total, err = c.writePacketBatch(total, data, false)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
+	total, err = c.writeEOFBatch(total, status, true)
+	total = nil
+	if err != nil {
 		return err
 	}
 

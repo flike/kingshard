@@ -1,9 +1,24 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package config
 
 import (
 	"io/ioutil"
+	"os"
 
-	"github.com/flike/kingshard/core/yaml"
+	"gopkg.in/yaml.v2"
 )
 
 //整个config文件对应的结构
@@ -11,22 +26,28 @@ type Config struct {
 	Addr     string `yaml:"addr"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
-	LogPath  string `yaml:"log_path"`
-	LogLevel string `yaml:"log_level"`
 
-	AllowIps string `yaml:"allow_ips"`
-	LogSql   string `yaml:"log_sql"`
+	WebAddr     string `yaml:"web_addr"`
+	WebUser     string `yaml:"web_user"`
+	WebPassword string `yaml:"web_password"`
 
-	Nodes []NodeConfig `yaml:"nodes"`
+	LogPath     string       `yaml:"log_path"`
+	LogLevel    string       `yaml:"log_level"`
+	LogSql      string       `yaml:"log_sql"`
+	SlowLogTime int          `yaml:"slow_log_time"`
+	AllowIps    string       `yaml:"allow_ips"`
+	BlsFile     string       `yaml:"blacklist_sql_file"`
+	Charset     string       `yaml:"proxy_charset"`
+	Nodes       []NodeConfig `yaml:"nodes"`
 
-	Schemas []SchemaConfig `yaml:"schemas"`
+	Schema SchemaConfig `yaml:"schema"`
 }
 
 //node节点对应的配置
 type NodeConfig struct {
 	Name             string `yaml:"name"`
 	DownAfterNoAlive int    `yaml:"down_after_noalive"`
-	IdleConns        int    `yaml:"idle_conns"`
+	MaxConnNum       int    `yaml:"max_conns_limit"`
 
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
@@ -37,18 +58,13 @@ type NodeConfig struct {
 
 //schema对应的结构体
 type SchemaConfig struct {
-	DB          string      `yaml:"db"`
-	Nodes       []string    `yaml:"nodes"`
-	RulesConfig RulesConfig `yaml:"rules"`
+	DB        string        `yaml:"db"`
+	Nodes     []string      `yaml:"nodes"`
+	Default   string        `yaml:"default"` //default route rule
+	ShardRule []ShardConfig `yaml:"shard"`   //route rule
 }
 
-//路由规则
-type RulesConfig struct {
-	Default   string        `yaml:"default"` //默认路由规则
-	ShardRule []ShardConfig `yaml:"shard"`   //range或hash路由规则
-}
-
-//range或hash路由规则
+//range,hash or date
 type ShardConfig struct {
 	Table         string   `yaml:"table"`
 	Key           string   `yaml:"key"`
@@ -56,6 +72,7 @@ type ShardConfig struct {
 	Locations     []int    `yaml:"locations"`
 	Type          string   `yaml:"type"`
 	TableRowLimit int      `yaml:"table_row_limit"`
+	DateRange     []string `yaml:"date_range"`
 }
 
 func ParseConfigData(data []byte) (*Config, error) {
@@ -73,4 +90,24 @@ func ParseConfigFile(fileName string) (*Config, error) {
 	}
 
 	return ParseConfigData(data)
+}
+
+func WriteConfigFile(cfg *Config) error {
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	execPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	configPath := execPath + "/etc/ks.yaml"
+	err = ioutil.WriteFile(configPath, data, 0755)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

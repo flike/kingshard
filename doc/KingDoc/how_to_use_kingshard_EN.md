@@ -4,13 +4,13 @@
 
 Now more and more Internet companies still in heavy use MySQL to store various types of relational data. With the amount of data and traffic increasing, developers had to consider some new MySQL-related problems.
 
-1. Read/Write Splitting. With the increasing traffic sent by the front-end applications, one instance of MySQL can not hold all the queries. At this time, we have to send the read queries to the slaves for load banlance.
-2. The capacity of one table in MySQL. If in the begining of system desigin, you have not considered the table sharding,that will make it difficult to keep your system high-performance.
+1. Read/Write Splitting. With the increasing traffic sent by the front-end applications, one instance of MySQL can not hold all the queries. At this time, we have to send the read queries to the slaves for load balance.
+2. The capacity of one table in MySQL. If in the begining of system design, you have not considered the table sharding, that will make it difficult to keep your system high-performance.
 3. MySQL maintenance operation. Without proxy you should configure the master and slaves host in your source code. When you upgrade the MySQL server, the front-end applications have to make relevant regulation.
-4. Connection pool. The front-end applications send queries through creating a new connection with MySQL, and close the connection when they don't send queries not any more. The extra performance cost by these operations can not be ignored. If add a connection pool between the front-end applications and MySQL, the front-end applications can pick a connection from connection pool, it will enhance the performance of your system.
-5. SQL logs. When the program has problems, usually we want to get some SQL logs sent by the program. For example, We want to know which SQL sent to Which DB at some point. By checking the log, it can help us locate problem more quickly.
+4. Connection pool. The front-end applications send queries by creating a new connection with MySQL, and close the connection when they don't need to send queries any more. The extra performance cost of these operations can not be ignored. If a connection pool is added between the front-end applications and MySQL, and the front-end applications can pick a connection from the connection pool, it will enhance the performance of your system.
+5. SQL logs. When the program has problems, usually we want to get some SQL logs sent by the program. For example, We want to know which SQL was sent to which DB backend. By checking the log, it can help us locate the problem more quickly.
 
-Faced with these problems, we can implemente every function in the client code. But this also makes the client less flexible. I have working on database development for years, and I believe we can use a mysql proxy to solve the problems more effective, so I create this project. In this document, I will show you how kingshard solove the above problems. 
+Faced with these problems, we can implement every function in the client code. But this also makes the client less flexible. I have been working on database development for years, and I believe we can use a MySQL proxy to solve the problems more effectively, which is why I created this project. In this document, I will show you how kingshard solve the above problems. 
 
 ## 2. Install kingshard
 ### (1). set the config file
@@ -20,6 +20,11 @@ kingshard run with a configuration file (ks.yaml). Before running kingshard, the
 ```
 # server listen addr
 addr : 0.0.0.0:9696
+# the web api server
+web_addr : 0.0.0.0:9797
+#HTTP Basic Auth
+web_user : admin
+web_password : admin
 
 # server user and password
 user :  kingshard
@@ -27,22 +32,29 @@ password : kingshard
 
 #if set log_path, the sql log will write into log_path/sql.log,the system log
 #will write into log_path/sys.log
-log_path : /Users/flike/log
+#log_path : /Users/flike/log
 
 # log level[debug|info|warn|error],default error
 log_level : debug
 #if set log_sql(on|off) off,the sql log will not output
-log_sql: off 
+#log_sql: off 
+#only log the query that take more than slow_log_time ms
+#slow_log_time : 100
+# the path of blacklist sql file
+# all these sqls in the file will been forbidden by kingshard
+#blacklist_sql_file: /Users/flike/blacklist
 # only allow this ip list ip to connect kingshard
 #allow_ips: 127.0.0.1
+# the default charset of kingshard is utf8.
+#proxy_charset: utf8mb4
 
 # node is an agenda for real remote mysql server.
 nodes :
 - 
     name : node1 
 
-    # default max idle conns for mysql server
-    idle_conns : 16
+    # default max conns for mysql server
+    max_conns_limit : 8
 
     # all mysql in a node must have the same user and password
     user :  kingshard 
@@ -51,15 +63,15 @@ nodes :
     # master represents a real mysql master server 
     master : 127.0.0.1:3306
 
-    # slave represents a real mysql salve server,and the number after '@' is 
+    # slave represents a real mysql slave server,and the number after '@' is 
     # read load weight of this slave.
     slave : 
-    down_after_noalive : 100
+    down_after_noalive : 32
 - 
     name : node2 
 
-    # default max idle conns for mysql server
-    idle_conns : 16
+    # default max conns for mysql server
+    max_conns_limit : 8
 
     # all mysql in a node must have the same user and password
     user :  kingshard 
@@ -68,48 +80,41 @@ nodes :
     # master represents a real mysql master server 
     master : 192.168.59.103:3307
 
-    # slave represents a real mysql salve server 
+    # slave represents a real mysql slave server 
     slave : 
 
     # down mysql after N seconds noalive
     # 0 will no down
-    down_after_noalive: 100
+    down_after_noalive: 32
 
-# schema defines which db can be used by client and this db's sql will be executed in which nodes
-schemas :
--
+# schema defines which db can be used by client and this db's sql will be executed in which nodes, the db is also the default database
+schema :
     db : kingshard
     nodes: [node1,node2]
-    rules:
-    		#all sqls that operate the unshard tables will send to the default node.
-        default: node1
-        shard:
-        -   
-            #shard table
-            table: test_shard_hash
-            #shard key
-            key: id
-            #shard node
-            nodes: [node1, node2]
-            #shard type
-            type: hash
-            #sub table counts,means that 4 sub tables in node1, and 4 sub-tables in node2.
-            locations: [4,4]
+    default: node1      
+    shard:
+    -   
+        table: test_shard_hash
+        key: id
+        nodes: [node1, node2]
+        type: hash
+        locations: [4,4]
 
-        -   
-            table: test_shard_range
-            key: id
-            type: range
-            nodes: [node1, node2]
-            locations: [4,4]
-            table_row_limit: 10000
+    -   
+        table: test_shard_range
+        key: id
+        type: range
+        nodes: [node1, node2]
+        locations: [4,4]
+        table_row_limit: 10000
+
 
 ```
 
 **Sharding Notes:**
 
-* kingshard support two sharding type: range and hash.
-* the sub table need create in right database in manually. And the format is `table_%4d`, in other words the index of sub table is a integer made by four digits. Such as `table_name_0000,table_name_0012`.
+* kingshard supports two sharding type: range and hash.
+* the sub-table needs to be created in the right database manually. The format is `table_%4d`. In other words, the index of the sub-table is a integer made by four digits. Such as `table_name_0000,table_name_0012`.
 * All SQLs that handle the unshading table will be sent to the default node.
 
 ### (2). Install And Run
@@ -120,19 +125,19 @@ schemas :
 3. cd src/github.com/flike/kingshard
 4. source ./dev.sh
 5. make
-6. set the config file (etc/multi.yaml)
+6. set the config file (etc/ks.yaml)
 7. run kingshard (./bin/kingshard -config=etc/multi.yaml)
 ```
 
 ## 3. Sharding
 
-I build a mysql cluter with kingshard, and the topology is shown below.
+I build a mysql cluster with kingshard, and the topology is shown below.
 ![topology](./kingshard_access_node_arch.jpg)
 
 ### 3.1 The hands-on Examples of sharding
 ### 3.1.1 Create sub table manually
 
-I create eight sub tables in node1 and node2, each node have four sub tables. `test_shard_hash_0000, test_shard_hash_0001, test_shard_hash_0002, test_shard_hash_0003` in node1, and `test_shard_hash_0004, test_shard_hash_0005, test_shard_hash_0006, test_shard_hash_0007` in node2. The create table sql as below:
+I create eight sub tables in node1 and node2, each node have four sub-tables. `test_shard_hash_0000, test_shard_hash_0001, test_shard_hash_0002, test_shard_hash_0003` in node1, and `test_shard_hash_0004, test_shard_hash_0005, test_shard_hash_0006, test_shard_hash_0007` in node2. The create table sql as below:
 
 ```
 CREATE TABLE `test_shard_hash_0000` (
@@ -146,9 +151,9 @@ CREATE TABLE `test_shard_hash_0000` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 ```
 
-### 3.1.2 Insert and select opeation of sharding
+### 3.1.2 Insert and select operation of sharding
 
-The select SQLs will be sent to a proper database or multi databases based on the conditions. The insert SQLs will only be sent to one database, if the insert operation accoss multi databases, kingshard will response error messages, because kingshard does not implemente distributed transactions. The SQLs as below:
+The select SQL queries will be sent to a proper database or multiple databases based on the conditions. The insert SQLs will also be sent to multiple databases, if the insert operation is across multiple databases, kingshard will send the queries to multiple databases. The queries as below:
 
 ```
 mysql> insert into test_shard_hash(id,str,f,e,u,i) values(15,"flike",3.14,'test2',2,3);
@@ -164,7 +169,7 @@ mysql> insert into test_shard_hash(id,str,f,e,u,i) values(18,"kingshard",7.3,'te
 Query OK, 1 row affected (0.01 sec)
 
 ``` 
-And the corresponding SQLs log as below:
+And the corresponding log below:
 
 ```
 2015/09/02 18:48:24 - INFO - 127.0.0.1:55003->192.168.59.103:3307:insert into test_shard_hash_0007(id, str, f, e, u, i) values (15, 'flike', 3.14, 'test2', 2, 3)
@@ -173,9 +178,9 @@ And the corresponding SQLs log as below:
 2015/09/02 18:50:21 - INFO - 127.0.0.1:55003->127.0.0.1:3306:insert into test_shard_hash_0002(id, str, f, e, u, i) values (18, 'kingshard', 7.3, 'test1', 32, 3)
 ```
 
-Notice that the first two SQLs have been sent to the master in node2, and the last two SQLs have been sent to the master in node1.
+Notice that the first two queries have been sent to the master in node2, and the last two SQLs have been sent to the master in node1.
 
-Then we send the select SQLs to get the records, kingshard support select operation accoss nodes. The select SQLs as below:
+Then we send the select queries to get the records-kingshard supports select operation across nodes. The select queries are below:
 
 ```
 mysql> select * from test_shard_hash where id < 18;
@@ -202,7 +207,7 @@ As the sharding type is hash, the select operation will query all databases. And
 2015/09/02 18:55:01 - INFO - 127.0.0.1:55003->192.168.59.103:3307:select * from test_shard_hash_0007 where id < 18
 ```
 
-If the query criteria of select SQLs is equal, kingshard will calculate the index of sub table based on a condition. For example:
+If the query criteria of select SQLs is equal, kingshard will calculate the index of sub-table based on a condition. For example:
 
 ```
 mysql> select * from test_shard_hash where id = 18;
@@ -230,19 +235,19 @@ mysql> update test_shard_hash set i=23 where id = 17 or id = 18;
 Query OK, 2 rows affected (0.00 sec)
 ```
 
-The corresponding SQLs log as below:
+The corresponding SQL log is below:
 
 ```
 2015/09/02 19:24:46 - INFO - 127.0.0.1:55003->127.0.0.1:3306:update test_shard_hash_0001 set i = 23 where id = 17 or id = 18
 2015/09/02 19:24:46 - INFO - 127.0.0.1:55003->127.0.0.1:3306:update test_shard_hash_0002 set i = 23 where id = 17 or id = 18
 ```
-If the records that need be updated locate in multi database, kingshard will response error messages. For example as below:
+If the records that need be updated are located in multiple databases, kingshard will response with a error message. For example as below:
 
 ```
 mysql> update test_shard_hash set i=23 where id = 15 or id = 18;
 ERROR 1105 (HY000): no route node
 ```
-The corresponding SQLs log as below:
+The corresponding SQLs log is below:
 
 ```
 2015/09/02 19:24:24 - ERROR - router.go:[483] - [Router] "generateUpdateSql" "update in multi node" "RouteNodeIndexs=[0 1]" conn_id=0
@@ -461,8 +466,69 @@ mysql> admin server(opt,k,v) values('show','schema','config');
 +-----------+------------------+---------+------+--------------+-----------+---------------+
 3 rows in set (0.00 sec)
 
+#view the config of white list ip
+mysql> admin server(opt,k,v) values('show','allow_ip','config');
++--------------+
+| AllowIP      |
++--------------+
+| 127.0.0.1    |
+| 192.168.10.1 |
++--------------+
+2 rows in set (0.00 sec)
+
+#view the config of black list sql
+mysql> admin server(opt,k,v) values('show','black_sql','config');
++-------------------------------+
+| BlackListSql                  |
++-------------------------------+
+| select * from sbtest1         |
+| select * from sbtest1 limit ? |
++-------------------------------+
+2 rows in set (0.00 sec)
+
 ```
+
+### 5.3 Change the config of kingshard
+
+```
+#turn off the sql log
+admin server(opt,k,v) values('change','log_sql','off')
+
+#turn on the sql log
+admin server(opt,k,v) values('change','log_sql','on')
+
+#change the threshold of slow log time
+admin server(opt,k,v) values('change','slow_log_time','50');
+
+#add white list ip
+admin server(opt,k,v) values('add','allow_ip','127.0.0.1');
+
+#delete white list ip
+admin server(opt,k,v) values('del','allow_ip','127.0.0.1');
+
+#add black list sql
+admin server(opt,k,v) values('add','black_sql','select count(*) from sbtest1')
+
+#delete black list sql
+admin server(opt,k,v) values('del','black_sql','select count(*) from sbtest1')
+
+#save config
+admin server(opt,k,v) values('save','proxy','config')
+```
+
+### 5.4 support LVS/Keepalived
+
+```
+#show status of kingshard
+admin server(opt,k,v) values('show','proxy','status')
+
+#change status of kingshard online/offline
+admin server(opt,k,v) values('change','proxy','online')
+
+`````
 
 ## 6.Requirement and feedback
 
 If You have new functional requirements about kingshard in the production environment, or find a bug in the process of using kingshard. Welcome to send a mail to `flikecn#126.com`, I will reply you as soon as possible.
+
+

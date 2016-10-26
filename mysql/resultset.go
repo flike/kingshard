@@ -1,11 +1,26 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package mysql
 
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/flike/kingshard/core/hack"
 	"math"
 	"strconv"
+
+	"github.com/flike/kingshard/core/hack"
 )
 
 type RowData []byte
@@ -39,17 +54,20 @@ func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 			data[i] = nil
 		} else {
 			isUnsigned = (f[i].Flag&UNSIGNED_FLAG > 0)
-
 			switch f[i].Type {
-			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24,
+			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_LONG, MYSQL_TYPE_INT24,
 				MYSQL_TYPE_LONGLONG, MYSQL_TYPE_YEAR:
 				if isUnsigned {
 					data[i], err = strconv.ParseUint(string(v), 10, 64)
 				} else {
 					data[i], err = strconv.ParseInt(string(v), 10, 64)
 				}
-			case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
+			case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE, MYSQL_TYPE_NEWDECIMAL:
 				data[i], err = strconv.ParseFloat(string(v), 64)
+			case MYSQL_TYPE_VARCHAR, MYSQL_TYPE_VAR_STRING,
+				MYSQL_TYPE_STRING, MYSQL_TYPE_DATETIME,
+				MYSQL_TYPE_DATE, MYSQL_TYPE_TIME, MYSQL_TYPE_TIMESTAMP:
+				data[i] = string(v)
 			default:
 				data[i] = v
 			}
@@ -217,6 +235,15 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 	return data, nil
 }
 
+type Result struct {
+	Status uint16
+
+	InsertId     uint64
+	AffectedRows uint64
+
+	*Resultset
+}
+
 type Resultset struct {
 	Fields     []*Field
 	FieldNames map[string]int
@@ -310,22 +337,36 @@ func (r *Resultset) GetUintByName(row int, name string) (uint64, error) {
 	}
 }
 
-func (r *Resultset) GetInt(row, column int) (int64, error) {
-	v, err := r.GetUint(row, column)
-	if err != nil {
+func (r *Resultset) GetIntByName(row int, name string) (int64, error) {
+	if column, err := r.NameIndex(name); err != nil {
 		return 0, err
+	} else {
+		return r.GetInt(row, column)
 	}
-
-	return int64(v), nil
 }
 
-func (r *Resultset) GetIntByName(row int, name string) (int64, error) {
-	v, err := r.GetUintByName(row, name)
+func (r *Resultset) GetInt(row, column int) (int64, error) {
+	d, err := r.GetValue(row, column)
 	if err != nil {
 		return 0, err
 	}
 
-	return int64(v), nil
+	switch v := d.(type) {
+	case uint64:
+		return int64(v), nil
+	case int64:
+		return v, nil
+	case float64:
+		return int64(v), nil
+	case string:
+		return strconv.ParseInt(v, 10, 64)
+	case []byte:
+		return strconv.ParseInt(string(v), 10, 64)
+	case nil:
+		return 0, nil
+	default:
+		return 0, fmt.Errorf("data type is %T", v)
+	}
 }
 
 func (r *Resultset) GetFloat(row, column int) (float64, error) {

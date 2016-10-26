@@ -27,85 +27,95 @@ addr : 0.0.0.0:9696
 # 连接kingshard的用户名和密码
 user :  kingshard
 password : kingshard
+#kingshard的web API 端口
+web_addr : 0.0.0.0:9797
+#调用API的用户名和密码
+web_user : admin
+web_password : admin
 
 # log级别，[debug|info|warn|error],默认是error
 log_level : debug
 # 打开SQL日志，设置为on;关闭SQL日志，设置为off
 log_sql : on
+#如果设置了该项，则只输出SQL执行时间超过slow_log_time(ms)的SQL日志，不设置则输出全部SQL日志
+slow_log_time : 100
 #日志文件路径，如果不配置则会输出到终端。
 log_path : /Users/flike/log
+# sql黑名单文件路径
+# 所有在该文件中的sql都会被kingshard拒绝转发
+#blacklist_sql_file: /Users/flike/blacklist
 # 只允许下面的IP列表连接kingshard，如果不配置则对连接kingshard的IP不做限制。
 allow_ips: 127.0.0.1
+# kingshard使用的字符集，如果不设置该选项，则kingshard使用utf8作为默认字符集
+#proxy_charset: utf8mb4
 
 # 一个node节点表示mysql集群的一个数据分片，包括一主多从（可以不配置从库）
 nodes :
+-
     #node节点名字
-    name : node1 
+    name : node1
 
-    # 连接池中默认的空闲连接数
-    idle_conns : 16
+    # 连接池中最大的空闲连接数，也就是kingshard最多与后端DB建立max_conns_limit个连接
+    max_conns_limit : 16
 
     # kingshard连接该node中mysql的用户名和密码，master和slave的用户名和密码必须一致
-    user :  kingshard 
+    user :  kingshard
     password : kingshard
 
-    # master的地址和端口 
+    # master的地址和端口
     master : 127.0.0.1:3306
 
     # slave的地址和端口，可不配置
     #slave : 192.168.0.12@2,192.168.0.13@3
     #kingshard在300秒内都连接不上mysql，kingshard则会下线该mysql
     down_after_noalive : 300
-- 
-    name : node2 
-    idle_conns : 16
-    rw_split: true
-    user :  kingshard 
+-
+    name : node2
+    max_conns_limit : 16
+    user :  kingshard
     password : kingshard
 
     master : 192.168.59.103:3307
-    slave : 
+    slave :
     down_after_noalive: 100
 
 # 分表规则
-schemas :
--
+schema :
     #分表使用的db，所有的分表必须都在这个db中。
     db : kingshard
     #分表分布的node名字
     nodes: [node1,node2]
-    rules:
-        #所有未分表的SQL，都会发往默认node。
-        default: node1
-        shard:
-        -
-            #分表名字
-            table: test_shard_hash
-            #分表字段
-            key: id
-            #分表分布的node
-            nodes: [node1, node2]
-            #分表类型
-            type: hash
-            #子表个数分布，表示node1有4个子表，
-			#node2有4个子表。
-            locations: [4,4]
+	#所有未分表的SQL，都会发往默认node。
+    default: node1
+    shard:
+    -
+        #分表名字
+        table: test_shard_hash
+        #分表字段
+        key: id
+        #分表分布的node
+        nodes: [node1, node2]
+        #分表类型
+        type: hash
+        #子表个数分布，表示node1有4个子表，
+        #node2有4个子表。
+        locations: [4,4]
 
-        -
-		    #分表名字
-            table: test_shard_range
-			#分表字段
-            key: id
-			#分表类型
-            type: range
-			#分表分布的node
-            nodes: [node1, node2]
-			#子表个数分布，表示node1有4个子表，
-			#node2有4个子表。
-            locations: [4,4]
-            #表示每个子表包含的最大记录数，也就是说每
-			#个子表最多包好10000条记录。即子表1对应的id为[0,10000),子表2[10000,20000)....
-            table_row_limit: 10000
+    -
+		#分表名字
+        table: test_shard_range
+	    #分表字段
+        key: id
+		#分表类型
+        type: range
+	    #分表分布的node
+        nodes: [node1, node2]
+		#子表个数分布，表示node1有4个子表，
+		#node2有4个子表。
+        locations: [4,4]
+        #表示每个子表包含的最大记录数，也就是说每
+	    #个子表最多包好10000条记录。即子表1对应的id为[0,10000),子表2[10000,20000)....
+        table_row_limit: 10000
 
 ```
 这里着重说一下分表的配置规则：
@@ -116,13 +126,15 @@ schemas :
 
 ### (2). 安装和启动kingshard
 
-1. 安装Go语言环境，具体步骤请Google。
+1. 安装Go语言环境（Go版本1.3以上），具体步骤请Google。
 2. git clone https://github.com/flike/kingshard.git src/github.com/flike/kingshard
 3. cd src/github.com/flike/kingshard
 4. source ./dev.sh
 5. make
 6. 设置配置文件
 7. 运行kingshard。./bin/kingshard -config=etc/ks.yaml
+
+**注意：kingshard会响应SIGINT,SIGTERM,SIGQUIT这三个信号，平滑退出。在部署kingshard机器上应避免产生这三个信号，以免造成kingshard非正常退出！后台运行kingshard建议使用supervisor工具**
 
 ## 3. 跨节点分表
 由于作者的只有两台MySQL，所以搭建了两个节点，这两个节点都只有一台Master 角色的MySQL数据库，具体的拓扑图如下所示：
@@ -146,7 +158,7 @@ CREATE TABLE `test_shard_hash_0000` (
 ```
 
 ### 3.1.2. 分表的插入和查询
-执行下面SQL语句，根据查询的结果可以看出SQL语句根据分表规则落到不同的子表。查询操作（select）可以跨多个node，当更新操作涉及到多个node时，kingshard会返回错误。为了保证数据一致性，kingshard不允许同时更新多个node上的子表（因为kingshard还未实现分布式事务）。但可以更新单个node上的多个子表，由单node上的事务保证。
+执行下面SQL语句，根据查询的结果可以看出SQL语句根据分表规则落到不同的子表。查询操作（select）可以跨多个node，当更新操作涉及到多个node时，kingshard会以非事务的方式执行跨node的更新。为了保证数据一致性，请根据实际需求使用非事务方式的跨node更新操作。
 
 ```
 mysql> insert into test_shard_hash(id,str,f,e,u,i) values(15,"flike",3.14,'test2',2,3);
@@ -227,35 +239,23 @@ Query OK, 2 rows affected (0.01 sec)
 2015/09/02 19:17:27 - INFO - 127.0.0.1:55003->192.168.59.103:3307:update test_shard_hash_0007 set u = 123 where id = 15 or id = 7
 ```
 
-当更新的记录落在不同的子表，只有当这些子表在同一个node中，kingshard才支持。kingshard是通过单node事务实现的，也就是说将发往同一个node的SQL都放在一个事务中执行，这些操作正确性由MySQL保证。在上述记录中，我们可以看出id为17和18的记录都在node1中，所以kingshard是可以执行下列SQL：
+当更新的记录落在不同的子表，kingshard会以非事务的方式将更新操作发送到多个node上。例如执行如下SQL：
 
 ```
-mysql> update test_shard_hash set i=23 where id = 17 or id = 18;
-Query OK, 2 rows affected (0.00 sec)
+mysql> update test_shard_hash set str="myworld_test4" where id in(128,1,231);
+Query OK, 3 rows affected (0.02 sec)
 ```
 对应的SQL日志是：
 
 ```
-2015/09/02 19:24:46 - INFO - 127.0.0.1:55003->127.0.0.1:3306:update test_shard_hash_0001 set i = 23 where id = 17 or id = 18
-2015/09/02 19:24:46 - INFO - 127.0.0.1:55003->127.0.0.1:3306:update test_shard_hash_0002 set i = 23 where id = 17 or id = 18
-```
-
-但是如果更新的记录落在不同的node时，kingshard则会报告错误：
-例如：
-
-```
-mysql> update test_shard_hash set i=23 where id = 15 or id = 18;
-ERROR 1105 (HY000): no route node
-```
-对应的SQL日志是：
-
-```
-2015/09/02 19:24:24 - ERROR - router.go:[483] - [Router] "generateUpdateSql" "update in multi node" "RouteNodeIndexs=[0 1]" conn_id=0
+2016/03/15 15:18:27 - OK - 1.2ms - 127.0.0.1:60730->127.0.0.1:3306:update test_shard_hash_0000 set str = 'myworld_test4' where id in (128, 1, 231)
+2016/03/15 15:18:27 - OK - 0.5ms - 127.0.0.1:60730->127.0.0.1:3306:update test_shard_hash_0001 set str = 'myworld_test4' where id in (128, 1, 231)
+2016/03/15 15:18:27 - OK - 6.8ms - 127.0.0.1:60730->192.168.59.103:3307:update test_shard_hash_0007 set str = 'myworld_test4' where id in (128, 1, 231)
 ```
 
 ### 3.2. 指定发送的node
 
-有时候我们需要操作的表，不在default node中。在kingshard中允许用户将特定的sql路由到指定的node上。只需要在sql语句前面加上包含node名称的注释。
+有时候我们需要操作的表，不在default node中。在kingshard中允许用户将特定的sql路由到指定的node上。只需要在sql语句前面加上包含node名称的注释(连接MySQL时需要加上-c选项，避免客户端过滤掉注释)。
 
 ```
 mysql> /*node2*/show tables;
@@ -318,7 +318,7 @@ mysql> select/*master*/ * from kingshard_test_conn;
 ```
 
 ### 3.4. 跨node的sum和count函数
-在kingshard中，支持sum和count函数，kingshard会将相应的SQL发生到正确的DB，并将结果合并起来再返回给客户的。例如：
+在kingshard中，支持sum和count函数，kingshard会将相应的SQL发送到正确的DB，并将结果合并起来再返回给客户的。例如：
 
 ```
 mysql> select count(id) from test_shard_hash where id > 1;
@@ -413,7 +413,7 @@ ERROR 1105 (HY000): transaction in multi node
 ```
 
 ## 6. kingshard的管理端操作
-kingshard的管理接口，目前还是命令行的方式。后续有时间打算将其改成web方式。管理端具体的命令可以参考[文档](./doc/KingDoc/admin_command_introduce.md)。管理端的命令格式，可以分为两类：
+kingshard的管理接口，目前还是命令行的方式。后续有时间打算将其改成web方式。管理端具体的命令可以参考[文档](./admin_command_introduce.md)。管理端的命令格式，可以分为两类：
 
 * ` admin server(opt,k,v) values(action,k1,v1)`。这种命令是操作整个kingshard的，其中opt表示这个操作的动作；k表示操作的对象，v表示给对象的赋值。
 * `admin node(opt,node,k,v) values(action,nodeName,k1,v1)`,这类命令表示操作node。其中opt表示这个操作的动作；node表示操作哪个node；k表示操作的对象，v表示给对象的赋值。

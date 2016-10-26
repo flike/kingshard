@@ -1,3 +1,17 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package mysql
 
 import (
@@ -5,6 +19,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+)
+
+const (
+	defaultReaderSize = 8 * 1024
 )
 
 type PacketIO struct {
@@ -17,7 +35,7 @@ type PacketIO struct {
 func NewPacketIO(conn net.Conn) *PacketIO {
 	p := new(PacketIO)
 
-	p.rb = bufio.NewReaderSize(conn, 1024)
+	p.rb = bufio.NewReaderSize(conn, defaultReaderSize)
 	p.wb = conn
 
 	p.Sequence = 0
@@ -99,4 +117,52 @@ func (p *PacketIO) WritePacket(data []byte) error {
 		p.Sequence++
 		return nil
 	}
+}
+
+func (p *PacketIO) WritePacketBatch(total, data []byte, direct bool) ([]byte, error) {
+	if data == nil {
+		//only flush the buffer
+		if direct == true {
+			n, err := p.wb.Write(total)
+			if err != nil {
+				return nil, ErrBadConn
+			}
+			if n != len(total) {
+				return nil, ErrBadConn
+			}
+		}
+		return total, nil
+	}
+
+	length := len(data) - 4
+	for length >= MaxPayloadLen {
+
+		data[0] = 0xff
+		data[1] = 0xff
+		data[2] = 0xff
+
+		data[3] = p.Sequence
+		total = append(total, data[:4+MaxPayloadLen]...)
+
+		p.Sequence++
+		length -= MaxPayloadLen
+		data = data[MaxPayloadLen:]
+	}
+
+	data[0] = byte(length)
+	data[1] = byte(length >> 8)
+	data[2] = byte(length >> 16)
+	data[3] = p.Sequence
+
+	total = append(total, data...)
+	p.Sequence++
+
+	if direct {
+		if n, err := p.wb.Write(total); err != nil {
+			return nil, ErrBadConn
+		} else if n != len(total) {
+			return nil, ErrBadConn
+		}
+	}
+	return total, nil
 }

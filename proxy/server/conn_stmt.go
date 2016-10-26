@@ -1,3 +1,17 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package server
 
 import (
@@ -62,23 +76,23 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 
 	n := c.proxy.GetNode(defaultRule.Nodes[0])
 
-	if co, err := n.GetMasterConn(); err != nil {
+	co, err := n.GetMasterConn()
+	defer c.closeConn(co, false)
+	if err != nil {
 		return fmt.Errorf("prepare error %s", err)
-	} else {
-		defer co.Close()
-
-		if err = co.UseDB(c.schema.db); err != nil {
-			return fmt.Errorf("parepre error %s", err)
-		}
-
-		if t, err := co.Prepare(sql); err != nil {
-			return fmt.Errorf("parepre error %s", err)
-		} else {
-
-			s.params = t.ParamNum()
-			s.columns = t.ColumnNum()
-		}
 	}
+
+	err = co.UseDB(c.schema.db)
+	if err != nil {
+		return fmt.Errorf("prepare error %s", err)
+	}
+
+	t, err := co.Prepare(sql)
+	if err != nil {
+		return fmt.Errorf("prepare error %s", err)
+	}
+	s.params = t.ParamNum()
+	s.columns = t.ColumnNum()
 
 	s.id = c.stmtId
 	c.stmtId++
@@ -88,15 +102,20 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 	}
 
 	s.ResetParams()
-
 	c.stmts[s.id] = s
+
+	err = co.ClosePrepare(t.GetId())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (c *ClientConn) writePrepare(s *Stmt) error {
+	var err error
 	data := make([]byte, 4, 128)
-
+	total := make([]byte, 0, 1024)
 	//status ok
 	data = append(data, 0)
 	//stmt id
@@ -110,7 +129,8 @@ func (c *ClientConn) writePrepare(s *Stmt) error {
 	//warning count
 	data = append(data, 0, 0)
 
-	if err := c.writePacket(data); err != nil {
+	total, err = c.writePacketBatch(total, data, false)
+	if err != nil {
 		return err
 	}
 
@@ -119,12 +139,14 @@ func (c *ClientConn) writePrepare(s *Stmt) error {
 			data = data[0:4]
 			data = append(data, []byte(paramFieldData)...)
 
-			if err := c.writePacket(data); err != nil {
+			total, err = c.writePacketBatch(total, data, false)
+			if err != nil {
 				return err
 			}
 		}
 
-		if err := c.writeEOF(c.status); err != nil {
+		total, err = c.writeEOFBatch(total, c.status, false)
+		if err != nil {
 			return err
 		}
 	}
@@ -134,15 +156,22 @@ func (c *ClientConn) writePrepare(s *Stmt) error {
 			data = data[0:4]
 			data = append(data, []byte(columnFieldData)...)
 
-			if err := c.writePacket(data); err != nil {
+			total, err = c.writePacketBatch(total, data, false)
+			if err != nil {
 				return err
 			}
 		}
 
-		if err := c.writeEOF(c.status); err != nil {
+		total, err = c.writeEOFBatch(total, c.status, false)
+		if err != nil {
 			return err
 		}
 
+	}
+	total, err = c.writePacketBatch(total, nil, true)
+	total = nil
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -233,8 +262,9 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 	}
 	defaultNode := c.proxy.GetNode(defaultRule.Nodes[0])
 
-	//execute in Master DB
-	conn, err := c.getBackendConn(defaultNode, false)
+	//choose connection in slave DB first
+	conn, err := c.getBackendConn(defaultNode, true)
+	defer c.closeConn(conn, false)
 	if err != nil {
 		return err
 	}
@@ -246,16 +276,17 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 
 	var rs []*mysql.Result
 	rs, err = c.executeInNode(conn, sql, args)
-
-	c.closeConn(conn, false)
 	if err != nil {
 		golog.Error("ClientConn", "handlePrepareSelect", err.Error(), c.connectionId)
 		return err
 	}
 
-	err = c.mergeSelectResult(rs, stmt)
-	if err != nil {
-		golog.Error("ClientConn", "handlePrepareSelect", err.Error(), c.connectionId)
+	status := c.status | rs[0].Status
+	if rs[0].Resultset != nil {
+		err = c.writeResultset(status, rs[0].Resultset)
+	} else {
+		r := c.newEmptyResultset(stmt)
+		err = c.writeResultset(status, r)
 	}
 
 	return err
@@ -270,6 +301,7 @@ func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, arg
 
 	//execute in Master DB
 	conn, err := c.getBackendConn(defaultNode, false)
+	defer c.closeConn(conn, false)
 	if err != nil {
 		return err
 	}
@@ -280,10 +312,18 @@ func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, arg
 
 	var rs []*mysql.Result
 	rs, err = c.executeInNode(conn, sql, args)
-	c.closeConn(conn, err != nil)
+	c.closeConn(conn, false)
 
-	if err == nil {
-		err = c.mergeExecResult(rs)
+	if err != nil {
+		golog.Error("ClientConn", "handlePrepareExec", err.Error(), c.connectionId)
+		return err
+	}
+
+	status := c.status | rs[0].Status
+	if rs[0].Resultset != nil {
+		err = c.writeResultset(status, rs[0].Resultset)
+	} else {
+		err = c.writeOK(rs[0])
 	}
 
 	return err

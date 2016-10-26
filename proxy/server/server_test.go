@@ -1,11 +1,26 @@
+// Copyright 2016 The kingshard Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"): you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations
+// under the License.
+
 package server
 
 import (
-	"github.com/flike/kingshard/backend"
-	"github.com/flike/kingshard/config"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/flike/kingshard/backend"
+	"github.com/flike/kingshard/config"
 )
 
 var testServerOnce sync.Once
@@ -14,7 +29,7 @@ var testDBOnce sync.Once
 var testDB *backend.DB
 
 var testConfigData = []byte(`
-addr : 127.0.0.1:3601
+addr : 127.0.0.1:9696
 user : root
 password : 
 
@@ -23,18 +38,16 @@ nodes :
     name : node1 
     down_after_noalive : 300
     idle_conns : 16
-    rw_split: false
     user: root
     password:
     master : 127.0.0.1:3306
     slave : 
 
-schemas :
--
-    db : kingshard 
+schema :
+    db : kingshard
+    default: node1  
     nodes: [node1]
     rules:
-        default: node1 
         shard:
             -
 `)
@@ -65,14 +78,7 @@ func newTestDB(t *testing.T) *backend.DB {
 	newTestServer(t)
 
 	f := func() {
-		var err error
-		testDB, err = backend.Open("127.0.0.1:3601", "root", "", "kingshard")
-
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		testDB.SetMaxIdleConnNum(4)
+		testDB, _ = backend.Open("127.0.0.1:3601", "root", "", "kingshard", 100)
 	}
 
 	testDBOnce.Do(f)

@@ -1,5 +1,8 @@
 # ChangeLog
 
+## 2016.1.18
+* 修复不能改写select多张表的bug
+
 ## 2015-09-12
 ### feature
 * select操作支持min和max函数表达式。
