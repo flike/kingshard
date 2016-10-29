@@ -285,7 +285,7 @@ func TestConn_SetNames(t *testing.T) {
 	c := newTestDBConn(t)
 	defer c.Close()
 
-	if err := c.SetCharset("gb2312"); err != nil {
+	if err := c.SetCharset("gb2312", 24); err != nil {
 		t.Fatal(err)
 	}
 }

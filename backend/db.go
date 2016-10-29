@@ -232,7 +232,7 @@ func (db *DB) tryReuse(co *Conn) error {
 	//connection may be set names early
 	//we must use default utf8
 	if co.GetCharset() != mysql.DEFAULT_CHARSET {
-		err = co.SetCharset(mysql.DEFAULT_CHARSET)
+		err = co.SetCharset(mysql.DEFAULT_CHARSET, mysql.DEFAULT_COLLATION_ID)
 		if err != nil {
 			return err
 		}

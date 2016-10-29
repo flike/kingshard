@@ -116,16 +116,20 @@ func (c *ClientConn) handleSetNames(ch, ci sqlparser.ValExpr) error {
 		return c.writeOK(nil)
 	}
 	if ci == nil {
+		if charset == "default" {
+			charset = mysql.DEFAULT_CHARSET
+		}
 		cid, ok = mysql.CharsetIds[charset]
 		if !ok {
 			return fmt.Errorf("invalid charset %s", charset)
 		}
 	} else {
 		collate := sqlparser.String(ci)
-		collate = strings.Trim(value, "'`\"")
+		collate = strings.Trim(collate, "'`\"")
+		collate = strings.ToLower(collate)
 		cid, ok = mysql.CollationNames[collate]
 		if !ok {
-			return fmt.Errorf("invalid charset %s", charset)
+			return fmt.Errorf("invalid collation %s", collate)
 		}
 	}
 	c.charset = charset
