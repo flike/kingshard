@@ -29,6 +29,11 @@ func (c *ClientConn) isAutoCommit() bool {
 }
 
 func (c *ClientConn) handleBegin() error {
+	for _, co := range c.txConns {
+		if err := co.Begin(); err != nil {
+			return err
+		}
+	}
 	c.status |= mysql.SERVER_STATUS_IN_TRANS
 	return c.writeOK(nil)
 }
