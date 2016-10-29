@@ -12,7 +12,7 @@ admin server(opt,k,v) values('show','schema','config')|show the config of schema
 admin server(opt,k,v) values('show','allow_ip','config')|show the allow ip of kingshard
 admin server(opt,k,v) values('add','allow_ip','127.0.0.1')|add the allow ip
 admin server(opt,k,v) values('del','allow_ip','127.0.0.1')|delete the allow ip
-admin server(opt,k,v) values('show','black_sql','config|show the black sqls of kingshard
+admin server(opt,k,v) values('show','black_sql','config')|show the black sqls of kingshard
 admin server(opt,k,v) values('add','black_sql','select count(*) from sbtest1')|add black sql to kingshard	
 admin server(opt,k,v) values('del','black_sql','select count(*) from sbtest1')|delete black sql to kingshard		
 admin server(opt,k,v) values('change','log_sql','off')|close the log output
