@@ -406,13 +406,14 @@ func (c *ClientConn) handleShowColumns(sql string, tokens []string,
 	tokensLen int, executeDB *ExecuteDB) error {
 
 	for i := 0; i < tokensLen; i++ {
+		tokens[i] = strings.ToLower(tokens[i])
 		//handle SQL:
 		//SHOW [FULL] COLUMNS FROM tbl_name [FROM db_name] [like_or_where]
-		if (tokens[i] == mysql.TK_STR_FIELDS ||
-			tokens[i] == mysql.TK_STR_COLUMNS) &&
+		if (strings.ToLower(tokens[i]) == mysql.TK_STR_FIELDS ||
+			strings.ToLower(tokens[i]) == mysql.TK_STR_COLUMNS) &&
 			i+2 < tokensLen {
-			if tokens[i+1] == mysql.TK_STR_FROM {
-				tableName := strings.Trim(tokens[i+2], "`")
+			if strings.ToLower(tokens[i+1]) == mysql.TK_STR_FROM {
+				tableName := strings.Trim(strings.ToLower(tokens[i+2]), "`")
 				showRouter := c.schema.rule
 				showRule := showRouter.GetRule(tableName)
 				//this SHOW is sharding SQL
