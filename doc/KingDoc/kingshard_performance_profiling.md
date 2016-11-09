@@ -21,7 +21,7 @@ CPU： 2.2GHZ * 4
 
 1.获取一个性能分析的封装库
 ```
-go get github.com/davecheney/profile
+go get github.com/pkg/profile
 ```
 
 2.在工程内import这个组件
