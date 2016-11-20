@@ -18,10 +18,11 @@ import (
 	"sort"
 	"strconv"
 
+	"strings"
+
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/sqlparser"
-	"strings"
 )
 
 const (
@@ -347,7 +348,7 @@ func (plan *Plan) getValueType(valExpr sqlparser.ValExpr) int {
 		if string(node.Qualifier) == plan.Rule.Table {
 			node.Qualifier = nil
 		}
-		if string(node.Name) == plan.Rule.Key {
+		if strings.ToLower(string(node.Name)) == plan.Rule.Key {
 			return EID_NODE //表示这是分片id对应的node
 		}
 	case sqlparser.ValTuple:
@@ -485,7 +486,7 @@ func (plan *Plan) GetIRKeyIndex(cols sqlparser.Columns) error {
 	for i, _ := range cols {
 		colname := string(cols[i].(*sqlparser.NonStarExpr).Expr.(*sqlparser.ColName).Name)
 
-		if colname == plan.Rule.Key {
+		if strings.ToLower(colname) == plan.Rule.Key {
 			plan.KeyIndex = i
 			break
 		}

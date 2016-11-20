@@ -174,7 +174,7 @@ func (s *Server) parseNodes() error {
 
 	for _, v := range cfg.Nodes {
 		if _, ok := s.nodes[v.Name]; ok {
-			return fmt.Errorf("duplicate node [%s].", v.Name)
+			return fmt.Errorf("duplicate node [%s]", v.Name)
 		}
 
 		n, err := s.parseNode(v)
@@ -191,17 +191,17 @@ func (s *Server) parseNodes() error {
 func (s *Server) parseSchema() error {
 	schemaCfg := s.cfg.Schema
 	if len(schemaCfg.Nodes) == 0 {
-		return fmt.Errorf("schema [%s] must have a node.", schemaCfg.DB)
+		return fmt.Errorf("schema [%s] must have a node", schemaCfg.DB)
 	}
 
 	nodes := make(map[string]*backend.Node)
 	for _, n := range schemaCfg.Nodes {
 		if s.GetNode(n) == nil {
-			return fmt.Errorf("schema [%s] node [%s] config is not exists.", schemaCfg.DB, n)
+			return fmt.Errorf("schema [%s] node [%s] config is not exists", schemaCfg.DB, n)
 		}
 
 		if _, ok := nodes[n]; ok {
-			return fmt.Errorf("schema [%s] node [%s] duplicate.", schemaCfg.DB, n)
+			return fmt.Errorf("schema [%s] node [%s] duplicate", schemaCfg.DB, n)
 		}
 
 		nodes[n] = s.GetNode(n)

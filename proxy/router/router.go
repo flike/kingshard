@@ -103,10 +103,10 @@ func (r *Rule) checkUpdateExprs(exprs sqlparser.UpdateExprs) error {
 	return nil
 }
 
-//build router according to the config file
+//NewRouter build router according to the config file
 func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 	if !includeNode(schemaConfig.Nodes, schemaConfig.Default) {
-		return nil, fmt.Errorf("default node[%s] not in the nodes list.",
+		return nil, fmt.Errorf("default node[%s] not in the nodes list",
 			schemaConfig.Default)
 	}
 
@@ -119,7 +119,7 @@ func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 	for _, shard := range schemaConfig.ShardRule {
 		for _, node := range shard.Nodes {
 			if !includeNode(rt.Nodes, node) {
-				return nil, fmt.Errorf("shard table[%s] node[%s] not in the schema.nodes list:[%s].",
+				return nil, fmt.Errorf("shard table[%s] node[%s] not in the schema.nodes list:[%s]",
 					shard.Table, node, strings.Join(shard.Nodes, ","))
 			}
 		}
@@ -129,13 +129,13 @@ func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 		}
 
 		if rule.Type == DefaultRuleType {
-			return nil, fmt.Errorf("[default-rule] duplicate, must only one.")
-		} else {
-			if _, ok := rt.Rules[rule.Table]; ok {
-				return nil, fmt.Errorf("table %s rule in %s duplicate", rule.Table, rule.DB)
-			}
-			rt.Rules[rule.Table] = rule
+			return nil, fmt.Errorf("[default-rule] duplicate, must only one")
 		}
+		if _, ok := rt.Rules[rule.Table]; ok {
+			return nil, fmt.Errorf("table %s rule in %s duplicate", rule.Table, rule.DB)
+		}
+		rt.Rules[rule.Table] = rule
+
 	}
 	return rt, nil
 }
@@ -159,7 +159,7 @@ func parseRule(db string, cfg *config.ShardConfig) (*Rule, error) {
 	r := new(Rule)
 	r.DB = db
 	r.Table = cfg.Table
-	r.Key = cfg.Key
+	r.Key = strings.ToLower(cfg.Key) //ignore case
 	r.Type = cfg.Type
 	r.Nodes = cfg.Nodes //将ruleconfig中的nodes赋值给rule
 	r.TableToNode = make(map[int]int, 0)
