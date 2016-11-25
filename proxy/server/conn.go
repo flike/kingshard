@@ -104,7 +104,6 @@ func (c *ClientConn) Handshake() error {
 		golog.Error("server", "readHandshakeResponse",
 			err.Error(), c.connectionId,
 			"msg", "read Handshake Response error")
-		//c.writeError(err)
 		return err
 	}
 
