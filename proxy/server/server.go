@@ -355,7 +355,9 @@ func (s *Server) onConn(c net.Conn) {
 	}
 	if err := conn.Handshake(); err != nil {
 		golog.Error("server", "onConn", err.Error(), 0)
-		c.Close()
+		//c.Close()
+		conn.writeError(err)
+		conn.Close()
 		return
 	}
 
