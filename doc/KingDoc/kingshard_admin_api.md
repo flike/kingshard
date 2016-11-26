@@ -186,7 +186,7 @@ curl -X PUT \
 
 ```
 Action：GET
-http://127.0.0.1:9797/api/v1/proxy/schemas
+http://127.0.0.1:9797/api/v1/proxy/schema
 参数：无
 返回结果:schema数组，但只有一项。字段意思参考配置文件
 ```

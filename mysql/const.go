@@ -205,6 +205,9 @@ var (
 	TK_STR_TRANSACTION    = "transaction"
 	TK_STR_LAST_INSERT_ID = "last_insert_id()"
 	TK_STR_MASTER_HINT    = "*master*"
+	//show
+	TK_STR_COLUMNS = "columns"
+	TK_STR_FIELDS  = "fields"
 
 	SET_KEY_WORDS = map[string]struct{}{
 		"names": struct{}{},
