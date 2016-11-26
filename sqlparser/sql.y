@@ -1068,7 +1068,11 @@ update_list:
 update_expression:
   column_name '=' value_expression
   {
-    $$ = &UpdateExpr{Name: $1, Expr: $3} 
+    $$ = &UpdateExpr{Name: $1, Expr: $3}
+  }
+| column_name '=' ON
+  {
+    $$ = &UpdateExpr{Name: $1, Expr: StrVal("ON")}
   }
 
 exists_opt:
