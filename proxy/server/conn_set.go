@@ -78,6 +78,13 @@ func (c *ClientConn) handleSet(stmt *sqlparser.Set, sql string) (err error) {
 func (c *ClientConn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 	flag := sqlparser.String(val)
 	flag = strings.Trim(flag, "'`\"")
+	// autocommit允许为 0, 1, ON, OFF, "ON", "OFF", 不允许"0", "1"
+	if flag == `0` || flag == `1` {
+		_, ok := val.(sqlparser.NumVal)
+		if !ok {
+			return fmt.Errorf("set autocommit error")
+		}
+	}
 	switch strings.ToUpper(flag) {
 	case `1`, `ON`:
 		c.status |= mysql.SERVER_STATUS_AUTOCOMMIT
