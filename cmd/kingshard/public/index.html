@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>kingshard</title>
+	<link rel="stylesheet" type="text/css" href="./static/css/main.css">
+	<!-- <link rel="stylesheet" type="text/css" href="./css/monokai.css"> -->
+	<!-- <link rel="stylesheet" type="text/css" href="./css/prism.css"> -->
+</head>
+<body>
+
+	<header class="main_header">
+		<div class="wrapper">
+			<span class="logo">kingshard</span>
+		</div>
+	</header>
+	<div class="wrapper contents_wrapper">
+		<aside class="sidebar">
+			<ul class="tab_view js_tab_view">
+				<!-- 查看node的状态
+					添加slave
+					删除slave
+					设置slave状态
+					设置master状态
+					查看proxy状态
+					设置proxy状态
+					查看proxy的schema
+					添加proxy的客户端白名单
+					删除proxy的客户端白名单
+					查看proxy的black_sql
+					增加proxy的black_sql
+					删除proxy的black_sql
+					设置proxy的slow sql开关
+					查看proxy的slow sql的时间
+					设置proxy的slow sql的时间
+					保存proxy的配置 -->
+				<!-- <li class="active_tab">
+					<a href="javascript:void(0);">查看node的状态</a>
+				</li>
+				<li><a href="javascript:void(0);">添加slave</a></li>
+				<li><a href="javascript:void(0);">删除slave</a></li>
+				<li><a href="javascript:void(0);">设置slave状态</a></li>
+				<li><a href="javascript:void(0);">设置master状态</a></li>
+				<li><a href="javascript:void(0);">查看proxy状态</a></li>
+				<li><a href="javascript:void(0);">设置proxy状态</a></li>
+				<li><a href="javascript:void(0);">查看proxy的schema</a></li>
+				<li><a href="javascript:void(0);">添加proxy的客户端白名单</a></li>
+				<li><a href="javascript:void(0);">删除proxy的客户端白名单</a></li>
+				<li><a href="javascript:void(0);">查看proxy的black_sql</a></li>
+				<li><a href="javascript:void(0);">增加proxy的black_sql</a></li>
+				<li><a href="javascript:void(0);">删除proxy的black_sql</a></li>
+				<li><a href="javascript:void(0);">设置proxy的slow sql开关</a></li>
+				<li><a href="javascript:void(0);">查看proxy的slow sql的时间</a></li>
+				<li><a href="javascript:void(0);">设置proxy的slow sql的时间</a></li>
+				<li><a href="javascript:void(0);">保存proxy的配置</a></li> -->
+			</ul>
+		</aside>
+		<div class="contents">
+			<div class="grid_wrapper">
+				<pre class="result_json"><code></code></pre>
+				<!-- <div id="editor">
+					funciton foo() {
+						var x = "All this is syntax highlighted";
+						return x;
+					}
+				</div> -->
+
+				<div class="act_desc_title">接口说明</div>
+				<div class="act_desc js_act_desc">
+					<!-- <p>Action: GET</p>
+					<p>URL: http://127.0.0.1:9797/api/v1/nodes/status</p>
+					<p>参数: 无</p>
+					<p>返回结果: node数组，node中包含Master和Slave信息</p> -->
+				</div>
+
+
+				<div id='js_act_param_wrapper'>
+					<!-- <div class="act_param">
+						<span class="label">node :</span>
+						<input type="text">
+					</div>
+					<div class="act_param">
+						<span class="label">addr :</span>
+						<input type="text">
+					</div>-->
+				</div>
+
+				<div class="btn_act" id="js_act_btn">点击执行</div>
+
+
+				<div id="js_table_wrapper" style="display:none;">
+					<div class="widget_header">执行结果</div>
+					<div class="widget_contents">
+
+						<table class="tables" id="js_ret_able">
+							<!-- <thead>
+								<tr>
+									<th>键</th>
+									<th>值</th>
+								</tr>
+							</thead>
+							<tbody>
+							</tbody> -->
+						</table>
+
+
+						<!-- <table class="tables table_obj" style="display: none;">
+							<thead>
+								<tr>
+									<th>键</th>
+									<th>值</th>
+								</tr>
+							</thead>
+							<tbody>
+							</tbody>
+						</table>
+
+
+						<table class="tables table_arr" style="display: none;">
+							<thead>
+								<tr>
+									<th>序号</th>
+									<th>键</th>
+									<th>值</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td rowspan="7">1</td>
+									<td>node</td>
+									<td>node1</td>
+								</tr>
+								<tr>
+									<td>address</td>
+									<td>"127.0.0.1:3307"</td>
+								</tr>
+								<tr>
+									<td>type</td>
+									<td>master</td>
+								</tr>
+								<tr>
+									<td>status</td>
+									<td>up</td>
+								</tr>
+								<tr>
+									<td>laste_ping</td>
+									<td>2016-09-24 17:17:52 +0800 CST</td>
+								</tr>
+								<tr>
+									<td>max_conn</td>
+									<td>32</td>
+								</tr>
+								<tr>
+									<td>idle_conn</td>
+									<td>8</td>
+								</tr>
+								<tr>
+									<td rowspan="7">2</td>
+									<td>node</td>
+									<td>node1</td>
+								</tr>
+								<tr>
+									<td>address</td>
+									<td>"127.0.0.1:3307"</td>
+								</tr>
+								<tr>
+									<td>type</td>
+									<td>master</td>
+								</tr>
+								<tr>
+									<td>status</td>
+									<td>up</td>
+								</tr>
+								<tr>
+									<td>laste_ping</td>
+									<td>2016-09-24 17:17:52 +0800 CST</td>
+								</tr>
+								<tr>
+									<td>max_conn</td>
+									<td>32</td>
+								</tr>
+								<tr>
+									<td>idle_conn</td>
+									<td>8</td>
+								</tr>
+							</tbody>
+						</table> -->
+
+
+
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!--
+	 	"node": "node1",
+        "address": "127.0.0.1:3307",
+        "type": "master",
+        "status": "up",
+        "laste_ping": "2016-09-24 17:17:52 +0800 CST",
+        "max_conn": 32,
+        "idle_conn": 8
+	 -->
+	<footer>
+		<div class="wrapper">
+			<div class="copyright">© Copyright © 2016.Company name All rights reserved. </div>
+		</div>
+	</footer>
+
+
+	<script type="text/javascript" src="./static/js/jquery-2.0.3.js"></script>
+	<!-- <script type="text/javascript" src="./js/ace.js"></script> -->
+	<!-- <script type="text/javascript" src="./js/mode-javascript.js"></script> -->
+	<!-- <script type="text/javascript" src="./js/theme-monokai.js"></script> -->
+	<script type="text/javascript" src="./static/js/util.js"></script>
+	<script type="text/javascript" src="./static/js/api_conf.js"></script>
+	<script type="text/javascript" src="./static/js/main.js"></script>
+	<!-- <script type="text/javascript" src="./js/prism.js"></script> -->
+</body>
+</html>

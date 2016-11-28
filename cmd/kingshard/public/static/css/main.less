@@ -1,0 +1,247 @@
+@import "base";
+@import "table";
+
+
+@main_w: 1015px;
+@side_w: 200px;	
+@content_w: @main_w - @side_w - 1;
+@side_h: 50px;	
+@contents_min_h: (@side_h+2)*17 - 4;
+
+
+body{
+	width: 100%;
+	min-height: 100%;
+	background: url(../image/pattern4.png) repeat scroll 0 0 #f4f4f4;
+}
+code{
+	font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+	.key{
+		color: #905;
+	}
+	.string{
+		color: #07a;
+	}
+}
+
+
+
+.wrapper {
+    margin: 0 auto;
+    width: @main_w;
+}
+
+/*@media screen and (min-width: 1025px){
+	.wrapper {
+	    width: 1015px;
+	}
+} */
+
+
+/*头部logo*/
+.main_header{
+	padding: 20px 0;
+    overflow: hidden;
+    width: 100%;
+    .logo{
+		color: #616161;
+	    font-size: 30px;
+	    text-shadow: 0 1px 0 #FFFFFF;
+	    margin-left: 30px;
+    }
+}
+
+/*大主体*/
+.contents_wrapper {
+    position: relative;
+    right: -1px;
+}
+
+
+/*左侧菜单*/
+.sidebar {
+    position: absolute;
+    left: -1px;
+    top: auto;
+    width: @side_w;
+    .tab_view {
+	    padding: 5px 0 5px 5px;
+	    margin: -5px -1px 0 -5px;
+	    overflow: hidden;
+	    & > li {
+		    width: @side_w;
+		    padding-left: 1px;
+		    background-position: 10px 29px;
+		    & > a{
+		    	width: 100%;
+		    	box-sizing: border-box;
+			    height: @side_h;
+			    line-height: @side_h;
+			    display: block;
+			    color: #9D9D9D;
+			    font-size: 14px;
+			    text-shadow: 0 1px 0 #FFFFFF;
+			    display: block;
+			    padding-left: 10px;
+		    }
+		}
+		& > li.active_tab {
+		    padding-left: 0;
+		    background-color: #f9f9f9;
+		    border-radius: 3px 0 0 3px;
+		    border: 1px solid #dadada;
+		    border-right-color: #f7f7f7;
+		    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+		}
+	}
+}
+
+
+/*右侧主体*/
+.contents {
+    float: right;
+    width: @content_w;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    border-radius: 0 3px 3px 0;
+    border: 1px solid #dadada;
+    .grid_wrapper {
+	    overflow: hidden;
+	    padding: 0 20px 20px 20px;
+	    width: auto;
+	    height: auto;
+	    min-height: @contents_min_h;
+	}
+}
+
+/*页脚*/
+footer {
+    clear: both;
+    padding: 20px 0;
+    .copyright {
+    	text-align: center;
+	    color: #b9b9b9;
+	    font-size: 13px;
+	    text-shadow: 0 1px 0 #FFFFFF;
+	}
+}
+
+
+
+
+/*接口描述*/
+.act_desc_title{
+	height: 50px;
+	line-height: 60px;
+    color: #333;
+    font-size: 16px;
+    text-shadow: 0 1px 0 #FFFFFF;
+    border-bottom: 1px solid #dedede;
+    padding-left: 10px;
+}
+.act_desc{
+	margin: 10px 0 20px 10px;
+
+	p{
+		font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+		color: #333;
+	    font-size: 14px;
+	    text-shadow: 0 1px 0 #FFFFFF;
+	    line-height: 26px;
+	    .key{
+			color: #905;
+		}
+		.string{
+			color: #07a;
+		}
+	}
+	p.indent{
+		text-indent: 20px;
+	}
+}
+
+/*接口参数*/
+.act_param{
+	font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+	margin-top: 10px;
+	margin-left: 10px;
+	span{
+		display: inline-block;
+	    color: #696969;
+	    font-size: 14px;
+	    text-shadow: 0 1px 0 #FFFFFF;
+	    min-width: 50px;
+	    margin-right: 10px;
+	}
+	input{
+		display: inline-block;
+	    width: 500px;
+	    height: 28px;
+	    line-height: 28px;
+	    padding: 0 8px;
+	    border: 1px solid #cccccc;
+	    border-radius: 2px;
+	    background-color: #ffffff;
+	    box-sizing: border-box;
+	    color: #696969;
+	    font-size: 14px;
+	}
+}
+
+
+/*执行按钮*/
+.btn_act{
+	width: 100px;
+	height: 30px;
+	line-height: 34px;
+	
+	margin-bottom: 20px;
+	margin-left: 10px;
+	margin-top: 20px;
+	text-align: center;
+	background: linear-gradient(to bottom, #fcfcfc 0%,#f2f2f2 100%);
+    border: 1px solid #CBCBCB;
+    border-radius: 3px;
+    box-shadow: 0 1px 0 #ffffff, 0 1px 0 #ffffff inset;
+    color: #607d8b;
+    font-size: 14px;
+    text-shadow: 0 1px 0 #FFFFFF;
+    box-shadow: 0 2px 3px #EAEAEA;
+    cursor: pointer;
+}
+.btn_act:active{
+	background: #f2f2f2;
+	box-shadow: 0 2px 3px #E1E1E1;
+}
+
+
+/*表格头部*/
+.widget_header{
+	width: 100%;
+	box-sizing: border-box;
+	background: linear-gradient(to bottom, #ffffff 0%,#f5f5f5 100%);
+    height: 38px;
+    line-height: 38px;
+    border: 1px solid #C9C9C9;
+    border-bottom-width: 0;
+    border-radius: 3px 3px 0 0;
+    -webkit-box-shadow: inset 0 1px 0 #ffffff;
+    box-shadow: inset 0 1px 0 #ffffff;
+    padding: 0 15px;
+
+    color: #9a9a9a;
+    font-size: 14px;
+    text-shadow: 0 1px 0 #FFFFFF;
+}
+/*表格主体*/
+.widget_contents{
+	overflow: hidden;
+	background-color: #FDFDFD;
+    border: 1px solid #C9C9C9;
+    border-radius: 0 0 3px 3px;
+    box-shadow: inset 0 1px 0 #ffffff;
+}
+
+
+
+

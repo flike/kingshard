@@ -99,6 +99,9 @@ func (s *ApiServer) RegisterURL() {
 	s.Put("/api/v1/proxy/slow_sql/time", s.SetSlowLogTime)
 
 	s.Put("/api/v1/proxy/config/save", s.SaveProxyConfig)
+
+	s.Static("/static", "public/static")
+	s.File("/", "public/index.html")
 }
 
 func (s *ApiServer) CheckAuth(username, password string) bool {
