@@ -531,7 +531,7 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 		rows = append(
 			rows,
 			[]string{
-				schemaConfig.DB,
+				r.DB,
 				r.Table,
 				r.Type,
 				r.Key,

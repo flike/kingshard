@@ -244,9 +244,6 @@ func (c *ClientConn) readHandshakeResponse() error {
 		db = string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
 		pos += len(c.db) + 1
 
-	} else {
-		//if connect without database, use default db
-		db = c.proxy.schema.db
 	}
 	c.db = db
 
