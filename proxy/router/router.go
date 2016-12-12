@@ -147,6 +147,7 @@ func (r *Router) GetRule(table string) *Rule {
 			table = strings.Trim(arry[1], "`")
 		}
 	}
+	table = strings.ToLower(table)
 	rule := r.Rules[table]
 	if rule == nil {
 		return r.DefaultRule

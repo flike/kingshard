@@ -22,9 +22,14 @@ package sqlparser
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/flike/kingshard/sqltypes"
+)
+
+var (
+	regSQLStatement = regexp.MustCompile(`([^';]*|('[^']*')*)+;`)
 )
 
 // GetDBName parses the specified DML and returns the
@@ -54,9 +59,9 @@ func GetTableName(token string) string {
 
 	vec := strings.SplitN(token, ".", 2)
 	if len(vec) == 2 {
-		return strings.Trim(vec[1], "`")
+		return strings.ToLower(strings.Trim(vec[1], "`"))
 	} else {
-		return strings.Trim(vec[0], "`")
+		return strings.ToLower(strings.Trim(vec[0], "`"))
 	}
 }
 
@@ -68,10 +73,10 @@ func GetInsertTableName(token string) string {
 	vec := strings.SplitN(token, ".", 2)
 	if len(vec) == 2 {
 		table := strings.Split(vec[1], "(")
-		return strings.Trim(table[0], "`")
+		return strings.ToLower(strings.Trim(table[0], "`"))
 	} else {
 		table := strings.Split(vec[0], "(")
-		return strings.Trim(table[0], "`")
+		return strings.ToLower(strings.Trim(table[0], "`"))
 	}
 }
 
@@ -164,4 +169,15 @@ func StringIn(str string, values ...string) bool {
 		}
 	}
 	return false
+}
+
+// SplitSQLStatement is to split multi-sql to single-sql.
+func SplitSQLStatement(multiSQL string) []string {
+	sqlStatementList := regSQLStatement.FindAll([]byte(strings.TrimRight(multiSQL, ";")+";"), -1)
+	var sqlStrArray = make([]string, len(sqlStatementList))
+	for i, sqlStatement := range sqlStatementList {
+		query := string(sqlStatement[:len(sqlStatement)-1])
+		sqlStrArray[i] = query
+	}
+	return sqlStrArray
 }
