@@ -21,7 +21,7 @@ kingshard在非分表的情况下支持绝大部分MySQL语法和协议，包括
 ### 2.2 数据库DML语法
 - INSERT Syntax
 - INSERT DELAYED Syntax 暂不支持
--  REPLACE Syntax
+- REPLACE Syntax
 - UPDATE Syntax
 - DELETE Syntax
 - Subquery Syntax
@@ -86,6 +86,8 @@ kingshard在非分表的情况下支持绝大部分MySQL语法和协议，包括
 - INSERT INTO SELECT 不支持
 - REPLACE Syntax
 - UPDATE Syntax
+//分表使用的字段无论何种分表类型都不能作为被更新的字段。
+- UPDATE SET xx=REPLACE(xx,'a','b') Syntax 不支持
 - DELETE Syntax
 - Subquery Syntax
 - SELECT Syntax
