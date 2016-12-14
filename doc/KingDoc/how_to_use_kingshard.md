@@ -81,15 +81,15 @@ nodes :
 
 # 分表规则
 schema :
-    #分表使用的db，所有的分表必须都在这个db中。
-    db : kingshard
     #分表分布的node名字
     nodes: [node1,node2]
 	#所有未分表的SQL，都会发往默认node。
     default: node1
     shard:
     -
-        #分表名字
+        #分表使用的db
+        db : kingshard
+		#分表名字
         table: test_shard_hash
         #分表字段
         key: id
@@ -102,7 +102,9 @@ schema :
         locations: [4,4]
 
     -
-		#分表名字
+		#分表使用的db
+        db : kingshard
+        #分表名字
         table: test_shard_range
 	    #分表字段
         key: id

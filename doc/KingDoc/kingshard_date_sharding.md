@@ -100,11 +100,11 @@ nodes :
 
 # schema defines sharding rules, the db is the sharding table database.
 schema :
-    db : kingshard
     nodes: [node1,node2]
     default: node1
     shard:
     -
+       db : kingshard
        table: test_shard_year
        key: ctime
        type: date_day
