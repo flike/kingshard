@@ -76,18 +76,26 @@ nodes :
 
 # schema defines sharding rules, the db is the sharding table database.
 schema :
-    db : kingshard
     nodes: [node1,node2]
     default: node1      
     shard:
     -   
+        db : kingshard
         table: test_shard_hash
         key: id
         nodes: [node1, node2]
         type: hash
         locations: [4,4]
 
+    - 
+        db : hidb
+        table: test_hash
+        key: id
+        nodes: [node1, node2]
+        type: hash
+        locations: [4,4]
     -   
+        db : kingshard
         table: test_shard_range
         key: id
         type: range
@@ -95,18 +103,21 @@ schema :
         locations: [4,4]
         table_row_limit: 10000
     -
+        db : kingshard
         table: test_shard_time
         key: id
         nodes: [node1, node2]
         type: hash
         locations: [2,2]
     -
+        db : kingshard
         table: test_shard_month
         key: dtime
         type: date_month
         nodes: [node1,node2]
         date_range: [201603-201605,201609-201612]
     -
+        db : kingshard
         table: test_shard_day
         key: mtime
         type: date_day

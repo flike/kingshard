@@ -54,7 +54,7 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
 	}
 
-	nodeName := c.schema.rule.GetRule(table).Nodes[0]
+	nodeName := c.schema.rule.GetRule(c.db, table).Nodes[0]
 
 	n := c.proxy.GetNode(nodeName)
 
@@ -65,6 +65,8 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 	}
 
 	if err = co.UseDB(c.db); err != nil {
+		//reset the database to null
+		c.db = ""
 		return err
 	}
 
@@ -97,7 +99,7 @@ func (c *ClientConn) writeFieldList(status uint16, fs []*mysql.Field) error {
 //处理select语句
 func (c *ClientConn) handleSelect(stmt *sqlparser.Select, args []interface{}) error {
 	var fromSlave bool = true
-	plan, err := c.schema.rule.BuildPlan(stmt)
+	plan, err := c.schema.rule.BuildPlan(c.db, stmt)
 	if err != nil {
 		return err
 	}

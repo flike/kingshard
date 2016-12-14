@@ -36,11 +36,8 @@ import (
 )
 
 type Schema struct {
-	db string
-
 	nodes map[string]*backend.Node
-
-	rule *router.Router
+	rule  *router.Router
 }
 
 type BlacklistSqls struct {
@@ -59,7 +56,7 @@ type Server struct {
 	addr     string
 	user     string
 	password string
-	db       string
+	//db       string
 
 	statusIndex        int32
 	status             [2]int32
@@ -191,17 +188,17 @@ func (s *Server) parseNodes() error {
 func (s *Server) parseSchema() error {
 	schemaCfg := s.cfg.Schema
 	if len(schemaCfg.Nodes) == 0 {
-		return fmt.Errorf("schema [%s] must have a node", schemaCfg.DB)
+		return fmt.Errorf("schema must have a node")
 	}
 
 	nodes := make(map[string]*backend.Node)
 	for _, n := range schemaCfg.Nodes {
 		if s.GetNode(n) == nil {
-			return fmt.Errorf("schema [%s] node [%s] config is not exists", schemaCfg.DB, n)
+			return fmt.Errorf("schema node [%s] config is not exists", n)
 		}
 
 		if _, ok := nodes[n]; ok {
-			return fmt.Errorf("schema [%s] node [%s] duplicate", schemaCfg.DB, n)
+			return fmt.Errorf("schema node [%s] duplicate", n)
 		}
 
 		nodes[n] = s.GetNode(n)
@@ -213,11 +210,9 @@ func (s *Server) parseSchema() error {
 	}
 
 	s.schema = &Schema{
-		db:    schemaCfg.DB,
 		nodes: nodes,
 		rule:  rule,
 	}
-	s.db = schemaCfg.DB
 
 	return nil
 }

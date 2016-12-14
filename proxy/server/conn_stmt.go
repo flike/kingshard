@@ -82,8 +82,10 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 		return fmt.Errorf("prepare error %s", err)
 	}
 
-	err = co.UseDB(c.schema.db)
+	err = co.UseDB(c.db)
 	if err != nil {
+		//reset the database to null
+		c.db = ""
 		return fmt.Errorf("prepare error %s", err)
 	}
 

@@ -58,14 +58,14 @@ type NodeConfig struct {
 
 //schema对应的结构体
 type SchemaConfig struct {
-	DB        string        `yaml:"db"`
 	Nodes     []string      `yaml:"nodes"`
-	Default   string        `yaml:"default"` //default route rule
+	Default   string        `yaml:"default"` //default node
 	ShardRule []ShardConfig `yaml:"shard"`   //route rule
 }
 
 //range,hash or date
 type ShardConfig struct {
+	DB            string   `yaml:"db"`
 	Table         string   `yaml:"table"`
 	Key           string   `yaml:"key"`
 	Nodes         []string `yaml:"nodes"`

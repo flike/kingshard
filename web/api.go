@@ -241,14 +241,13 @@ func (s *ApiServer) GetProxySchema(c echo.Context) error {
 	//append default rule
 	shardConfig = append(shardConfig,
 		ShardConfig{
-			DB:    schema.DB,
 			Type:  "default",
 			Nodes: schema.Nodes,
 		})
 	for _, r := range schema.ShardRule {
 		shardConfig = append(shardConfig,
 			ShardConfig{
-				DB:            schema.DB,
+				DB:            r.DB,
 				Table:         r.Table,
 				Key:           r.Key,
 				Nodes:         r.Nodes,

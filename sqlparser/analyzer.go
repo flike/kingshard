@@ -47,31 +47,32 @@ func GetDBName(sql string) (string, error) {
 	return "", fmt.Errorf("statement '%s' is not a dml", sql)
 }
 
-func GetTableName(token string) string {
+//Get the database and table name
+func GetDBTable(token string) (string, string) {
 	if len(token) == 0 {
-		return ""
+		return "", ""
 	}
 
 	vec := strings.SplitN(token, ".", 2)
 	if len(vec) == 2 {
-		return strings.Trim(vec[1], "`")
+		return strings.Trim(vec[0], "`"), strings.Trim(vec[1], "`")
 	} else {
-		return strings.Trim(vec[0], "`")
+		return "", strings.Trim(vec[0], "`")
 	}
 }
 
-func GetInsertTableName(token string) string {
+func GetInsertDBTable(token string) (string, string) {
 	if len(token) == 0 {
-		return ""
+		return "", ""
 	}
 
 	vec := strings.SplitN(token, ".", 2)
 	if len(vec) == 2 {
 		table := strings.Split(vec[1], "(")
-		return strings.Trim(table[0], "`")
+		return strings.Trim(vec[0], "`"), strings.Trim(table[0], "`")
 	} else {
 		table := strings.Split(vec[0], "(")
-		return strings.Trim(table[0], "`")
+		return "", strings.Trim(table[0], "`")
 	}
 }
 
