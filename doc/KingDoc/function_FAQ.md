@@ -25,11 +25,11 @@ kingshard目前只能支持单机事务，也就是说：只能保证在一台DB
 
 ```
 schema :
-    db : kingshard
     nodes: [node1,node2]
     default: node1      
     shard:
     -   
+        db : kingshard
         table: test_shard_hash
         key: id
         nodes: [node1, node2]
@@ -37,6 +37,7 @@ schema :
         locations: [4,4]
 
     -   
+        db : kingshard
         table: test_shard_range
         key: id
         type: range
@@ -45,13 +46,13 @@ schema :
         table_row_limit: 10000
 ```
 
-这里的db只针对分表，也就是说所有需要分表的子表只能放在这个db中。但是如果不分表，这你的表可以放在任何db
+这里的db只针对分表，也就是说该分表的子表只能放在这个db中。但是如果不分表，这你的表可以放在任何db
 中。
 
 **5. 我有两个表需要分表，且这个两个表在两个不同的database中，该怎么设置schema？**
 
-目前在kingshard的schema规则中，所有分表只能落在一个database中。如果存在另一个分表在不同的database中，
-需要启动一个新的kingshard实例来对应这种分表规则。
+目前在kingshard的schema规则中，所有分表在配置的时候需要指定database（参考上面的case），如果存在另一个分表在不同的database中，也只需要指定一下db即可。
+对于不需要分表的情况，则可以放在任何db，且不需要配置。使用时通过`use db`命令来选择db即可。
 
 **6. `/*node2*/select * from stu`等类似SQL怎么不起作用？**
 
