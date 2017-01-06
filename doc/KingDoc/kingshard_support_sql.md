@@ -76,10 +76,13 @@ kingshard在非分表的情况下支持绝大部分MySQL语法和协议，包括
 - DROP INDEX Syntax
 - ALTER TABLE Syntax
 - TRUNCATE TABLE Syntax
+ 
 分表的情况下支持这些语法，但需要在SQL中加注释，例如：
 `/*node1*/create table stu_0000(id int, name char(20));`
 这样kingshard就会将该SQL转发到node1节点的Master上。
 
+**注：**
+`truncate`如果不指定节点注释则会将所有分表都清空，例如：`truncate stu`
 ###3.2 数据库DML语法
 - INSERT Syntax
 - INSERT DELAYED Syntax 不支持
