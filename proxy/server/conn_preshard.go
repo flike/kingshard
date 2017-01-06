@@ -178,6 +178,8 @@ func (c *ClientConn) GetExecDB(tokens []string, sql string) (*ExecuteDB, error) 
 				return c.getSetExecDB(sql, tokens, tokensLen)
 			case mysql.TK_ID_SHOW:
 				return c.getShowExecDB(sql, tokens, tokensLen)
+			case mysql.TK_ID_TRUNCATE:
+				return c.getTruncateExecDB(sql, tokens, tokensLen)
 			default:
 				return nil, nil
 			}
@@ -476,4 +478,35 @@ func (c *ClientConn) handleShowColumns(sql string, tokens []string,
 		}
 	}
 	return nil
+}
+
+//get the execute database for truncate sql
+//sql: TRUNCATE [TABLE] tbl_name
+func (c *ClientConn) getTruncateExecDB(sql string, tokens []string, tokensLen int) (*ExecuteDB, error) {
+	var ruleDB string
+	executeDB := new(ExecuteDB)
+	executeDB.sql = sql
+	schema := c.proxy.schema
+	router := schema.rule
+	rules := router.Rules
+	if len(rules) != 0 && tokensLen >= 2 {
+		DBName, tableName := sqlparser.GetDBTable(tokens[tokensLen-1])
+		//if the token[i+1] like this:kingshard.test_shard_hash
+		if DBName != "" {
+			ruleDB = DBName
+		} else {
+			ruleDB = c.db
+		}
+		if router.GetRule(ruleDB, tableName) != router.DefaultRule {
+			return nil, nil
+		}
+
+	}
+
+	err := c.setExecuteNode(tokens, tokensLen, executeDB)
+	if err != nil {
+		return nil, err
+	}
+
+	return executeDB, nil
 }

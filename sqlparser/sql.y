@@ -124,6 +124,9 @@ var (
 %token <empty> CREATE ALTER DROP RENAME
 %token <empty> TABLE INDEX VIEW TO IGNORE IF UNIQUE USING
 
+// truncate 
+%token <empty> TRUNCATE
+
 %start any_command
 
 %type <statement> command
@@ -175,11 +178,13 @@ var (
 %type <empty> exists_opt not_exists_opt non_rename_operation to_opt constraint_opt using_opt
 %type <bytes> sql_id
 %type <empty> force_eof
+%type <str> table_opt
 
 %type <statement> begin_statement commit_statement rollback_statement
 %type <statement> replace_statement
 %type <statement> admin_statement
 %type <statement> use_statement
+%type <statement> truncate_statement
 
 %%
 
@@ -208,6 +213,7 @@ command:
 | replace_statement
 | admin_statement
 | use_statement
+| truncate_statement
 
 select_statement:
   SELECT comment_opt distinct_opt select_expression_list
@@ -334,6 +340,12 @@ use_statement:
   USE sql_id
   {
 	$$= &UseDB{DB : string($2)}
+  }
+
+truncate_statement:
+  TRUNCATE comment_opt table_opt dml_table_expression
+  {
+    $$ = &Truncate{Comments: Comments($2), TableOpt: $3, Table: $4}
   }
 
 create_statement:
@@ -1126,4 +1138,13 @@ sql_id:
 force_eof:
 {
   ForceEOF(yylex)
+}
+
+table_opt:
+{
+  $$ = ""
+}
+| TABLE
+{
+  $$ = AST_TABLE
 }

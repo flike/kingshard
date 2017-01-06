@@ -133,6 +133,7 @@ var keywords = map[string]int{
 	"transaction": TRANSACTION,
 	"collate":     COLLATE,
 	"offset":      OFFSET,
+	"truncate":    TRUNCATE,
 }
 
 // Lex returns the next token form the Tokenizer.

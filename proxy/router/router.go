@@ -285,6 +285,8 @@ func (r *Router) BuildPlan(db string, statement sqlparser.Statement) (*Plan, err
 		return r.buildUpdatePlan(db, stmt)
 	case *sqlparser.Delete:
 		return r.buildDeletePlan(db, stmt)
+	case *sqlparser.Truncate:
+		return r.buildTruncatePlan(db, stmt)
 	}
 	return nil, errors.ErrNoPlan
 }
@@ -444,6 +446,28 @@ func (r *Router) buildDeletePlan(db string, statement sqlparser.Statement) (*Pla
 	}
 	//generate sql,如果routeTableindexs为空则表示不分表，不分表则发default node
 	err = r.generateDeleteSql(plan, stmt)
+	if err != nil {
+		return nil, err
+	}
+	return plan, nil
+}
+
+func (r *Router) buildTruncatePlan(db string, statement sqlparser.Statement) (*Plan, error) {
+	plan := &Plan{}
+	var err error
+
+	stmt := statement.(*sqlparser.Truncate)
+	plan.Rule = r.GetRule(db, sqlparser.String(stmt.Table))
+	//send to all nodes and all tables
+	plan.RouteTableIndexs = plan.Rule.SubTableIndexs
+	plan.RouteNodeIndexs = makeList(0, len(plan.Rule.Nodes))
+
+	if plan.Rule.Type != DefaultRuleType && len(plan.RouteTableIndexs) == 0 {
+		golog.Error("Route", "buildTruncatePlan", errors.ErrNoCriteria.Error(), 0)
+		return nil, errors.ErrNoCriteria
+	}
+	//generate sql,如果routeTableindexs为空则表示不分表，不分表则发default node
+	err = r.generateTruncateSql(plan, stmt)
 	if err != nil {
 		return nil, err
 	}
@@ -803,6 +827,44 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 				plan.Rows[tableIndex],
 			)
 
+			if _, ok := sqls[nodeName]; ok == false {
+				sqls[nodeName] = make([]string, 0, tableCount)
+			}
+			sqls[nodeName] = append(sqls[nodeName], buf.String())
+		}
+
+	}
+	plan.RewrittenSqls = sqls
+	return nil
+}
+
+func (r *Router) generateTruncateSql(plan *Plan, stmt sqlparser.Statement) error {
+	sqls := make(map[string][]string)
+	node, ok := stmt.(*sqlparser.Truncate)
+	if ok == false {
+		return errors.ErrStmtConvert
+	}
+	if len(plan.RouteNodeIndexs) == 0 {
+		return errors.ErrNoRouteNode
+	}
+	if len(plan.RouteTableIndexs) == 0 {
+		buf := sqlparser.NewTrackedBuffer(nil)
+		stmt.Format(buf)
+		nodeName := r.Nodes[0]
+		sqls[nodeName] = []string{buf.String()}
+	} else {
+		tableCount := len(plan.RouteTableIndexs)
+		for i := 0; i < tableCount; i++ {
+			buf := sqlparser.NewTrackedBuffer(nil)
+			buf.Fprintf("truncate %v%s%v",
+				node.Comments,
+				node.TableOpt,
+				node.Table,
+			)
+			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
+			tableIndex := plan.RouteTableIndexs[i]
+			nodeIndex := plan.Rule.TableToNode[tableIndex]
+			nodeName := r.Nodes[nodeIndex]
 			if _, ok := sqls[nodeName]; ok == false {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}
