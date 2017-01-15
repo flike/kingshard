@@ -96,6 +96,8 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 		return c.handleUseDB(v.DB)
 	case *sqlparser.SimpleSelect:
 		return c.handleSimpleSelect(v)
+	case *sqlparser.Truncate:
+		return c.handleExec(stmt, nil)
 	default:
 		return fmt.Errorf("statement %T not support now", stmt)
 	}

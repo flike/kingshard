@@ -1013,3 +1013,19 @@ func (*UseDB) IStatement() {}
 func (node *UseDB) Format(buf *TrackedBuffer) {
 	buf.Fprintf("use %s", node.DB)
 }
+
+type Truncate struct {
+	Comments Comments
+	TableOpt string
+	Table    *TableName
+}
+
+const (
+	AST_TABLE = " table "
+)
+
+func (*Truncate) IStatement() {}
+
+func (node *Truncate) Format(buf *TrackedBuffer) {
+	buf.Fprintf("truncate%v%s%v", node.Comments, node.TableOpt, node.Table)
+}
