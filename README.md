@@ -1,5 +1,5 @@
 #  kingshard [中文主页](README_ZH.md)
-[![Author](https://img.shields.io/badge/author-@flike-blue.svg?style=flat)](http://weibo.com/chenfei001) [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)](https://travis-ci.org/flike/kingshard) [![Foundation](https://img.shields.io/badge/Golang-Foundation-green.svg)](http://golangfoundation.org)
+[![Author](https://img.shields.io/badge/author-@flike-blue.svg?style=flat)](http://weibo.com/chenfei001) [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)]
 
 ## Overview
 

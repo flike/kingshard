@@ -1,6 +1,6 @@
-[![Author](https://img.shields.io/badge/author-@flike-blue.svg?style=flat)](http://weibo.com/chenfei001) [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)](https://travis-ci.org/flike/kingshard) [![Foundation](https://img.shields.io/badge/Golang-Foundation-green.svg)](http://golangfoundation.org)
+[![Author](https://img.shields.io/badge/author-@flike-blue.svg?style=flat)](http://weibo.com/chenfei001) [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)]
 
-# kingshard简介
+# kingshard简介 [支持kingshard](./doc/KingDoc/support.md)
 
 kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作；能够让DBA通过kingshard轻松平滑地实现MySQL数据库扩容。 **kingshard的性能是直连MySQL性能的80%以上**。
 
