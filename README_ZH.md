@@ -1,4 +1,5 @@
-[![Author](https://img.shields.io/badge/author-@flike-blue.svg?style=flat)](http://weibo.com/chenfei001) [![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)]
+[![Author](https://img.shields.io/badge/author-@flike-blue.svg?style=flat)](http://weibo.com/chenfei001)
+[![Build Status](https://travis-ci.org/flike/kingshard.svg?branch=master)
 
 # kingshard简介 [支持kingshard](./doc/KingDoc/support.md)
 
