@@ -926,6 +926,10 @@ column_name:
   {
     $$ = &ColName{Qualifier: $1, Name: $3}
   }
+| ID '.' ID '.' sql_id
+  {
+    $$ = &ColName{Qualifier: $3, Name: $5}
+  }
 
 value:
   STRING
