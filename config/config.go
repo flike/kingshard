@@ -16,10 +16,12 @@ package config
 
 import (
 	"io/ioutil"
-	"os"
 
 	"gopkg.in/yaml.v2"
 )
+
+//用于通过api保存配置
+var configFileName string
 
 //整个config文件对应的结构
 type Config struct {
@@ -89,6 +91,8 @@ func ParseConfigFile(fileName string) (*Config, error) {
 		return nil, err
 	}
 
+	configFileName = fileName
+
 	return ParseConfigData(data)
 }
 
@@ -98,13 +102,7 @@ func WriteConfigFile(cfg *Config) error {
 		return err
 	}
 
-	execPath, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	configPath := execPath + "/etc/ks.yaml"
-	err = ioutil.WriteFile(configPath, data, 0755)
+	err = ioutil.WriteFile(configFileName, data, 0755)
 	if err != nil {
 		return err
 	}
