@@ -93,16 +93,10 @@ func (plan *Plan) getHashShardTableIndex(expr sqlparser.BoolExpr) ([]int, error)
 				return nil, err
 			}
 			return []int{index}, nil
-		case "<", "<=", ">", ">=":
+		case "<", "<=", ">", ">=", "not in":
 			return plan.Rule.SubTableIndexs, nil
 		case "in":
 			return plan.getTableIndexsByTuple(criteria.Right)
-		case "not in":
-			l, err := plan.getTableIndexsByTuple(criteria.Right)
-			if err != nil {
-				return nil, err
-			}
-			return plan.notList(l), nil
 		}
 	case *sqlparser.RangeCond: //between ... and ...
 		return plan.Rule.SubTableIndexs, nil
