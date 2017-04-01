@@ -108,7 +108,7 @@ func (s *Server) parseAllowIps() error {
 	return nil
 }
 
-//TODO parse the blacklist sql file
+//parse the blacklist sql file
 func (s *Server) parseBlackListSqls() error {
 	bs := new(BlacklistSqls)
 	bs.sqls = make(map[string]string)
@@ -124,6 +124,11 @@ func (s *Server) parseBlackListSqls() error {
 			line, err := rd.ReadString('\n')
 			//end of file
 			if err == io.EOF {
+				if len(line) != 0 {
+					fingerPrint := mysql.GetFingerprint(line)
+					md5 := mysql.GetMd5(fingerPrint)
+					bs.sqls[md5] = fingerPrint
+				}
 				break
 			}
 			if err != nil {
