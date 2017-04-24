@@ -27,6 +27,7 @@ addr : 0.0.0.0:9696
 user : root
 password : root
 log_level : error
+allow_ips : 127.0.0.1,192.168.0.13
 
 nodes :
 - 
@@ -51,17 +52,18 @@ nodes :
   master : 127.0.0.1:3308
 
 schema :
-  db : kingshard 
   nodes: [node1, node2, node3]
   default: node1
   shard:
-    -   
+    -  
+      db : kingshard  
       table: test_shard_hash
       key: id
       nodes: [node1, node2, node3]
       type: hash
       locations: [4,4,4]
     -   
+      db : kingshard
       table: test_shard_range
       key: id
       type: range
@@ -78,7 +80,9 @@ schema :
 	if len(cfg.Nodes) != 3 {
 		t.Fatal(len(cfg.Nodes))
 	}
-
+	if cfg.AllowIps != "127.0.0.1,192.168.0.13" {
+		t.Fatal(len(cfg.AllowIps))
+	}
 	testNode := NodeConfig{
 		Name:             "node1",
 		DownAfterNoAlive: 300,
@@ -107,6 +111,7 @@ schema :
 	}
 
 	testShard_1 := ShardConfig{
+		DB:            "kingshard",
 		Table:         "test_shard_hash",
 		Key:           "id",
 		Nodes:         []string{"node1", "node2", "node3"},
@@ -120,6 +125,7 @@ schema :
 	}
 
 	testShard_2 := ShardConfig{
+		DB:            "kingshard",
 		Table:         "test_shard_range",
 		Key:           "id",
 		Nodes:         []string{"node2", "node3"},
@@ -137,7 +143,6 @@ schema :
 	}
 
 	testSchema := SchemaConfig{
-		DB:        "kingshard",
 		Nodes:     []string{"node1", "node2", "node3"},
 		Default:   "node1",
 		ShardRule: []ShardConfig{testShard_1, testShard_2},

@@ -15,9 +15,9 @@
 package mysql
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math"
 	"strconv"
 
 	"github.com/flike/kingshard/core/hack"
@@ -54,17 +54,20 @@ func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 			data[i] = nil
 		} else {
 			isUnsigned = (f[i].Flag&UNSIGNED_FLAG > 0)
-
 			switch f[i].Type {
-			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24,
+			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_LONG, MYSQL_TYPE_INT24,
 				MYSQL_TYPE_LONGLONG, MYSQL_TYPE_YEAR:
 				if isUnsigned {
 					data[i], err = strconv.ParseUint(string(v), 10, 64)
 				} else {
 					data[i], err = strconv.ParseInt(string(v), 10, 64)
 				}
-			case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
+			case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE, MYSQL_TYPE_NEWDECIMAL:
 				data[i], err = strconv.ParseFloat(string(v), 64)
+			case MYSQL_TYPE_VARCHAR, MYSQL_TYPE_VAR_STRING,
+				MYSQL_TYPE_STRING, MYSQL_TYPE_DATETIME,
+				MYSQL_TYPE_DATE, MYSQL_TYPE_TIME, MYSQL_TYPE_TIMESTAMP:
+				data[i] = string(v)
 			default:
 				data[i] = v
 			}
@@ -120,7 +123,12 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			if isUnsigned {
 				data[i] = uint64(binary.LittleEndian.Uint16(p[pos : pos+2]))
 			} else {
-				data[i] = int64((binary.LittleEndian.Uint16(p[pos : pos+2])))
+				var n int16
+				err = binary.Read(bytes.NewBuffer(p[pos:pos+2]), binary.LittleEndian, &n)
+				if err != nil {
+					return nil, err
+				}
+				data[i] = int64(n)
 			}
 			pos += 2
 			continue
@@ -129,7 +137,12 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			if isUnsigned {
 				data[i] = uint64(binary.LittleEndian.Uint32(p[pos : pos+4]))
 			} else {
-				data[i] = int64(binary.LittleEndian.Uint32(p[pos : pos+4]))
+				var n int32
+				err = binary.Read(bytes.NewBuffer(p[pos:pos+4]), binary.LittleEndian, &n)
+				if err != nil {
+					return nil, err
+				}
+				data[i] = int64(n)
 			}
 			pos += 4
 			continue
@@ -138,18 +151,34 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			if isUnsigned {
 				data[i] = binary.LittleEndian.Uint64(p[pos : pos+8])
 			} else {
-				data[i] = int64(binary.LittleEndian.Uint64(p[pos : pos+8]))
+				var n int64
+				err = binary.Read(bytes.NewBuffer(p[pos:pos+8]), binary.LittleEndian, &n)
+				if err != nil {
+					return nil, err
+				}
+				data[i] = int64(n)
 			}
 			pos += 8
 			continue
 
 		case MYSQL_TYPE_FLOAT:
-			data[i] = float64(math.Float32frombits(binary.LittleEndian.Uint32(p[pos : pos+4])))
+			//data[i] = float64(math.Float32frombits(binary.LittleEndian.Uint32(p[pos : pos+4])))
+			var n float32
+			err = binary.Read(bytes.NewBuffer(p[pos:pos+4]), binary.LittleEndian, &n)
+			if err != nil {
+				return nil, err
+			}
+			data[i] = float64(n)
 			pos += 4
 			continue
 
 		case MYSQL_TYPE_DOUBLE:
-			data[i] = math.Float64frombits(binary.LittleEndian.Uint64(p[pos : pos+8]))
+			var n float64
+			err = binary.Read(bytes.NewBuffer(p[pos:pos+8]), binary.LittleEndian, &n)
+			if err != nil {
+				return nil, err
+			}
+			data[i] = n
 			pos += 8
 			continue
 

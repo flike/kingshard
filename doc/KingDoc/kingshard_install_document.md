@@ -1,6 +1,6 @@
 ## 安装kingshard
 ```
-	1. 安装Go语言环境（Go版本1.3以上），具体步骤请Google。
+	1. 安装Go语言环境（Go版本1.6以上），具体步骤请Google。
 	2. git clone https://github.com/flike/kingshard.git src/github.com/flike/kingshard
 	3. cd src/github.com/flike/kingshard
 	4. source ./dev.sh
@@ -18,6 +18,11 @@ addr : 0.0.0.0:9696
 # 连接kingshard的用户名和密码
 user :  kingshard
 password : kingshard
+#kingshard的web API 端口
+web_addr : 0.0.0.0:9797
+#调用API的用户名和密码
+web_user : admin
+web_password : admin
 
 # log级别，[debug|info|warn|error],默认是error
 log_level : debug
@@ -67,15 +72,15 @@ nodes :
 
 # 分表规则
 schema :
-    #分表使用的db，所有的分表必须都在这个db中，连接ks时如果没有指定database默认使用该db。
-    db : kingshard
     #分表分布的node名字
     nodes: [node1,node2]
 	#所有未分表的SQL，都会发往默认node。
     default: node1
     shard:
     -
-        #分表名字
+        #分表使用的db
+        db : kingshard
+		#分表名字
         table: test_shard_hash
         #分表字段
         key: id
@@ -88,6 +93,8 @@ schema :
         locations: [4,4]
 
     -
+		#分表使用的db
+        db : kingshard
 		#分表名字
         table: test_shard_range
 	    #分表字段
@@ -113,5 +120,7 @@ schema :
 **2. kingshard采用的是yaml方式解析配置文件，需要注意的是yaml配置文件不允许出现tab键，且冒号后面需要跟一个空格。配置文件编写完成后，可以在[yaml lint](http://www.yamllint.com/)网站验证是否有格式错误。**
 
 **3. windows下安装kingshard，参考[文档](https://github.com/flike/kingshard/wiki/%E5%9C%A8window%E4%B8%8B%E5%AE%89%E8%A3%85kingshard)**
+
+**4. 可以通过`./bin/kingshard -v`来查看kingshard的commit hash和编译时间，从而维持kingshard的版本。**
 
 

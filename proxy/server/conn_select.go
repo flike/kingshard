@@ -28,19 +28,21 @@ import (
 )
 
 const (
-	MasterComment = "/*master*/"
-	SumFuncName   = "sum"
-	CountFuncName = "count"
-	MaxFuncName   = "max"
-	MinFuncName   = "min"
-	FUNC_EXIST    = 1
+	MasterComment    = "/*master*/"
+	SumFunc          = "sum"
+	CountFunc        = "count"
+	MaxFunc          = "max"
+	MinFunc          = "min"
+	LastInsertIdFunc = "last_insert_id"
+	FUNC_EXIST       = 1
 )
 
 var funcNameMap = map[string]int{
-	"sum":   FUNC_EXIST,
-	"count": FUNC_EXIST,
-	"max":   FUNC_EXIST,
-	"min":   FUNC_EXIST,
+	"sum":            FUNC_EXIST,
+	"count":          FUNC_EXIST,
+	"max":            FUNC_EXIST,
+	"min":            FUNC_EXIST,
+	"last_insert_id": FUNC_EXIST,
 }
 
 func (c *ClientConn) handleFieldList(data []byte) error {
@@ -52,7 +54,7 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 		return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
 	}
 
-	nodeName := c.schema.rule.GetRule(table).Nodes[0]
+	nodeName := c.schema.rule.GetRule(c.db, table).Nodes[0]
 
 	n := c.proxy.GetNode(nodeName)
 
@@ -63,6 +65,8 @@ func (c *ClientConn) handleFieldList(data []byte) error {
 	}
 
 	if err = co.UseDB(c.db); err != nil {
+		//reset the database to null
+		c.db = ""
 		return err
 	}
 
@@ -95,7 +99,7 @@ func (c *ClientConn) writeFieldList(status uint16, fs []*mysql.Field) error {
 //处理select语句
 func (c *ClientConn) handleSelect(stmt *sqlparser.Select, args []interface{}) error {
 	var fromSlave bool = true
-	plan, err := c.schema.rule.BuildPlan(stmt)
+	plan, err := c.schema.rule.BuildPlan(c.db, stmt)
 	if err != nil {
 		return err
 	}
@@ -154,6 +158,36 @@ func (c *ClientConn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Selec
 	}
 
 	return c.writeResultset(r.Status, r.Resultset)
+}
+
+//only process last_inser_id
+func (c *ClientConn) handleSimpleSelect(stmt *sqlparser.SimpleSelect) error {
+	nonStarExpr, _ := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
+	var name string = hack.String(nonStarExpr.As)
+	if name == "" {
+		name = "last_insert_id()"
+	}
+	var column = 1
+	var rows [][]string
+	var names []string = []string{
+		name,
+	}
+
+	var t = fmt.Sprintf("%d", c.lastInsertId)
+	rows = append(rows, []string{t})
+
+	r := new(mysql.Resultset)
+
+	var values [][]interface{} = make([][]interface{}, len(rows))
+	for i := range rows {
+		values[i] = make([]interface{}, column)
+		for j := range rows[i] {
+			values[i][j] = rows[i][j]
+		}
+	}
+
+	r, _ = c.buildResultset(nil, names, values)
+	return c.writeResultset(c.status, r)
 }
 
 //build select result with group by opt
@@ -423,6 +457,11 @@ func (c *ClientConn) limitSelectResult(r *mysql.Resultset, stmt *sqlparser.Selec
 			return fmt.Errorf("invalid limit %s", nstring(stmt.Limit))
 		}
 	}
+	if offset > int64(len(r.Values)) {
+		r.Values = nil
+		r.RowDatas = nil
+		return nil
+	}
 
 	if offset+count > int64(len(r.Values)) {
 		count = int64(len(r.Values)) - offset
@@ -486,6 +525,7 @@ func (c *ClientConn) getFuncExprs(stmt *sqlparser.Select) map[int]string {
 		if !ok {
 			continue
 		} else {
+			f = nonStarExpr.Expr.(*sqlparser.FuncExpr)
 			funcName := strings.ToLower(string(f.Name))
 			switch funcNameMap[funcName] {
 			case FUNC_EXIST:
@@ -665,7 +705,7 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 
 	var num int64
 	switch strings.ToLower(funcName) {
-	case CountFuncName:
+	case CountFunc:
 		if len(rs) == 0 {
 			return nil, nil
 		}
@@ -679,12 +719,14 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 			}
 		}
 		return num, nil
-	case SumFuncName:
+	case SumFunc:
 		return c.getSumFuncExprValue(rs, index)
-	case MaxFuncName:
+	case MaxFunc:
 		return c.getMaxFuncExprValue(rs, index)
-	case MinFuncName:
+	case MinFunc:
 		return c.getMinFuncExprValue(rs, index)
+	case LastInsertIdFunc:
+		return c.lastInsertId, nil
 	default:
 		if len(rs) == 0 {
 			return nil, nil

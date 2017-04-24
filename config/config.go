@@ -17,14 +17,22 @@ package config
 import (
 	"io/ioutil"
 
-	"github.com/flike/kingshard/core/yaml"
+	"gopkg.in/yaml.v2"
 )
+
+//用于通过api保存配置
+var configFileName string
 
 //整个config文件对应的结构
 type Config struct {
-	Addr        string       `yaml:"addr"`
-	User        string       `yaml:"user"`
-	Password    string       `yaml:"password"`
+	Addr     string `yaml:"addr"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+
+	WebAddr     string `yaml:"web_addr"`
+	WebUser     string `yaml:"web_user"`
+	WebPassword string `yaml:"web_password"`
+
 	LogPath     string       `yaml:"log_path"`
 	LogLevel    string       `yaml:"log_level"`
 	LogSql      string       `yaml:"log_sql"`
@@ -52,20 +60,21 @@ type NodeConfig struct {
 
 //schema对应的结构体
 type SchemaConfig struct {
-	DB        string        `yaml:"db"`
 	Nodes     []string      `yaml:"nodes"`
-	Default   string        `yaml:"default"` //默认路由规则
-	ShardRule []ShardConfig `yaml:"shard"`   //range或hash路由规则
+	Default   string        `yaml:"default"` //default node
+	ShardRule []ShardConfig `yaml:"shard"`   //route rule
 }
 
-//range或hash路由规则
+//range,hash or date
 type ShardConfig struct {
+	DB            string   `yaml:"db"`
 	Table         string   `yaml:"table"`
 	Key           string   `yaml:"key"`
 	Nodes         []string `yaml:"nodes"`
 	Locations     []int    `yaml:"locations"`
 	Type          string   `yaml:"type"`
 	TableRowLimit int      `yaml:"table_row_limit"`
+	DateRange     []string `yaml:"date_range"`
 }
 
 func ParseConfigData(data []byte) (*Config, error) {
@@ -82,5 +91,21 @@ func ParseConfigFile(fileName string) (*Config, error) {
 		return nil, err
 	}
 
+	configFileName = fileName
+
 	return ParseConfigData(data)
+}
+
+func WriteConfigFile(cfg *Config) error {
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(configFileName, data, 0755)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

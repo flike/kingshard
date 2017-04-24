@@ -103,6 +103,7 @@ const (
 	CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
 )
 
+//https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnType
 const (
 	MYSQL_TYPE_DECIMAL byte = iota
 	MYSQL_TYPE_TINY
@@ -173,6 +174,8 @@ var (
 	TK_ID_SELECT      = 11
 	TK_ID_START       = 12
 	TK_ID_TRANSACTION = 13
+	TK_ID_SHOW        = 14
+	TK_ID_TRUNCATE    = 15
 
 	PARSE_TOKEN_MAP = map[string]int{
 		"insert":      TK_ID_INSERT,
@@ -188,19 +191,43 @@ var (
 		"use":         TK_ID_USE,
 		"start":       TK_ID_START,
 		"transaction": TK_ID_TRANSACTION,
+		"show":        TK_ID_SHOW,
+		"truncate":    TK_ID_TRUNCATE,
 	}
-	// '/'
-	COMMENT_PREFIX uint8 = 47
-	COMMENT_STRING       = "/*"
+	// '*'
+	COMMENT_PREFIX uint8 = 42
+	COMMENT_STRING       = "*"
 
 	//
-	TK_STR_FROM = "from"
-	TK_STR_INTO = "into"
-	TK_STR_SET  = "set"
-	//set
-	TK_STR_NAMES      = "names"
-	TK_STR_RESULTS    = "character_set_results"
-	TK_STR_CLIENT     = "character_set_client"
-	TK_STR_CONNECTION = "character_set_connection"
-	TK_STR_AUTOCOMMIT = "autocommit"
+	TK_STR_SELECT = "select"
+	TK_STR_FROM   = "from"
+	TK_STR_INTO   = "into"
+	TK_STR_SET    = "set"
+
+	TK_STR_TRANSACTION    = "transaction"
+	TK_STR_LAST_INSERT_ID = "last_insert_id()"
+	TK_STR_MASTER_HINT    = "*master*"
+	//show
+	TK_STR_COLUMNS = "columns"
+	TK_STR_FIELDS  = "fields"
+
+	SET_KEY_WORDS = map[string]struct{}{
+		"names": struct{}{},
+
+		"character_set_results":           struct{}{},
+		"@@character_set_results":         struct{}{},
+		"@@session.character_set_results": struct{}{},
+
+		"character_set_client":           struct{}{},
+		"@@character_set_client":         struct{}{},
+		"@@session.character_set_client": struct{}{},
+
+		"character_set_connection":           struct{}{},
+		"@@character_set_connection":         struct{}{},
+		"@@session.character_set_connection": struct{}{},
+
+		"autocommit":           struct{}{},
+		"@@autocommit":         struct{}{},
+		"@@session.autocommit": struct{}{},
+	}
 )

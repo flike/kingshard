@@ -31,13 +31,14 @@ kingshard采用（shardKey%子表个数）的方式得到子表下标。优点�
  ```
  schema :
 -
-    db : kingshard
     nodes: [node1,node2]
     rules:
         default: node1
         shard:
         -   
-            #分表名字
+            #分表所在的DB
+			db : kingshard
+			#分表名字
             table: test_shard_hash
             #sharding key
             key: id
@@ -50,7 +51,9 @@ kingshard采用（shardKey%子表个数）的方式得到子表下标。优点�
             locations: [4,4]
 
         -   
-            #分表名字
+            #分表所在的DB
+			db : kingshard
+			#分表名字
             table: test_shard_range
             #sharding key
             key: id

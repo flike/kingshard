@@ -160,7 +160,7 @@ func TestConn_SetCharset(t *testing.T) {
 	c := newTestConn()
 	defer c.Close()
 
-	if err := c.SetCharset("gb2312"); err != nil {
+	if err := c.SetCharset("gb2312", 24); err != nil {
 		t.Fatal(err)
 	}
 }

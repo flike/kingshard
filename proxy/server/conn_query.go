@@ -52,7 +52,10 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	sql = strings.TrimRight(sql, ";") //删除sql语句最后的分号
 	hasHandled, err := c.preHandleShard(sql)
 	if err != nil {
-		golog.Error("server", "preHandleShard", err.Error(), 0, "hasHandled", hasHandled)
+		golog.Error("server", "preHandleShard", err.Error(), 0,
+			"sql", sql,
+			"hasHandled", hasHandled,
+		)
 		return err
 	}
 	if hasHandled {
@@ -87,8 +90,14 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 		return c.handleRollback()
 	case *sqlparser.Admin:
 		return c.handleAdmin(v)
+	case *sqlparser.AdminHelp:
+		return c.handleAdminHelp(v)
 	case *sqlparser.UseDB:
-		return c.handleUseDB(v)
+		return c.handleUseDB(v.DB)
+	case *sqlparser.SimpleSelect:
+		return c.handleSimpleSelect(v)
+	case *sqlparser.Truncate:
+		return c.handleExec(stmt, nil)
 	default:
 		return fmt.Errorf("statement %T not support now", stmt)
 	}
@@ -134,10 +143,12 @@ func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backen
 	}
 
 	if err = co.UseDB(c.db); err != nil {
+		//reset the database to null
+		c.db = ""
 		return
 	}
 
-	if err = co.SetCharset(c.charset); err != nil {
+	if err = co.SetCharset(c.charset, c.collation); err != nil {
 		return
 	}
 
@@ -190,8 +201,8 @@ func (c *ClientConn) executeInNode(conn *backend.BackendConn, sql string, args [
 		state = "OK"
 	}
 	execTime := float64(time.Now().UnixNano()-startTime) / float64(time.Millisecond)
-	if strings.ToLower(c.proxy.cfg.LogSql) != golog.LogSqlOff &&
-		execTime > float64(c.proxy.cfg.SlowLogTime) {
+	if strings.ToLower(c.proxy.logSql[c.proxy.logSqlIndex]) != golog.LogSqlOff &&
+		execTime > float64(c.proxy.slowLogTime[c.proxy.slowLogTimeIndex]) {
 		c.proxy.counter.IncrSlowLogTotal()
 		golog.OutputSql(state, "%.1fms - %s->%s:%s",
 			execTime,
@@ -245,8 +256,8 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 				rs[i] = r
 			}
 			execTime := float64(time.Now().UnixNano()-startTime) / float64(time.Millisecond)
-			if c.proxy.cfg.LogSql != golog.LogSqlOff &&
-				execTime > float64(c.proxy.cfg.SlowLogTime) {
+			if c.proxy.logSql[c.proxy.logSqlIndex] != golog.LogSqlOff &&
+				execTime > float64(c.proxy.slowLogTime[c.proxy.slowLogTimeIndex]) {
 				c.proxy.counter.IncrSlowLogTotal()
 				golog.OutputSql(state, "%.1fms - %s->%s:%s",
 					execTime,
@@ -335,7 +346,7 @@ func (c *ClientConn) newEmptyResultset(stmt *sqlparser.Select) *mysql.Resultset 
 }
 
 func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) error {
-	plan, err := c.schema.rule.BuildPlan(stmt)
+	plan, err := c.schema.rule.BuildPlan(c.db, stmt)
 	if err != nil {
 		return err
 	}
@@ -350,17 +361,6 @@ func (c *ClientConn) handleExec(stmt sqlparser.Statement, args []interface{}) er
 	}
 
 	var rs []*mysql.Result
-	if 1 < len(conns) {
-		return errors.ErrExecInMulti
-	}
-	if 1 < len(plan.RewrittenSqls) {
-		nodeIndex := plan.RouteNodeIndexs[0]
-		nodeName := plan.Rule.Nodes[nodeIndex]
-		txSqls := []string{"begin;"}
-		txSqls = append(txSqls, plan.RewrittenSqls[nodeName]...)
-		txSqls = append(txSqls, "commit;")
-		plan.RewrittenSqls[nodeName] = txSqls
-	}
 
 	rs, err = c.executeInMultiNodes(conns, plan.RewrittenSqls, args)
 	if err == nil {

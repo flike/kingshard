@@ -79,23 +79,29 @@ var (
 
 %token LEX_ERROR
 %token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR
-%token <empty> ALL DISTINCT AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
+%token <empty> ALL DISTINCT AS EXISTS NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
-%token <empty> LE GE NE NULL_SAFE_EQUAL
-%token <empty> '(' '=' '<' '>' '~'
+%token <empty> '(' '~'
 
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> ','
 %left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS NATURAL USE FORCE
 %left <empty> ON
-%left <empty> AND OR
+%left <empty> OR
+%left <empty> AND
 %right <empty> NOT
-%left <empty> '&' '|' '^'
+%left <empty> BETWEEN CASE WHEN THEN ELSE
+//REGEXP 
+%left <empty> '=' '<' '>' LE GE NE NULL_SAFE_EQUAL IS LIKE IN
+%left <empty> '|'
+%left <empty> '&'
+//%left <empty> SHIFT_LEFT SHIFT_RIGHT
 %left <empty> '+' '-'
 %left <empty> '*' '/' '%'
+%left <empty> '^'
 %nonassoc <empty> '.'
 %left <empty> UNARY
-%right <empty> CASE, WHEN, THEN, ELSE
+
 %left <empty> END
 
 // Transaction Tokens
@@ -108,7 +114,7 @@ var (
 %token <empty> REPLACE
 
 // admin
-%token <empty> ADMIN
+%token <empty> ADMIN HELP
 //offset
 %token <empty> OFFSET
 //collate
@@ -117,6 +123,9 @@ var (
 // DDL Tokens
 %token <empty> CREATE ALTER DROP RENAME
 %token <empty> TABLE INDEX VIEW TO IGNORE IF UNIQUE USING
+
+// truncate 
+%token <empty> TRUNCATE
 
 %start any_command
 
@@ -127,6 +136,7 @@ var (
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> distinct_opt
+%type <str> ignore_opt
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
 %type <bytes> as_lower_opt as_opt
@@ -165,14 +175,16 @@ var (
 %type <updateExprs> on_dup_opt
 %type <updateExprs> update_list
 %type <updateExpr> update_expression
-%type <empty> exists_opt not_exists_opt ignore_opt non_rename_operation to_opt constraint_opt using_opt
+%type <empty> exists_opt not_exists_opt non_rename_operation to_opt constraint_opt using_opt
 %type <bytes> sql_id
 %type <empty> force_eof
+%type <str> table_opt
 
 %type <statement> begin_statement commit_statement rollback_statement
 %type <statement> replace_statement
 %type <statement> admin_statement
 %type <statement> use_statement
+%type <statement> truncate_statement
 
 %%
 
@@ -201,6 +213,7 @@ command:
 | replace_statement
 | admin_statement
 | use_statement
+| truncate_statement
 
 select_statement:
   SELECT comment_opt distinct_opt select_expression_list
@@ -218,19 +231,19 @@ select_statement:
 
 
 insert_statement:
-  INSERT comment_opt INTO dml_table_expression column_list_opt row_list on_dup_opt
+  INSERT comment_opt ignore_opt INTO dml_table_expression column_list_opt row_list on_dup_opt
   {
-    $$ = &Insert{Comments: Comments($2), Table: $4, Columns: $5, Rows: $6, OnDup: OnDup($7)}
+    $$ = &Insert{Comments: Comments($2), Ignore:$3, Table: $5, Columns: $6, Rows: $7, OnDup: OnDup($8)}
   }
-| INSERT comment_opt INTO dml_table_expression SET update_list on_dup_opt
+| INSERT comment_opt ignore_opt INTO dml_table_expression SET update_list on_dup_opt
   {
-    cols := make(Columns, 0, len($6))
-    vals := make(ValTuple, 0, len($6))
-    for _, col := range $6 {
+    cols := make(Columns, 0, len($7))
+    vals := make(ValTuple, 0, len($7))
+    for _, col := range $7 {
       cols = append(cols, &NonStarExpr{Expr: col.Name})
       vals = append(vals, col.Expr)
     }
-    $$ = &Insert{Comments: Comments($2), Table: $4, Columns: cols, Rows: Values{vals}, OnDup: OnDup($7)}
+    $$ = &Insert{Comments: Comments($2), Ignore:$3, Table: $5, Columns: cols, Rows: Values{vals}, OnDup: OnDup($8)}
   }
 
 replace_statement:
@@ -267,6 +280,10 @@ set_statement:
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
   }
+| SET comment_opt NAMES DEFAULT
+   {
+     $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal("default")}}}
+   }
 | SET comment_opt NAMES value_expression 
   {
     $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: $4}}}
@@ -314,11 +331,21 @@ admin_statement:
   {
     $$ = &Admin{Region : $2, Columns : $3,Rows:$4}
   }
+| ADMIN HELP
+  {
+    $$ = &AdminHelp{}
+  }
 
 use_statement:
   USE sql_id
   {
 	$$= &UseDB{DB : string($2)}
+  }
+
+truncate_statement:
+  TRUNCATE comment_opt table_opt dml_table_expression
+  {
+    $$ = &Truncate{Comments: Comments($2), TableOpt: $3, Table: $4}
   }
 
 create_statement:
@@ -339,12 +366,12 @@ create_statement:
 alter_statement:
   ALTER ignore_opt TABLE ID non_rename_operation force_eof
   {
-    $$ = &DDL{Action: AST_ALTER, Table: $4, NewName: $4}
+    $$ = &DDL{Action: AST_ALTER, Ignore: $2, Table: $4, NewName: $4}
   }
 | ALTER ignore_opt TABLE ID RENAME to_opt ID
   {
     // Change this to a rename statement
-    $$ = &DDL{Action: AST_RENAME, Table: $4, NewName: $7}
+    $$ = &DDL{Action: AST_RENAME, Ignore: $2, Table: $4, NewName: $7}
   }
 | ALTER VIEW sql_id force_eof
   {
@@ -899,6 +926,10 @@ column_name:
   {
     $$ = &ColName{Qualifier: $1, Name: $3}
   }
+| ID '.' ID '.' sql_id
+  {
+    $$ = &ColName{Qualifier: $3, Name: $5}
+  }
 
 value:
   STRING
@@ -1053,7 +1084,11 @@ update_list:
 update_expression:
   column_name '=' value_expression
   {
-    $$ = &UpdateExpr{Name: $1, Expr: $3} 
+    $$ = &UpdateExpr{Name: $1, Expr: $3}
+  }
+| column_name '=' ON
+  {
+    $$ = &UpdateExpr{Name: $1, Expr: StrVal("ON")}
   }
 
 exists_opt:
@@ -1067,9 +1102,9 @@ not_exists_opt:
   { $$ = struct{}{} }
 
 ignore_opt:
-  { $$ = struct{}{} }
+  { $$ = "" }
 | IGNORE
-  { $$ = struct{}{} }
+  { $$ = AST_IGNORE }
 
 non_rename_operation:
   ALTER
@@ -1107,4 +1142,13 @@ sql_id:
 force_eof:
 {
   ForceEOF(yylex)
+}
+
+table_opt:
+{
+  $$ = ""
+}
+| TABLE
+{
+  $$ = AST_TABLE
 }

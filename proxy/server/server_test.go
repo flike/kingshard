@@ -44,7 +44,6 @@ nodes :
     slave : 
 
 schema :
-    db : kingshard
     default: node1  
     nodes: [node1]
     rules:
@@ -78,7 +77,7 @@ func newTestDB(t *testing.T) *backend.DB {
 	newTestServer(t)
 
 	f := func() {
-		testDB, _ = backend.Open("127.0.0.1:3601", "root", "", "kingshard", 100)
+		testDB, _ = backend.Open("127.0.0.1:3306", "root", "", "kingshard", 100)
 	}
 
 	testDBOnce.Do(f)
