@@ -287,7 +287,9 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 			err = e
 			break
 		}
-		r[i] = rs[i].(*mysql.Result)
+		if rs[i] != nil {
+			r[i] = rs[i].(*mysql.Result)
+		}
 	}
 
 	return r, err
