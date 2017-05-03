@@ -710,12 +710,14 @@ func (c *ClientConn) calFuncExprValue(funcName string,
 			return nil, nil
 		}
 		for _, r := range rs {
-			for k := range r.Values {
-				result, err := r.GetInt(k, index)
-				if err != nil {
-					return nil, err
+			if r != nil {
+				for k := range r.Values {
+					result, err := r.GetInt(k, index)
+					if err != nil {
+						return nil, err
+					}
+					num += result
 				}
-				num += result
 			}
 		}
 		return num, nil
