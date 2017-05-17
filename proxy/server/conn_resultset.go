@@ -89,6 +89,8 @@ func (c *ClientConn) buildResultset(fields []*mysql.Field, names []string, value
 	r := new(mysql.Resultset)
 
 	r.Fields = make([]*mysql.Field, len(names))
+	r.FieldNames = make(map[string]int, len(names))
+
 	//use the field def that get from true database
 	if len(fields) != 0 {
 		if len(r.Fields) == len(fields) {
@@ -112,9 +114,11 @@ func (c *ClientConn) buildResultset(fields []*mysql.Field, names []string, value
 			if i == 0 {
 				if ExistFields {
 					r.Fields[j] = fields[j]
+					r.FieldNames[string(r.Fields[j].Name)] = j
 				} else {
 					field := &mysql.Field{}
 					r.Fields[j] = field
+					r.FieldNames[string(r.Fields[j].Name)] = j
 					field.Name = hack.Slice(names[j])
 					if err = formatField(field, value); err != nil {
 						return nil, err
