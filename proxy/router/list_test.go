@@ -170,6 +170,12 @@ func TestParseYearRange(t *testing.T) {
 		t.Fatal(err)
 	}
 	testCheckList(t, years, 2013, 2014, 2015, 2016, 2017)
+
+	dateRange = "20131-20132"
+	_, err = ParseYearRange(dateRange)
+	if err == nil {
+		t.Fatal("error parse")
+	}
 }
 
 func TestParseMonthRange(t *testing.T) {
@@ -204,6 +210,12 @@ func TestParseMonthRange(t *testing.T) {
 		201602,
 		201603,
 	)
+
+	dateRange = "2016031-2015112"
+	months, err = ParseMonthRange(dateRange)
+	if err == nil {
+		t.Fatal("error parse")
+	}
 }
 
 func TestParseDayRange(t *testing.T) {
@@ -235,4 +247,10 @@ func TestParseDayRange(t *testing.T) {
 		20160303,
 		20160304,
 	)
+
+	dateRange = "201603041-201603012"
+	days, err = ParseDayRange(dateRange)
+	if err == nil {
+		t.Fatal("error parse")
+	}
 }

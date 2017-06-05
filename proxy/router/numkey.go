@@ -201,6 +201,9 @@ func ParseYearRange(dateRange string) ([]int, error) {
 	if len(dateTmp) != 2 {
 		return nil, errors.ErrDateRangeIllegal
 	}
+	if len(dateTmp[0]) != dateLength || len(dateTmp[1]) != dateLength {
+		return nil, errors.ErrDateRangeIllegal
+	}
 	//change the begin year and the end year
 	if dateTmp[1] < dateTmp[0] {
 		dateTmp[0], dateTmp[1] = dateTmp[1], dateTmp[0]
