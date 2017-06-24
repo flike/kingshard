@@ -366,7 +366,11 @@ func (r *Router) buildInsertPlan(db string, statement sqlparser.Statement) (*Pla
 		}
 	}
 
-	plan.Criteria = plan.checkValuesType(stmt.Rows.(sqlparser.Values))
+	plan.Criteria, err = plan.checkValuesType(stmt.Rows.(sqlparser.Values))
+	if err != nil {
+		golog.Error("router", "buildInsertPlan", err.Error(), 0, "sql", sqlparser.String(statement))
+		return nil, err
+	}
 
 	err = plan.calRouteIndexs()
 	if err != nil {
@@ -494,7 +498,11 @@ func (r *Router) buildReplacePlan(db string, statement sqlparser.Statement) (*Pl
 		return nil, err
 	}
 
-	plan.Criteria = plan.checkValuesType(stmt.Rows.(sqlparser.Values))
+	plan.Criteria, err = plan.checkValuesType(stmt.Rows.(sqlparser.Values))
+	if err != nil {
+		golog.Error("router", "buildReplacePlan", err.Error(), 0, "sql", sqlparser.String(statement))
+		return nil, err
+	}
 
 	err = plan.calRouteIndexs()
 	if err != nil {

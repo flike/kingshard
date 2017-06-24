@@ -324,20 +324,21 @@ func (plan *Plan) calRouteIndexs() error {
 	}
 }
 
-func (plan *Plan) checkValuesType(vals sqlparser.Values) sqlparser.Values {
+func (plan *Plan) checkValuesType(vals sqlparser.Values) (sqlparser.Values, error) {
 	// Analyze first value of every item in the list
 	for i := 0; i < len(vals); i++ {
 		switch tuple := vals[i].(type) {
 		case sqlparser.ValTuple:
 			result := plan.getValueType(tuple[0])
 			if result != VALUE_NODE {
-				panic(sqlparser.NewParserError("insert is too complex"))
+				return nil, errors.ErrInsertTooComplex
 			}
 		default:
-			panic(sqlparser.NewParserError("insert is too complex"))
+			//panic(sqlparser.NewParserError("insert is too complex"))
+			return nil, errors.ErrInsertTooComplex
 		}
 	}
-	return vals
+	return vals, nil
 }
 
 /*返回valExpr表达式对应的类型*/
