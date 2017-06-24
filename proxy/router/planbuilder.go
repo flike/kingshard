@@ -359,7 +359,7 @@ func (plan *Plan) getValueType(valExpr sqlparser.ValExpr) int {
 			}
 		}
 		return LIST_NODE //列表节点
-	case sqlparser.StrVal, sqlparser.NumVal, sqlparser.ValArg: //普通的值节点，字符串值，绑定变量参数
+	case sqlparser.StrVal, sqlparser.NumVal, sqlparser.ValArg, *sqlparser.NullVal: //普通的值节点，字符串值，绑定变量参数
 		return VALUE_NODE
 	}
 	return OTHER_NODE
