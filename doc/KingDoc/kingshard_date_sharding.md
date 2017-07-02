@@ -107,8 +107,8 @@ schema :
        db : kingshard
        table: test_shard_year
        key: ctime
-       type: date_day
-       nodes: [node1,node2]
+       type: date_year
+       nodes: [node1,node2]
        date_range: [2015-2016,2017-2018]
 
 ```
