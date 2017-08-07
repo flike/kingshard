@@ -36,10 +36,7 @@ func (c *ClientConn) handleUseDB(dbName string) error {
 
 	n := c.proxy.GetNode(nodeName)
 	//get the connection from slave preferentially
-	co, err = n.GetSlaveConn()
-	if err != nil {
-		co, err = n.GetMasterConn()
-	}
+	co, err = c.getBackendConn(n, true)
 	defer c.closeConn(co, false)
 	if err != nil {
 		return err
