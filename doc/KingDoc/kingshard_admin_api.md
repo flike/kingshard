@@ -1,6 +1,6 @@
-#kingshard 管理端API设计
+# kingshard 管理端API设计
 
-##接口定义和参数说明
+## 接口定义和参数说明
 - 采用restful风格API设计。
 - 假设kingshard的Web Server IP和端口是：127.0.0.1：9797，web用户名：admin，密码：admin
 
@@ -32,7 +32,7 @@ URL:http://127.0.0.1:9797/api/v1/nodes/status
 返回结果：node数组，node中包含Master和Slave信息，
 字段意思参考配置文件说明
 ```
-####示例
+#### 示例
 ```
 curl -X GET \
   -H 'Content-Type: application/json' \
@@ -71,7 +71,7 @@ URL:http://127.0.0.1:9797/api/v1/nodes/slaves
 - addr：slave的IP和端口
 返回结果：成功:"ok",失败："error message"
 ```
-####示例
+#### 示例
 ```
  curl -X POST \
   -H 'Content-Type: application/json' \
@@ -90,7 +90,7 @@ URL:http://127.0.0.1:9797/api/v1/nodes/slaves
 - addr：slave的IP和端口
 返回结果：成功:"ok",失败："error message"
 ```
-####示例
+#### 示例
 ```
  curl -X DELETE \
   -H 'Content-Type: application/json' \
@@ -111,7 +111,7 @@ URL：http://127.0.0.1:9797/api/v1/nodes/slaves/status
 返回结果：成功:"ok",失败："error message"
 ```
 
-####示例
+#### 示例
 ```
  curl -X PUT \
   -H 'Content-Type: application/json' \
@@ -134,7 +134,7 @@ URL：http://127.0.0.1:9797/api/v1/nodes/masters/status
 返回结果：成功:"ok",失败："error message"
 ```
 
-####示例
+#### 示例
 ```
  curl -X PUT \
   -H 'Content-Type: application/json' \
@@ -154,7 +154,7 @@ URL:http://127.0.0.1:9797/api/v1/proxy/status
 注意：该API主要用于配合LVS平滑下线
 ```
 
-####示例
+#### 示例
 ```
 curl -X GET \
   -H 'Content-Type: application/json' \
@@ -173,7 +173,7 @@ URL:http://127.0.0.1:9797/api/v1/proxy/status
 
 ```
 
-####示例
+#### 示例
 ```
 curl -X PUT \
   -H 'Content-Type: application/json' \
@@ -190,7 +190,7 @@ http://127.0.0.1:9797/api/v1/proxy/schema
 参数：无
 返回结果:schema数组，但只有一项。字段意思参考配置文件
 ```
-####示例
+#### 示例
 ```
 curl -X GET \
   -H 'Content-Type: application/json' \
@@ -302,7 +302,7 @@ URL：http://127.0.0.1:9797/api/v1/proxy/allow_ips
 参数：allow_ips，ip列表数组
 返回结果：IP列表
 ```
-####示例
+#### 示例
 ```
 curl -X GET \
   -H 'Content-Type: application/json' \
@@ -320,7 +320,7 @@ URL：http://127.0.0.1:9797/api/v1/proxy/allow_ips
 参数：allow_ips，ip列表数组
 返回结果：成功:"ok",失败："error message"
 ```
-####示例
+#### 示例
 ```
 curl -X POST \
   -H 'Content-Type: application/json' \
@@ -338,7 +338,7 @@ URL：http://127.0.0.1:9797/api/v1/proxy/allow_ips
 参数：allow_ips，ip列表数组
 返回结果：成功:"ok",失败："error message"
 ```
-####示例
+#### 示例
 ```
 curl -X DELETE \
   -H 'Content-Type: application/json' \
@@ -356,7 +356,7 @@ http://127.0.0.1：9797/api/v1/proxy/black_sqls
 参数：无
 返回结果:sql列表
 ```
-####示例
+#### 示例
 ```
 curl -X GET \
   -H 'Content-Type: application/json' \
@@ -373,7 +373,7 @@ http://127.0.0.1:9797/api/v1/proxy/black_sqls
 返回结果：成功:"ok",失败："error message"
 
 ```
-####示例
+#### 示例
 ```
 curl -X POST \
   -H 'Content-Type: application/json' \
@@ -390,7 +390,7 @@ http:// 127.0.0.1:9797/api/v1/proxy/black_sqls
 参数：sql（注意：一次只能删除一条SQL）
 返回结果：成功:"ok",失败："error message"
 ```
-####示例
+#### 示例
 ```
 curl -X DELETE \
   -H 'Content-Type: application/json' \
@@ -407,7 +407,7 @@ URL:http://127.0.0.1:9797/api/v1/proxy/slow_sql/status
 参数：opt(可选值："on","off")
 返回结果：成功:"ok",失败："error message"
 ```
-####示例
+#### 示例
 ```
 curl -X PUT \
   -H 'Content-Type: application/json' \
@@ -424,7 +424,7 @@ URL:http://127.0.0.1:9797/api/v1/proxy/slow_sql/time
 参数：无
 返回结果：slow_log 时间，单位ms
 ```
-####示例
+#### 示例
 ```
 curl -X GET \
   -H 'Content-Type: application/json' \
@@ -440,7 +440,7 @@ URL:http://127.0.0.1:9797/api/v1/proxy/slow_sql/time
 参数：slow_time(慢日志时间，单位ms。执行时间超过该值的SQL会输出到慢日志文件)
 返回结果：成功:"ok",失败："error message"
 ```
-####示例
+#### 示例
 ```
 curl -X PUT \
   -H 'Content-Type: application/json' \
@@ -458,7 +458,7 @@ URL:http://127.0.0.1:9797/api/v1/proxy/config/save
 返回结果：成功:"ok",失败："error message"
 说明：将kingshard的配置写入文件
 ```
-####示例
+#### 示例
 ```
 curl -X PUT \
   -H 'Content-Type: application/json' \

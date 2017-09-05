@@ -9,7 +9,7 @@
 	7. 运行kingshard。./bin/kingshard -config=etc/ks.yaml
 ```
 
-##配置文件说明
+## 配置文件说明
 
 ```
 # kingshard的地址和端口
@@ -113,7 +113,7 @@ schema :
 
 ```
 
-##注意
+## 注意
 
 **1. kingshard会响应SIGINT,SIGTERM,SIGQUIT这三个信号，平滑退出。在部署kingshard机器上应避免产生这三个信号，以免造成kingshard非正常退出！后台运行kingshard建议使用supervisor工具**
 

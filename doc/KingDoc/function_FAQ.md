@@ -1,4 +1,4 @@
-#kingshard的FAQ
+# kingshard的FAQ
 
 **1. kingshard的线上使用情况和稳定性如何？**
 
