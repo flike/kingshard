@@ -310,6 +310,7 @@ func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
 		}
 	default:
 		//new connection
+		co = new(Conn)
 		golog.Error("db.go", "GetConnFromIdle", "Get conn in default", 0)
 		err = co.Connect(db.addr, db.user, db.password, db.db)
 		if err != nil {
