@@ -52,8 +52,8 @@ type DB struct {
 	lastPing    int64
 }
 
+// 1. DB re-open connections, so no error should be returned due to connection problems
 func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB, error) {
-	var err error
 	db := new(DB)
 	db.addr = addr
 	db.user = user
@@ -71,29 +71,18 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 		db.maxConnNum = DefaultMaxConnNum
 		db.InitConnNum = InitConnCount
 	}
-	//check connection
-	db.checkConn, err = db.newConn()
-	if err != nil {
-		db.Close()
-		return nil, err
-	}
 
 	db.idleConns = make(chan *Conn, db.maxConnNum)
 	db.cacheConns = make(chan *Conn, db.maxConnNum)
 	atomic.StoreInt32(&(db.state), Unknown)
 
-	for i := 0; i < db.maxConnNum; i++ {
-		if i < db.InitConnNum {
-			conn, err := db.newConn()
-			if err != nil {
-				db.Close()
-				return nil, err
-			}
+	for i := 0; i < db.InitConnNum; i++ {
+		conn, err := db.newConn()
+		if err == nil {
 			conn.pushTimestamp = time.Now().Unix()
 			db.cacheConns <- conn
 		} else {
-			conn := new(Conn)
-			db.idleConns <- conn
+			break
 		}
 	}
 	db.SetLastPing()
