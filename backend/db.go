@@ -78,6 +78,7 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 
 	for i := 0; i < db.InitConnNum; i++ {
 		conn, err := db.newConn()
+		// try open as many as possbile, but not required
 		if err == nil {
 			conn.pushTimestamp = time.Now().Unix()
 			db.cacheConns <- conn

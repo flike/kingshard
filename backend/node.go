@@ -66,6 +66,8 @@ func (n *Node) GetMasterConn() (*BackendConn, error) {
 	if db == nil {
 		return nil, errors.ErrNoMasterConn
 	}
+
+	// ManualDown, Unknown are also not acceptable.  
 	if atomic.LoadInt32(&(db.state)) != Up {
 		return nil, errors.ErrMasterDown
 	}
