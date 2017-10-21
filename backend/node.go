@@ -67,7 +67,7 @@ func (n *Node) GetMasterConn() (*BackendConn, error) {
 		return nil, errors.ErrNoMasterConn
 	}
 
-	// ManualDown, Unknown are also not acceptable.  
+	// ManualDown, Unknown are also not acceptable.
 	if atomic.LoadInt32(&(db.state)) != Up {
 		return nil, errors.ErrMasterDown
 	}
@@ -118,7 +118,8 @@ func (n *Node) checkMaster() {
 		golog.Info("Node", "checkMaster", "Master down", 0,
 			"db.Addr", db.Addr(),
 			"Master_down_time", int64(n.DownAfterNoAlive/time.Second))
-		n.DownMaster(db.addr, Down)
+		// n.DownMaster(db.addr, Down)
+		atomic.StoreInt32(&(db.state), Down)
 	}
 }
 
@@ -290,6 +291,7 @@ func (n *Node) DownMaster(addr string, state int32) error {
 	}
 
 	db.Close()
+	n.Master = nil
 	atomic.StoreInt32(&(db.state), state)
 	return nil
 }
