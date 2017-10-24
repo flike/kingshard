@@ -4,7 +4,7 @@
 
 ## 环境说明
 
-本文仅作为最小实验环境，因此不使用master, slave模式. 单机上使用mysql_mutil运行两个mysql实列
+本文仅作为最小实验环境，因此不使用master, slave模式. 单机上使用mysqld_multi运行两个mysql实列
 
 
 ## 初始化数据目录
