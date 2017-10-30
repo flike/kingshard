@@ -126,6 +126,8 @@ var keywords = map[string]int{
 	"names":   NAMES,
 	"replace": REPLACE,
 
+	"_binary": UNDERSCORE_BINARY,
+
 	//for kingshard
 	"admin":       ADMIN,
 	"help":        HELP,

@@ -101,6 +101,7 @@ var (
 %left <empty> '^'
 %nonassoc <empty> '.'
 %left <empty> UNARY
+%right <bytes> UNDERSCORE_BINARY
 
 %left <empty> END
 
@@ -158,7 +159,7 @@ var (
 %type <values> tuple_list
 %type <bytes> keyword_as_func
 %type <subquery> subquery
-%type <byt> unary_operator
+%type <str> unary_operator
 %type <colName> column_name
 %type <caseExpr> case_expression
 %type <whens> when_expression_list
@@ -821,9 +822,9 @@ value_expression:
   {
     if num, ok := $2.(NumVal); ok {
       switch $1 {
-      case '-':
+      case "-":
         $$ = append(NumVal("-"), num...)
-      case '+':
+      case "+":
         $$ = num
       default:
         $$ = &UnaryExpr{Operator: $1, Expr: $2}
@@ -875,6 +876,10 @@ unary_operator:
 | '~'
   {
     $$ = AST_TILDA
+  }
+| UNDERSCORE_BINARY
+  {
+    $$ = AST_UBinary
   }
 
 case_expression:

@@ -723,19 +723,20 @@ func (node *BinaryExpr) Format(buf *TrackedBuffer) {
 
 // UnaryExpr represents a unary value expression.
 type UnaryExpr struct {
-	Operator byte
+	Operator string
 	Expr     Expr
 }
 
 // UnaryExpr.Operator
 const (
-	AST_UPLUS  = '+'
-	AST_UMINUS = '-'
-	AST_TILDA  = '~'
+	AST_UPLUS   = "+"
+	AST_UMINUS  = "-"
+	AST_TILDA   = "~"
+	AST_UBinary = "_binary"
 )
 
 func (node *UnaryExpr) Format(buf *TrackedBuffer) {
-	buf.Fprintf("%c%v", node.Operator, node.Expr)
+	buf.Fprintf("%s%v", node.Operator, node.Expr)
 }
 
 // FuncExpr represents a function call.
