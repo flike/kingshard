@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/flike/kingshard/core/errors"
-	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 )
 
@@ -307,15 +306,6 @@ func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
 				db.closeConn(co)
 				return nil, errors.ErrBadConn
 			}
-		}
-	default:
-		//new connection
-		co = new(Conn)
-		golog.Error("db.go", "GetConnFromIdle", "Get conn in default", 0)
-		err = co.Connect(db.addr, db.user, db.password, db.db)
-		if err != nil {
-			db.closeConn(co)
-			return nil, err
 		}
 	}
 	return co, nil
