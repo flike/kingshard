@@ -271,11 +271,11 @@ func (c *ClientConn) executeInMultiNodes(conns map[string]*backend.BackendConn, 
 		wg.Done()
 	}
 
-	offsert := 0
+	offset := 0
 	for nodeName, co := range conns {
 		s := sqls[nodeName] //[]string
-		go f(rs, offsert, s, co)
-		offsert += len(s)
+		go f(rs, offset, s, co)
+		offset += len(s)
 	}
 
 	wg.Wait()
