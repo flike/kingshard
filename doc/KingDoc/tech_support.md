@@ -4,4 +4,4 @@ Kingshard作为开源软件，会一直开源下去。但为了将kingshard项�
 * 咨询服务，为用户提供全方位的针对kingshard数据库中间件部署、使用、监控和告警等方面的咨询服务。
 * 定制化开发服务，为用户基于kingshard提供可靠地定制化数据库中间件方案。
 
-详情请邮件咨询:flikecn#126.com
+详情请邮件咨询:flikechen#qq.com

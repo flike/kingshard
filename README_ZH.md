@@ -83,10 +83,10 @@ Kingshard作为开源软件，会一直开源下去。但为了将kingshard项�
 * 咨询服务，为用户提供全方位的针对kingshard数据库中间件部署、使用、监控和告警等方面的咨询服务。
 * 定制化开发服务，为用户基于kingshard提供可靠地定制化数据库中间件方案。
 
-详情请邮件咨询:flikecn#126.com
+详情请邮件咨询:flikechen#qq.com
 
 ## 反馈
-kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。 **目前已有上二十家公司在生产环境使用kingshard作为MySQL代理。** 如果您在使用kingshard的过程中发现BUG或者有新的功能需求，请发邮件至flikecn#126.com与作者取得联系，或者加入QQ群(147926796)交流。
+kingshard开源以来，经过不断地迭代开发，功能较为完善，稳定性有较大提升。 **目前已有上二十家公司在生产环境使用kingshard作为MySQL代理。** 如果您在使用kingshard的过程中发现BUG或者有新的功能需求，请发邮件至flikechen#qq.com与作者取得联系，或者加入QQ群(147926796)交流。
 欢迎关注**后端技术快讯**公众号，有关kingshard的最新消息与后端架构设计类的文章，都会在这个公众号分享。
 
 <img src="./doc/KingDoc/wechat_pic.png" width="20%" height="20%">
