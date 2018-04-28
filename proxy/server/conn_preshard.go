@@ -227,7 +227,7 @@ func (c *ClientConn) getSelectExecDB(sql string, tokens []string, tokensLen int)
 	executeDB.sql = sql
 	executeDB.IsSlave = true
 
-	schema := c.proxy.schema
+	schema := c.schema
 	router := schema.rule
 	rules := router.Rules
 
@@ -276,7 +276,7 @@ func (c *ClientConn) getDeleteExecDB(sql string, tokens []string, tokensLen int)
 	var ruleDB string
 	executeDB := new(ExecuteDB)
 	executeDB.sql = sql
-	schema := c.proxy.schema
+	schema := c.schema
 	router := schema.rule
 	rules := router.Rules
 
@@ -314,7 +314,7 @@ func (c *ClientConn) getInsertOrReplaceExecDB(sql string, tokens []string, token
 	var ruleDB string
 	executeDB := new(ExecuteDB)
 	executeDB.sql = sql
-	schema := c.proxy.schema
+	schema := c.schema
 	router := schema.rule
 	rules := router.Rules
 
@@ -352,7 +352,7 @@ func (c *ClientConn) getUpdateExecDB(sql string, tokens []string, tokensLen int)
 	var ruleDB string
 	executeDB := new(ExecuteDB)
 	executeDB.sql = sql
-	schema := c.proxy.schema
+	schema := c.schema
 	router := schema.rule
 	rules := router.Rules
 
@@ -486,7 +486,7 @@ func (c *ClientConn) getTruncateExecDB(sql string, tokens []string, tokensLen in
 	var ruleDB string
 	executeDB := new(ExecuteDB)
 	executeDB.sql = sql
-	schema := c.proxy.schema
+	schema := c.schema
 	router := schema.rule
 	rules := router.Rules
 	if len(rules) != 0 && tokensLen >= 2 {
