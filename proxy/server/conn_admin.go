@@ -501,7 +501,6 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 }
 
 func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
-	var Column = 7
 	var rows [][]string
 	var names []string = []string{
 		"User",
@@ -513,6 +512,7 @@ func (c *ClientConn) handleShowSchemaConfig() (*mysql.Resultset, error) {
 		"Locations",
 		"TableRowLimit",
 	}
+	var Column = len(names)
 
 	for _, schemaConfig := range c.proxy.cfg.SchemaList {
 		//default Rule

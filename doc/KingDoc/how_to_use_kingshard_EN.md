@@ -26,7 +26,9 @@ web_addr : 0.0.0.0:9797
 web_user : admin
 web_password : admin
 
-# server user and password
+# user list with user name and password
+user_list:
+-
 user :  kingshard
 password : kingshard
 
@@ -87,8 +89,11 @@ nodes :
     # 0 will no down
     down_after_noalive: 32
 
+# schema list include all user's schema
 # schema defines which db can be used by client and this db's sql will be executed in which nodes
-schema :
+schema_list :
+-
+    user: kingshard
     nodes: [node1,node2]
     default: node1      
     shard:

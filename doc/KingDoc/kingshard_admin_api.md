@@ -199,6 +199,7 @@ curl -X GET \
 返回结果：
 [
     {
+        "user": "kingshard",
         "db": "kingshard",
         "Table": "",
         "Key": "",
@@ -212,6 +213,7 @@ curl -X GET \
         "DateRange": null
     },
     {
+        "user": "kingshard",
         "db": "kingshard",
         "Table": "test_shard_hash",
         "Key": "id",
@@ -228,6 +230,7 @@ curl -X GET \
         "DateRange": null
     },
     {
+        "user": "kingshard",
         "db": "kingshard",
         "Table": "test_shard_range",
         "Key": "id",
@@ -244,6 +247,7 @@ curl -X GET \
         "DateRange": null
     },
     {
+        "user": "kingshard",
         "db": "kingshard",
         "Table": "test_shard_time",
         "Key": "id",
@@ -260,6 +264,7 @@ curl -X GET \
         "DateRange": null
     },
     {
+        "user": "kingshard",
         "db": "kingshard",
         "Table": "test_shard_month",
         "Key": "dtime",
@@ -276,6 +281,7 @@ curl -X GET \
         ]
     },
     {
+        "user": "kingshard",
         "db": "kingshard",
         "Table": "test_shard_day",
         "Key": "mtime",
@@ -290,6 +296,20 @@ curl -X GET \
             "20160306-20160307",
             "20160308-20160309"
         ]
+    },
+    {
+        "user": "root",
+        "db": "kingshard",
+        "Table": "",
+        "Key": "",
+        "Nodes": [
+            "node1",
+            "node2"
+        ],
+        "Locations": null,
+        "Type": "default",
+        "TableRowLimit": 0,
+        "DateRange": null
     }
 ]
 ```
