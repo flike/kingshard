@@ -225,6 +225,7 @@ func (s *ApiServer) ChangeProxyStatus(c echo.Context) error {
 
 //range,hash or date
 type ShardConfig struct {
+	User          string   `json:"user"`
 	DB            string   `json:"db"`
 	Table         string   `yaml:"table"`
 	Key           string   `yaml:"key"`
@@ -236,26 +237,30 @@ type ShardConfig struct {
 }
 
 func (s *ApiServer) GetProxySchema(c echo.Context) error {
-	schema := s.cfg.Schema
 	shardConfig := make([]ShardConfig, 0, 10)
-	//append default rule
-	shardConfig = append(shardConfig,
-		ShardConfig{
-			Type:  "default",
-			Nodes: schema.Nodes,
-		})
-	for _, r := range schema.ShardRule {
+	for _, schema := range s.cfg.SchemaList{
+		//append default rule
 		shardConfig = append(shardConfig,
 			ShardConfig{
-				DB:            r.DB,
-				Table:         r.Table,
-				Key:           r.Key,
-				Nodes:         r.Nodes,
-				Locations:     r.Locations,
-				Type:          r.Type,
-				TableRowLimit: r.TableRowLimit,
-				DateRange:     r.DateRange,
+				User:  schema.User,
+				Type:  "default",
+				Nodes: schema.Nodes,
 			})
+		for _, r := range schema.ShardRule {
+			shardConfig = append(shardConfig,
+				ShardConfig{
+					User:		   schema.User,
+					DB:            r.DB,
+					Table:         r.Table,
+					Key:           r.Key,
+					Nodes:         r.Nodes,
+					Locations:     r.Locations,
+					Type:          r.Type,
+					TableRowLimit: r.TableRowLimit,
+					DateRange:     r.DateRange,
+				})
+		}
+
 	}
 	return c.JSON(http.StatusOK, shardConfig)
 }

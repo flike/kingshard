@@ -71,4 +71,6 @@ var (
 	ErrBlackSqlNotExist = errors.New("black sql has not exist")
 	ErrInsertTooComplex = errors.New("insert is too complex")
 	ErrSQLNULL          = errors.New("sql is null")
+
+	ErrInternalServer   = errors.New("internal server error")
 )

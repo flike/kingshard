@@ -51,6 +51,7 @@ type ClientConn struct {
 
 	salt []byte
 
+	nodes	map[string]*backend.Node
 	schema *Schema
 
 	txConns map[*backend.Node]*backend.BackendConn
@@ -222,14 +223,25 @@ func (c *ClientConn) readHandshakeResponse() error {
 	pos++
 	auth := data[pos : pos+authLen]
 
-	checkAuth := mysql.CalcPassword(c.salt, []byte(c.proxy.cfg.Password))
-	if c.user != c.proxy.cfg.User || !bytes.Equal(auth, checkAuth) {
+	//check user
+	if _, ok := c.proxy.users[c.user]; !ok {
+		golog.Error("ClientConn", "readHandshakeResponse", "error", 0,
+			"auth", auth,
+			"client_user", c.user,
+			"config_set_user", c.user,
+			"passworld", c.proxy.users[c.user])
+		return mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.user, c.c.RemoteAddr().String(), "Yes")
+	}
+
+	//check password
+	checkAuth := mysql.CalcPassword(c.salt, []byte(c.proxy.users[c.user]))
+	if !bytes.Equal(auth, checkAuth) {
 		golog.Error("ClientConn", "readHandshakeResponse", "error", 0,
 			"auth", auth,
 			"checkAuth", checkAuth,
 			"client_user", c.user,
-			"config_set_user", c.proxy.cfg.User,
-			"passworld", c.proxy.cfg.Password)
+			"config_set_user", c.user,
+			"passworld", c.proxy.users[c.user])
 		return mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.user, c.c.RemoteAddr().String(), "Yes")
 	}
 

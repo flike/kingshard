@@ -54,9 +54,7 @@ const (
 type Server struct {
 	cfg      *config.Config
 	addr     string
-	user     string
-	password string
-	//db       string
+	users	 map[string]string //user : psw
 
 	statusIndex        int32
 	status             [2]int32
@@ -71,7 +69,7 @@ type Server struct {
 
 	counter *Counter
 	nodes   map[string]*backend.Node
-	schema  *Schema
+	schemas map[string]*Schema //user : schema of user
 
 	listener net.Listener
 	running  bool
@@ -190,33 +188,42 @@ func (s *Server) parseNodes() error {
 	return nil
 }
 
-func (s *Server) parseSchema() error {
-	schemaCfg := s.cfg.Schema
-	if len(schemaCfg.Nodes) == 0 {
-		return fmt.Errorf("schema must have a node")
-	}
-
-	nodes := make(map[string]*backend.Node)
-	for _, n := range schemaCfg.Nodes {
-		if s.GetNode(n) == nil {
-			return fmt.Errorf("schema node [%s] config is not exists", n)
+func (s *Server) parseSchemaList() error {
+	s.schemas = make(map[string]*Schema)
+	for _, schemaCfg := range s.cfg.SchemaList {
+		if len(schemaCfg.Nodes) == 0 {
+			return fmt.Errorf("schema must have a node")
 		}
 
-		if _, ok := nodes[n]; ok {
-			return fmt.Errorf("schema node [%s] duplicate", n)
+		nodes := make(map[string]*backend.Node)
+		for _, n := range schemaCfg.Nodes {
+			if s.GetNode(n) == nil {
+				return fmt.Errorf("schema node [%s] config is not exists", n)
+			}
+
+			if _, ok := nodes[n]; ok {
+				return fmt.Errorf("schema node [%s] duplicate", n)
+			}
+
+			nodes[n] = s.GetNode(n)
 		}
 
-		nodes[n] = s.GetNode(n)
+		rule, err := router.NewRouter(&schemaCfg)
+		if err != nil {
+			return err
+		}
+
+		s.schemas[schemaCfg.User] = &Schema{
+			nodes: nodes,
+			rule:  rule,
+		}
+
 	}
 
-	rule, err := router.NewRouter(&schemaCfg)
-	if err != nil {
-		return err
-	}
-
-	s.schema = &Schema{
-		nodes: nodes,
-		rule:  rule,
+	for user,_ := range s.users {
+		if _, exist := s.schemas[user]; !exist {
+			return fmt.Errorf("user [%s] must have a schema", user)
+		}
 	}
 
 	return nil
@@ -228,8 +235,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s.cfg = cfg
 	s.counter = new(Counter)
 	s.addr = cfg.Addr
-	s.user = cfg.User
-	s.password = cfg.Password
+	s.users = make(map[string]string)
+	for _, user := range cfg.UserList {
+		s.users[user.User] = user.Password
+	}
 	atomic.StoreInt32(&s.statusIndex, 0)
 	s.status[s.statusIndex] = Online
 	atomic.StoreInt32(&s.logSqlIndex, 0)
@@ -261,7 +270,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
-	if err := s.parseSchema(); err != nil {
+	if err := s.parseSchemaList(); err != nil {
 		return nil, err
 	}
 
@@ -301,7 +310,7 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 	tcpConn.SetNoDelay(false)
 	c.c = tcpConn
 
-	c.schema = s.GetSchema()
+	c.nodes = s.nodes
 
 	c.pkg = mysql.NewPacketIO(tcpConn)
 	c.proxy = s
@@ -359,6 +368,8 @@ func (s *Server) onConn(c net.Conn) {
 		conn.Close()
 		return
 	}
+
+	conn.schema = s.GetSchema(conn.user)
 
 	conn.Run()
 }
@@ -711,8 +722,8 @@ func (s *Server) GetAllNodes() map[string]*backend.Node {
 	return s.nodes
 }
 
-func (s *Server) GetSchema() *Schema {
-	return s.schema
+func (s *Server) GetSchema(user string) *Schema {
+	return s.schemas[user]
 }
 
 func (s *Server) GetSlowLogTime() int {

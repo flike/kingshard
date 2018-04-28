@@ -2,8 +2,13 @@
 addr : 0.0.0.0:9696
 
 # server user and password
-user :  kingshard
-password : kingshard
+user_list:
+-
+    user :  root
+    password : root
+-
+    user :  kingshard
+    password : kingshard
 
 # the web api server
 web_addr : 0.0.0.0:9797
@@ -57,7 +62,16 @@ nodes :
 
 # schema defines which db can be used by client and this db's sql will be executed in which nodes, 
 # the db is also the default database
-schema :
+schema_list :
+-
+    user: root
+    nodes: [node1]
+    default: node1
+    shard:
+    -
+
+-
+    user: kingshard
     nodes: [node1]
     default: node1
     shard:
