@@ -45,12 +45,14 @@ type Node struct {
 	SlaveWeights   []int
 
 	DownAfterNoAlive time.Duration
+
+	Online bool
 }
 
 func (n *Node) CheckNode() {
 	//to do
 	//1 check connection alive
-	for {
+	for n.Online {
 		n.checkMaster()
 		n.checkSlave()
 		time.Sleep(16 * time.Second)

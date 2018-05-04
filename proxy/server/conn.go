@@ -64,6 +64,8 @@ type ClientConn struct {
 	stmtId uint32
 
 	stmts map[uint32]*Stmt //prepare相关,client端到proxy的stmt
+
+	configVer uint32 //check config version for reload online
 }
 
 var DEFAULT_CAPABILITY uint32 = mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_LONG_FLAG |
@@ -285,9 +287,24 @@ func (c *ClientConn) Run() {
 			return
 		}
 
+		if c.configVer != c.proxy.configVer {
+			err := c.reloadConfig()
+			if nil != err {
+				golog.Error("ClientConn", "Run",
+					err.Error(), c.connectionId,
+				)
+				c.writeError(err)
+				return
+			}
+			c.configVer = c.proxy.configVer
+			golog.Debug("ClientConn", "Run",
+				fmt.Sprintf("config reload ok, ver:%d", c.configVer), c.connectionId,
+			)
+		}
+
 		if err := c.dispatch(data); err != nil {
 			c.proxy.counter.IncrErrLogTotal()
-			golog.Error("server", "Run",
+			golog.Error("ClientConn", "Run",
 				err.Error(), c.connectionId,
 			)
 			c.writeError(err)
@@ -406,4 +423,16 @@ func (c *ClientConn) writeEOFBatch(total []byte, status uint16, direct bool) ([]
 	}
 
 	return c.writePacketBatch(total, data, direct)
+}
+
+func (c *ClientConn) reloadConfig() error {
+	c.proxy.configUpdateMutex.RLock()
+	defer c.proxy.configUpdateMutex.RUnlock()
+	c.schema = c.proxy.GetSchema(c.user)
+	if nil == c.schema {
+		return fmt.Errorf("schema of user [%s] is null or user is deleted", c.user)
+	}
+	c.nodes = c.proxy.nodes
+
+	return nil
 }
