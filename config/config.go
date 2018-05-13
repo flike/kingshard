@@ -25,9 +25,8 @@ var configFileName string
 
 //整个config文件对应的结构
 type Config struct {
-	Addr     string `yaml:"addr"`
-
-	UserList	[]UserConfig `yaml:"user_list"`
+	Addr     string       `yaml:"addr"`
+	UserList []UserConfig `yaml:"user_list"`
 
 	WebAddr     string `yaml:"web_addr"`
 	WebUser     string `yaml:"web_user"`
@@ -42,13 +41,13 @@ type Config struct {
 	Charset     string       `yaml:"proxy_charset"`
 	Nodes       []NodeConfig `yaml:"nodes"`
 
-	SchemaList	[]SchemaConfig	`yaml:"schema_list"`
+	SchemaList []SchemaConfig `yaml:"schema_list"`
 }
 
 //user_list对应的配置
 type UserConfig struct {
-	User		string `yaml:"user"`
-	Password	string `yaml:"password"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
 }
 
 //node节点对应的配置
@@ -66,7 +65,7 @@ type NodeConfig struct {
 
 //schema对应的结构体
 type SchemaConfig struct {
-	User	  string		`yaml:"user"`
+	User      string        `yaml:"user"`
 	Nodes     []string      `yaml:"nodes"`
 	Default   string        `yaml:"default"` //default node
 	ShardRule []ShardConfig `yaml:"shard"`   //route rule

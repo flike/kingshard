@@ -51,7 +51,7 @@ type ClientConn struct {
 
 	salt []byte
 
-	nodes	map[string]*backend.Node
+	nodes  map[string]*backend.Node
 	schema *Schema
 
 	txConns map[*backend.Node]*backend.BackendConn

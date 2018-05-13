@@ -128,6 +128,17 @@ admin server(opt,k,v) values('save','proxy','config')
 
 ```
 
+上面是通过命令方式修改部分kingshard的配置，但更推荐通过修改配置文件，然后动态加载的方式来
+热加载配置文件，步骤如下：
+
+1.修改kingshard **正在使用的配置文件**，不能是kingshard未使用的文件
+
+2.向kingshard发送USR1信号，kingshard就会加载新配置文件的全部内容
+
+```
+kill -USR1 pid_of_kingshard
+```
+
 ## 支持LVS/Keepalived
 
 ```

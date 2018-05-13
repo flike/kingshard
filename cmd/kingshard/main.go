@@ -136,7 +136,7 @@ func main() {
 				golog.Info("main", "main", "Got update config signal", 0)
 				newCfg, err := config.ParseConfigFile(*configFile)
 				if err != nil {
-					golog.Error("main", "main", fmt.Sprint("parse config file error:%v", err.Error()), 0)
+					golog.Error("main", "main", fmt.Sprintf("parse config file error:%s", err.Error()), 0)
 				} else {
 					svr.UpdateConfig(newCfg)
 				}
