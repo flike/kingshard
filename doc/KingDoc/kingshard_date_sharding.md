@@ -26,9 +26,12 @@ kingshard的配置文件如下所示：
 # server listen addr
 addr : 0.0.0.0:9696
 
-# server user and password
+# user list with user name and password
+user_list:
+-
 user :  kingshard
 password : kingshard
+
 # the web api server
 web_addr : 0.0.0.0:9797
 #HTTP Basic Auth
@@ -98,8 +101,11 @@ nodes :
     # 0 will no down
     down_after_noalive: 32
 
-# schema defines sharding rules, the db is the sharding table database.
-schema :
+# schema list include all user's schema
+# schema defines which db can be used by client and this db's sql will be executed in which nodes
+schema_list :
+-
+    user: kingshard
     nodes: [node1,node2]
     default: node1
     shard:

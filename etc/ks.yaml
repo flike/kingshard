@@ -2,8 +2,13 @@
 addr : 0.0.0.0:9696
 
 # server user and password
-user :  kingshard
-password : kingshard
+user_list:
+-
+    user :  root
+    password : root
+-
+    user :  kingshard
+    password : kingshard
 
 # the web api server
 web_addr : 0.0.0.0:9797
@@ -75,7 +80,16 @@ nodes :
     down_after_noalive: 32
 
 # schema defines sharding rules, the db is the sharding table database.
-schema :
+schema_list :
+-
+    user: root
+    nodes: [node1,node2]
+    default: node1
+    shard:
+    -
+
+-
+    user: kingshard
     nodes: [node1,node2]
     default: node1      
     shard:

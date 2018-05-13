@@ -24,9 +24,11 @@
 # kingshard的地址和端口
 addr : 0.0.0.0:9696
 
-# 连接kingshard的用户名和密码
-user :  kingshard
-password : kingshard
+# 连接kingshard的用户名和密码的用户列表
+-user_list:
+-
+    user :  kingshard
+    password : kingshard
 #kingshard的web API 端口
 web_addr : 0.0.0.0:9797
 #调用API的用户名和密码
@@ -79,8 +81,11 @@ nodes :
     slave :
     down_after_noalive: 100
 
-# 分表规则
-schema :
+# 各用户的分表规则
+schema_list :
+-
+    #schema的所属用户名
+    user: kingshard
     #分表分布的node名字
     nodes: [node1,node2]
 	#所有未分表的SQL，都会发往默认node。

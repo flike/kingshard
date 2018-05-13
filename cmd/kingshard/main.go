@@ -119,6 +119,7 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 		syscall.SIGPIPE,
+		syscall.SIGUSR1,
 	)
 
 	go func() {
@@ -131,6 +132,14 @@ func main() {
 				svr.Close()
 			} else if sig == syscall.SIGPIPE {
 				golog.Info("main", "main", "Ignore broken pipe signal", 0)
+			} else if sig == syscall.SIGUSR1 {
+				golog.Info("main", "main", "Got update config signal", 0)
+				newCfg, err := config.ParseConfigFile(*configFile)
+				if err != nil {
+					golog.Error("main", "main", fmt.Sprint("parse config file error:%v", err.Error()), 0)
+				} else {
+					svr.UpdateConfig(newCfg)
+				}
 			}
 		}
 	}()

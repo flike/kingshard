@@ -34,7 +34,7 @@ mysql> admin server(opt,k,v) values('show','proxy','config');
 | Key          |   Value        |
 +--------------+----------------+
 | Addr         | 127.0.0.1:9696 |
-| User         | kingshard      |
+| User_List    | root,kingshard |
 | LogPath      | ./             |
 | LogLevel     | debug          |
 | LogSql       | on             |
@@ -66,13 +66,14 @@ mysql> admin server(opt,k,v) values('show','node','config');
 #查看schema配置
 
 mysql> admin server(opt,k,v) values('show','schema','config');
-+-----------+------------------+---------+------+--------------+-----------+---------------+
-| DB        | Table            | Type    | Key  | Nodes_List   | Locations | TableRowLimit |
-+-----------+------------------+---------+------+--------------+-----------+---------------+
-| kingshard |                  | default |      | node1        |           | 0             |
-| kingshard | test_shard_hash  | hash    | id   | node1, node2 | 4, 4      | 0             |
-| kingshard | test_shard_range | range   | id   | node1, node2 | 4, 4      | 10000         |
-+-----------+------------------+---------+------+--------------+-----------+---------------+
++-----------+-----------+------------------+---------+------+--------------+-----------+---------------+
+| User      | DB        | Table            | Type    | Key  | Nodes_List   | Locations | TableRowLimit |
++-----------+-----------+------------------+---------+------+--------------+-----------+---------------+
+| kingshard | kingshard |                  | default |      | node1        |           | 0             |
+| kingshard | kingshard | test_shard_hash  | hash    | id   | node1, node2 | 4, 4      | 0             |
+| kingshard | kingshard | test_shard_range | range   | id   | node1, node2 | 4, 4      | 10000         |
+| root      | kingshard |                  | default |      | node1        |           | 0             |
++-----------+-----------+------------------+---------+------+--------------+-----------+---------------+
 
 3 rows in set (0.00 sec)
 
