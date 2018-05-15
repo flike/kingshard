@@ -101,6 +101,8 @@ mysql> admin server(opt,k,v) values('show','black_sql','config');
 
 ## 修改kingshard配置
 
+为保证kingshard的安全性，管理端命令，只能通过root用户来操作，其他用户不能操作。也就是说用户列表中，需要配置一个root用户
+
 ```
 #关闭sql日志打印
 admin server(opt,k,v) values('change','log_sql','off')
