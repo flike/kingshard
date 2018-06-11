@@ -1,6 +1,9 @@
 # server listen addr
 addr : 0.0.0.0:9696
 
+# prometheus server listen addr
+prometheus_addr : 0.0.0.0:7080
+
 # server user and password
 user_list:
 -
