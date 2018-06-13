@@ -36,7 +36,7 @@ type NumKeyRange struct {
 }
 
 func (kr NumKeyRange) MapKey() string {
-	return fmt.Sprintf("%d-%d", kr.String(), kr.End)
+	return fmt.Sprintf("%d-%d", kr.Start, kr.End)
 }
 
 func (kr NumKeyRange) Contains(i int64) bool {
