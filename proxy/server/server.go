@@ -66,7 +66,7 @@ type Server struct {
 	blacklistSqlsIndex int32
 	blacklistSqls      [2]*BlacklistSqls
 	allowipsIndex      BoolIndex
-	allowips           [2][]net.IP
+	allowips           [2][]IPInfo
 
 	counter *Counter
 	nodes   map[string]*backend.Node
@@ -95,15 +95,14 @@ func (s *Server) Status() string {
 }
 
 //TODO
-func parseAllowIps(allowIpsStr string) ([]net.IP, error) {
+func parseAllowIps(allowIpsStr string) ([]IPInfo, error) {
 	if len(allowIpsStr) == 0 {
-		return make([]net.IP, 0, 10), nil
+		return make([]IPInfo, 0, 10), nil
 	}
 	ipVec := strings.Split(allowIpsStr, ",")
-	allowIpsList := make([]net.IP, 0, 10)
+	allowIpsList := make([]IPInfo, 0, 10)
 	for _, ipStr := range ipVec {
-		ip := net.ParseIP(strings.TrimSpace(ipStr))
-		if nil != ip {
+		if ip, err := ParseIPInfo(strings.TrimSpace(ipStr)); err == nil {
 			allowIpsList = append(allowIpsList, ip)
 		}
 	}
@@ -456,17 +455,20 @@ func (s *Server) ChangeSlowLogTime(v string) error {
 }
 
 func (s *Server) AddAllowIP(v string) error {
-	clientIP := net.ParseIP(v)
+	ip, err := ParseIPInfo(v)
+	if err != nil {
+		return err
+	}
 
 	current, another, index := s.allowipsIndex.Get()
-	for _, ip := range s.allowips[current] {
-		if ip.Equal(clientIP) {
+
+	for _, oldIp := range s.allowips[current] {
+		if ip.Info() == oldIp.Info() {
 			return nil
 		}
 	}
-
 	s.allowips[another] = s.allowips[current]
-	s.allowips[another] = append(s.allowips[another], clientIP)
+	s.allowips[another] = append(s.allowips[another], ip)
 	s.allowipsIndex.Set(!index)
 
 	if s.cfg.AllowIps == "" {
@@ -479,14 +481,11 @@ func (s *Server) AddAllowIP(v string) error {
 }
 
 func (s *Server) DelAllowIP(v string) error {
-	clientIP := net.ParseIP(v)
-
 	current, another, index := s.allowipsIndex.Get()
-
 	s.allowips[another] = s.allowips[current]
 	ipVec2 := strings.Split(s.cfg.AllowIps, ",")
-	for i, ip := range s.allowips[another] {
-		if ip.Equal(clientIP) {
+	for i, ipInfo := range s.allowips[another] {
+		if v == ipInfo.Info() {
 			s.allowips[another] = append(s.allowips[another][:i], s.allowips[another][i+1:]...)
 			s.allowipsIndex.Set(!index)
 			for i, ip := range ipVec2 {
@@ -733,8 +732,8 @@ func (s *Server) GetAllowIps() []string {
 	var ips []string
 	current, _, _ := s.allowipsIndex.Get()
 	for _, v := range s.allowips[current] {
-		if v != nil {
-			ips = append(ips, v.String())
+		if v.Info() != "" {
+			ips = append(ips, v.Info())
 		}
 	}
 	return ips

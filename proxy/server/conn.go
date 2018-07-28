@@ -87,7 +87,7 @@ func (c *ClientConn) IsAllowConnect() bool {
 		return true
 	}
 	for _, ip := range ipVec {
-		if ip.Equal(clientIP) {
+		if ip.Match(clientIP) {
 			return true
 		}
 	}

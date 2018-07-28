@@ -414,7 +414,7 @@ func (c *ClientConn) handleShowProxyConfig() (*mysql.Resultset, error) {
 	for name := range c.schema.nodes {
 		nodeNames = append(nodeNames, name)
 	}
-	for user,_ := range c.proxy.users {
+	for user, _ := range c.proxy.users {
 		users = append(users, user)
 	}
 
@@ -574,13 +574,12 @@ func (c *ClientConn) handleShowAllowIPConfig() (*mysql.Resultset, error) {
 	var allowips = c.proxy.allowips[current]
 	if len(allowips) != 0 {
 		for _, v := range allowips {
-			if v == nil {
-				continue
+			if v.Info() != "" {
+				rows = append(rows,
+					[]string{
+						v.Info(),
+					})
 			}
-			rows = append(rows,
-				[]string{
-					v.String(),
-				})
 		}
 	}
 
