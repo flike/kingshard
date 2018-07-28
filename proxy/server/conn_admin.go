@@ -570,7 +570,8 @@ func (c *ClientConn) handleShowAllowIPConfig() (*mysql.Resultset, error) {
 	}
 
 	//allow ips
-	var allowips = c.proxy.allowips[c.proxy.allowipsIndex]
+	current, _, _ := c.proxy.allowipsIndex.Get()
+	var allowips = c.proxy.allowips[current]
 	if len(allowips) != 0 {
 		for _, v := range allowips {
 			if v == nil {

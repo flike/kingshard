@@ -65,7 +65,7 @@ type Server struct {
 	slowLogTime        [2]int
 	blacklistSqlsIndex int32
 	blacklistSqls      [2]*BlacklistSqls
-	allowipsIndex      int32
+	allowipsIndex      BoolIndex
 	allowips           [2][]net.IP
 
 	counter *Counter
@@ -266,10 +266,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	if allowIps, err := parseAllowIps(s.cfg.AllowIps); err != nil {
 		return nil, err
 	} else {
-		s.allowips[0] = allowIps
-		s.allowips[1] = allowIps
+		current, another, _ := s.allowipsIndex.Get()
+		s.allowips[current] = allowIps
+		s.allowips[another] = allowIps
 	}
-	atomic.StoreInt32(&s.allowipsIndex, 0)
 
 	if nodes, err := parseNodes(s.cfg.Nodes); err != nil {
 		return nil, err
@@ -325,7 +325,7 @@ func (s *Server) newClientConn(co net.Conn) *ClientConn {
 	tcpConn.SetNoDelay(false)
 	c.c = tcpConn
 
-	func (){
+	func() {
 		s.configUpdateMutex.RLock()
 		defer s.configUpdateMutex.RUnlock()
 		c.nodes = s.nodes
@@ -458,21 +458,16 @@ func (s *Server) ChangeSlowLogTime(v string) error {
 func (s *Server) AddAllowIP(v string) error {
 	clientIP := net.ParseIP(v)
 
-	for _, ip := range s.allowips[s.allowipsIndex] {
+	current, another, index := s.allowipsIndex.Get()
+	for _, ip := range s.allowips[current] {
 		if ip.Equal(clientIP) {
 			return nil
 		}
 	}
 
-	if s.allowipsIndex == 0 {
-		s.allowips[1] = s.allowips[0]
-		s.allowips[1] = append(s.allowips[1], clientIP)
-		atomic.StoreInt32(&s.allowipsIndex, 1)
-	} else {
-		s.allowips[0] = s.allowips[1]
-		s.allowips[0] = append(s.allowips[0], clientIP)
-		atomic.StoreInt32(&s.allowipsIndex, 0)
-	}
+	s.allowips[another] = s.allowips[current]
+	s.allowips[another] = append(s.allowips[another], clientIP)
+	s.allowipsIndex.Set(!index)
 
 	if s.cfg.AllowIps == "" {
 		s.cfg.AllowIps = strings.Join([]string{s.cfg.AllowIps, v}, "")
@@ -486,39 +481,22 @@ func (s *Server) AddAllowIP(v string) error {
 func (s *Server) DelAllowIP(v string) error {
 	clientIP := net.ParseIP(v)
 
-	if s.allowipsIndex == 0 {
-		s.allowips[1] = s.allowips[0]
-		ipVec2 := strings.Split(s.cfg.AllowIps, ",")
-		for i, ip := range s.allowips[1] {
-			if ip.Equal(clientIP) {
-				s.allowips[1] = append(s.allowips[1][:i], s.allowips[1][i+1:]...)
-				atomic.StoreInt32(&s.allowipsIndex, 1)
-				for i, ip := range ipVec2 {
-					if ip == v {
-						ipVec2 = append(ipVec2[:i], ipVec2[i+1:]...)
-						s.cfg.AllowIps = strings.Trim(strings.Join(ipVec2, ","), ",")
-						return nil
-					}
+	current, another, index := s.allowipsIndex.Get()
+
+	s.allowips[another] = s.allowips[current]
+	ipVec2 := strings.Split(s.cfg.AllowIps, ",")
+	for i, ip := range s.allowips[another] {
+		if ip.Equal(clientIP) {
+			s.allowips[another] = append(s.allowips[another][:i], s.allowips[another][i+1:]...)
+			s.allowipsIndex.Set(!index)
+			for i, ip := range ipVec2 {
+				if ip == v {
+					ipVec2 = append(ipVec2[:i], ipVec2[i+1:]...)
+					s.cfg.AllowIps = strings.Trim(strings.Join(ipVec2, ","), ",")
+					return nil
 				}
-				return nil
 			}
-		}
-	} else {
-		s.allowips[0] = s.allowips[1]
-		ipVec2 := strings.Split(s.cfg.AllowIps, ",")
-		for i, ip := range s.allowips[0] {
-			if ip.Equal(clientIP) {
-				s.allowips[0] = append(s.allowips[0][:i], s.allowips[0][i+1:]...)
-				atomic.StoreInt32(&s.allowipsIndex, 0)
-				for i, ip := range ipVec2 {
-					if ip == v {
-						ipVec2 = append(ipVec2[:i], ipVec2[i+1:]...)
-						s.cfg.AllowIps = strings.Trim(strings.Join(ipVec2, ","), ",")
-						return nil
-					}
-				}
-				return nil
-			}
+			return nil
 		}
 	}
 
@@ -753,7 +731,8 @@ func (s *Server) GetSlowLogTime() int {
 
 func (s *Server) GetAllowIps() []string {
 	var ips []string
-	for _, v := range s.allowips[s.allowipsIndex] {
+	current, _, _ := s.allowipsIndex.Get()
+	for _, v := range s.allowips[current] {
 		if v != nil {
 			ips = append(ips, v.String())
 		}
@@ -830,14 +809,9 @@ func (s *Server) UpdateConfig(newCfg *config.Config) {
 		atomic.StoreInt32(&s.blacklistSqlsIndex, 0)
 	}
 
-	if 0 == s.allowipsIndex {
-		s.allowips[1] = newAllowIps
-		atomic.StoreInt32(&s.allowipsIndex, 1)
-
-	} else {
-		s.allowips[0] = newAllowIps
-		atomic.StoreInt32(&s.allowipsIndex, 0)
-	}
+	_, another, index := s.allowipsIndex.Get()
+	s.allowips[another] = newAllowIps
+	s.allowipsIndex.Set(!index)
 
 	s.users = newUserList
 
