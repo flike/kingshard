@@ -126,12 +126,6 @@ func (db *DB) IdleConnCount() int {
 	return len(db.idleConns)
 }
 
-func (db *DB) CacheConnCount() int {
-	db.RLock()
-	defer db.RUnlock()
-	return len(db.cacheConns)
-}
-
 func (db *DB) ConnCount() (int,int,int64,int64) {
 	db.RLock()
 	defer db.RUnlock()
