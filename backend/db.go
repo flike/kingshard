@@ -49,6 +49,9 @@ type DB struct {
 	cacheConns  chan *Conn
 	checkConn   *Conn
 	lastPing    int64
+
+	pushConnCount    int64
+	popConnCount     int64
 }
 
 func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB, error) {
@@ -120,7 +123,19 @@ func (db *DB) State() string {
 func (db *DB) IdleConnCount() int {
 	db.RLock()
 	defer db.RUnlock()
+	return len(db.idleConns)
+}
+
+func (db *DB) CacheConnCount() int {
+	db.RLock()
+	defer db.RUnlock()
 	return len(db.cacheConns)
+}
+
+func (db *DB) ConnCount() (int,int,int64,int64) {
+	db.RLock()
+	defer db.RUnlock()
+	return len(db.idleConns),len(db.cacheConns),db.pushConnCount,db.popConnCount
 }
 
 func (db *DB) Close() error {
@@ -263,6 +278,7 @@ func (db *DB) PopConn() (*Conn, error) {
 		return nil, err
 	}
 
+	atomic.AddInt64(&db.popConnCount, 1)
 	return co, nil
 }
 
@@ -327,6 +343,7 @@ func (db *DB) PushConn(co *Conn, err error) {
 	co.pushTimestamp = time.Now().Unix()
 	select {
 	case conns <- co:
+		atomic.AddInt64(&db.pushConnCount, 1)
 		return
 	default:
 		db.closeConn(co)
