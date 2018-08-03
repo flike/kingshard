@@ -81,12 +81,13 @@ func (c *ClientConn) IsAllowConnect() bool {
 	}
 	clientIP := net.ParseIP(clientHost)
 
-	ipVec := c.proxy.allowips[c.proxy.allowipsIndex]
+	current, _, _ := c.proxy.allowipsIndex.Get()
+	ipVec := c.proxy.allowips[current]
 	if ipVecLen := len(ipVec); ipVecLen == 0 {
 		return true
 	}
 	for _, ip := range ipVec {
-		if ip.Equal(clientIP) {
+		if ip.Match(clientIP) {
 			return true
 		}
 	}
