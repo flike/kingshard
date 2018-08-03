@@ -26,7 +26,8 @@ import (
 
 func TestParseRule(t *testing.T) {
 	var s = `
-schema:
+schema_list:
+-
   nodes: [node1, node2, node3]
   default: node1
   shard:
@@ -51,7 +52,7 @@ schema:
 		t.Fatal(err)
 	}
 
-	rt, err := NewRouter(&cfg.Schema)
+	rt, err := NewRouter(&cfg.SchemaList[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +102,8 @@ schema:
 
 func newTestRouter() *Router {
 	var s = `
-schema :
+schema_list :
+-
   nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
   default: node1
   shard:
@@ -152,7 +154,7 @@ schema :
 
 	var r *Router
 
-	r, err = NewRouter(&cfg.Schema)
+	r, err = NewRouter(&cfg.SchemaList[0])
 	if err != nil {
 		println(err.Error())
 		panic(err)
@@ -164,7 +166,8 @@ schema :
 //TODO YYYY-MM-DD HH:MM:SS,YYYY-MM-DD test
 func TestParseDateRule(t *testing.T) {
 	var s = `
-schema:
+schema_list:
+-
   nodes: [node1, node2, node3]
   default: node1
   shard:
@@ -195,7 +198,7 @@ schema:
 		t.Fatal(err)
 	}
 
-	rt, err := NewRouter(&cfg.Schema)
+	rt, err := NewRouter(&cfg.SchemaList[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +241,8 @@ schema:
 
 func newTestDBRule() *Router {
 	var s = `
-schema :
+schema_list :
+-
   nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
   default: node1
   shard:
@@ -268,7 +272,7 @@ schema :
 
 	var r *Router
 
-	r, err = NewRouter(&cfg.Schema)
+	r, err = NewRouter(&cfg.SchemaList[0])
 	if err != nil {
 		println(err.Error())
 		panic(err)

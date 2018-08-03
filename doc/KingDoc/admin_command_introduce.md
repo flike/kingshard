@@ -114,7 +114,9 @@ admin server(opt,k,v) values('change','log_sql','on')
 admin server(opt,k,v) values('change','slow_log_time','50');
 
 #添加白名单IP
-admin server(opt,k,v) values('add','allow_ip','127.0.0.1');
+#支持IP或IP段
+admin server(opt,k,v) values('add','allow_ip','192.168.14.0/24');
+admin server(opt,k,v) values('add','allow_ip','192.168.15.1');
 
 #删除白名单IP
 admin server(opt,k,v) values('del','allow_ip','127.0.0.1');

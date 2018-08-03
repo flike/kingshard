@@ -39,7 +39,7 @@ nodes :
     down_after_noalive : 300
     idle_conns : 16
     user: root
-    password:
+    password: flike
     master : 127.0.0.1:3306
     slave : 
 
@@ -77,7 +77,7 @@ func newTestDB(t *testing.T) *backend.DB {
 	newTestServer(t)
 
 	f := func() {
-		testDB, _ = backend.Open("127.0.0.1:3306", "root", "", "kingshard", 100)
+		testDB, _ = backend.Open("127.0.0.1:3306", "root", "flike", "kingshard", 100)
 	}
 
 	testDBOnce.Do(f)

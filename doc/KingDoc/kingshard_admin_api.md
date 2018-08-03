@@ -345,7 +345,7 @@ URL：http://127.0.0.1:9797/api/v1/proxy/allow_ips
 curl -X POST \
   -H 'Content-Type: application/json' \
   -u admin:admin \
-  -d '{"allow_ips":["127.0.0.1","192.168.0.14","192.168.0.223"]}' \
+  -d '{"allow_ips":["127.0.0.1","192.168.14.0/24","192.168.0.223"]}' \
   127.0.0.1:9797/api/v1/proxy/allow_ips
   返回结果："ok"
  

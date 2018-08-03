@@ -34,7 +34,8 @@ log_level : debug
 #blacklist_sql_file: /Users/flike/blacklist
 
 # only allow this ip list ip to connect kingshard
-#allow_ips: 127.0.0.1
+# support ip and ip segment
+#allow_ips : 127.0.0.1,192.168.15.0/24
 
 # the charset of kingshard, if you don't set this item
 # the default charset of kingshard is utf8.
@@ -50,10 +51,10 @@ nodes :
 
     # all mysql in a node must have the same user and password
     user :  root
-    password : root
+    password : flike
 
     # master represents a real mysql master server
-    master : 127.0.0.1:3307
+    master : 127.0.0.1:3306
 
     # slave represents a real mysql salve server,and the number after '@' is
     # read load weight of this slave.
