@@ -457,7 +457,7 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 	}
 	var rows [][]string
 	const (
-		Column = 7
+		Column = 10
 	)
 
 	//var nodeRows [][]string

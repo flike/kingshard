@@ -86,12 +86,13 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 
 	for i := 0; i < db.maxConnNum; i++ {
 		if i < db.InitConnNum {
-			conn, err := db.newConn()
+			conn, err := db.startNewConn()
+
 			if err != nil {
 				db.Close()
 				return nil, err
 			}
-			conn.pushTimestamp = time.Now().Unix()
+
 			db.cacheConns <- conn
 		} else {
 			conn := new(Conn)
@@ -101,6 +102,33 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 	db.SetLastPing()
 
 	return db, nil
+}
+
+func (db *DB) newCheckConn(ch chan int64) {
+	go func() {
+		for {
+			select {
+			case <- ch:
+			case <- time.After(time.Second * 60 * 5):
+				conn := new(Conn)
+				db.idleConns <- conn
+				return
+			}
+		}
+	}()
+}
+
+func (db *DB) startNewConn() (*Conn, error) {
+	conn, err := db.newConn()
+	if err != nil {
+		return nil, err
+	}
+
+	conn.pushTimestamp = time.Now().Unix()
+	conn.checkChannel = make(chan int64)
+	db.newCheckConn(conn.checkChannel)
+
+	return conn, nil
 }
 
 func (db *DB) Addr() string {
@@ -118,12 +146,6 @@ func (db *DB) State() string {
 		state = "unknow"
 	}
 	return state
-}
-
-func (db *DB) IdleConnCount() int {
-	db.RLock()
-	defer db.RUnlock()
-	return len(db.idleConns)
 }
 
 func (db *DB) ConnCount() (int,int,int64,int64) {
@@ -210,6 +232,7 @@ func (db *DB) closeConn(co *Conn) error {
 		if conns != nil {
 			select {
 			case conns <- co:
+				atomic.AddInt64(&db.pushConnCount, 1)
 				return nil
 			default:
 				return nil
@@ -300,7 +323,7 @@ func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
 	var err error
 	select {
 	case co = <-idleConns:
-		err = co.Connect(db.addr, db.user, db.password, db.db)
+		co, err := db.startNewConn()
 		if err != nil {
 			db.closeConn(co)
 			return nil, err
@@ -335,6 +358,7 @@ func (db *DB) PushConn(co *Conn, err error) {
 		return
 	}
 	co.pushTimestamp = time.Now().Unix()
+	co.checkChannel <- co.pushTimestamp 
 	select {
 	case conns <- co:
 		atomic.AddInt64(&db.pushConnCount, 1)
