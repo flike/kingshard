@@ -352,7 +352,6 @@ func (c *Conn) Ping() error {
 	}
 
 	c.pushTimestamp = time.Now().Unix()
-	c.checkChannel <- c.pushTimestamp 
 
 	return nil
 }

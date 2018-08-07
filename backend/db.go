@@ -97,6 +97,7 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 		} else {
 			conn := new(Conn)
 			db.idleConns <- conn
+			atomic.AddInt64(&db.pushConnCount, 1)
 		}
 	}
 	db.SetLastPing()
@@ -112,6 +113,7 @@ func (db *DB) newCheckConn(ch chan int64) {
 			case <- time.After(time.Second * 60 * 5):
 				conn := new(Conn)
 				db.idleConns <- conn
+				atomic.AddInt64(&db.pushConnCount, 1)
 				return
 			}
 		}
@@ -201,14 +203,14 @@ func (db *DB) Ping() error {
 	if db.checkConn == nil {
 		db.checkConn, err = db.newConn()
 		if err != nil {
-			db.closeConn(db.checkConn)
+			db.checkConn.Close()
 			db.checkConn = nil
 			return err
 		}
 	}
 	err = db.checkConn.Ping()
 	if err != nil {
-		db.closeConn(db.checkConn)
+		db.checkConn.Close()
 		db.checkConn = nil
 		return err
 	}
