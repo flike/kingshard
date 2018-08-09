@@ -47,7 +47,10 @@ curl -X GET \
         "status": "up",
         "laste_ping": "2016-09-24 17:17:52 +0800 CST",
         "max_conn": 32,
-        "idle_conn": 8
+        "idle_conn": 8,
+        "cache_conn":12,
+        "push_conn_count":32,
+        "pop_conn_count":0
     },
     {
         "node": "node2",
@@ -56,7 +59,10 @@ curl -X GET \
         "status": "up",
         "laste_ping": "2016-09-24 17:17:52 +0800 CST",
         "max_conn": 32,
-        "idle_conn": 8
+        "idle_conn": 8,
+        "cache_conn":12,
+        "push_conn_count":32,
+        "pop_conn_count":0
     }
 ]
 ```
