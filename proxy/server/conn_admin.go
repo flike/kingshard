@@ -451,15 +451,20 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 		"LastPing",
 		"MaxConn",
 		"IdleConn",
+		"CacheConns",
+		"PushConnCount",
+		"PopConnCount",
 	}
 	var rows [][]string
 	const (
-		Column = 7
+		Column = 10
 	)
 
 	//var nodeRows [][]string
 	for name, node := range c.schema.nodes {
 		//"master"
+		idleConns,cacheConns,pushConnCount,popConnCount := node.Master.ConnCount()
+		
 		rows = append(
 			rows,
 			[]string{
@@ -469,11 +474,16 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 				node.Master.State(),
 				fmt.Sprintf("%v", time.Unix(node.Master.GetLastPing(), 0)),
 				strconv.Itoa(node.Cfg.MaxConnNum),
-				strconv.Itoa(node.Master.IdleConnCount()),
+				strconv.Itoa(idleConns),
+				strconv.Itoa(cacheConns),
+				strconv.FormatInt(pushConnCount, 10),
+				strconv.FormatInt(popConnCount, 10),
 			})
 		//"slave"
 		for _, slave := range node.Slave {
 			if slave != nil {
+				idleConns,cacheConns,pushConnCount,popConnCount := slave.ConnCount()
+
 				rows = append(
 					rows,
 					[]string{
@@ -483,7 +493,10 @@ func (c *ClientConn) handleShowNodeConfig() (*mysql.Resultset, error) {
 						slave.State(),
 						fmt.Sprintf("%v", time.Unix(slave.GetLastPing(), 0)),
 						strconv.Itoa(node.Cfg.MaxConnNum),
-						strconv.Itoa(slave.IdleConnCount()),
+						strconv.Itoa(idleConns),
+						strconv.Itoa(cacheConns),
+						strconv.FormatInt(pushConnCount, 10),
+						strconv.FormatInt(popConnCount, 10),
 					})
 			}
 		}
