@@ -16,19 +16,25 @@ package monitor
 
 import (
 	"net/http"
+	"time"
+	"strconv"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/flike/kingshard/proxy/server"
 	"github.com/flike/kingshard/core/golog"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Prometheus struct {
 	addr string
+	svr  *server.Server
 }
 
 //新建prometheus实例
-func NewPrometheus(addr string) (*Prometheus, error) {
+func NewPrometheus(addr string, svr *server.Server) (*Prometheus, error) {
 	prometheus := new(Prometheus)
 	prometheus.addr = addr
+	prometheus.svr  = svr
 
 	golog.Info("prometheus", "Run", "Prometheus running", 0,
 		"address",
@@ -39,7 +45,54 @@ func NewPrometheus(addr string) (*Prometheus, error) {
 
 //启动prometheus的http监控
 func (p *Prometheus) Run() {
+	data := p.svr.GetMonitorData()
+
+	for addr, data := range data {
+		label := make(map[string]string)
+
+		label["addr"] = addr
+		label["type"] = data["type"]
+
+		idleConn 	:= data["idleConn"]
+		maxConn 	:= data["maxConn"]
+
+		idleConnGauge := prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "idleConn",
+				Help: "the db idle connection",
+				ConstLabels: label,
+			},
+		)
+		prometheus.MustRegister(idleConnGauge)
+
+		maxConnGauge := prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "maxConn",
+				Help: "the max connection config",
+				ConstLabels: label,
+			},
+		)
+		prometheus.MustRegister(maxConnGauge)
+
+		go func() {
+			for {
+				idleConnValue, _ := strconv.ParseFloat(idleConn, 10)
+				idleConnGauge.Set(idleConnValue)
+				time.Sleep(5 * time.Second)
+			}
+		}()
+
+		go func() {
+			for {
+				maxConnValue, _ := strconv.ParseFloat(maxConn, 10)
+				maxConnGauge.Set(maxConnValue)
+				time.Sleep(5 * time.Second)
+			}
+		}()
+	}
+
 	mux := http.NewServeMux()
+
 	mux.Handle("/metrics", promhttp.Handler())
 	err := http.ListenAndServe(p.addr, mux)
 

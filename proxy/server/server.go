@@ -868,3 +868,30 @@ func (s *Server) UpdateConfig(newCfg *config.Config) {
 	//version update
 	s.configVer += 1
 }
+
+func (s *Server) GetMonitorData() map[string]map[string]string{
+	data := make(map[string]map[string]string)
+
+	// get all node's monitor data
+	for _, node := range s.nodes {
+		//get master monitor data
+		dbData := make(map[string]string)
+		dbData["idleConn"] 	= fmt.Sprintf("%d", node.Master.IdleConnCount())
+		dbData["maxConn"]	= fmt.Sprintf("%d", node.Cfg.MaxConnNum)
+		dbData["type"] 		= "master"
+
+		data[node.Master.Addr()] = dbData
+
+		//get all slave monitor data
+		for _, slaveNode := range node.Slave {
+			slaveDbData := make(map[string]string)
+			slaveDbData["idleConn"] = fmt.Sprintf("%d", slaveNode.IdleConnCount())
+			slaveDbData["maxConn"]	= fmt.Sprintf("%d", node.Cfg.MaxConnNum)
+			slaveDbData["type"] 	= "slave"
+
+			data[slaveNode.Addr()] = slaveDbData
+		}
+	}
+
+	return data
+}

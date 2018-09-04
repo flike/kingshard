@@ -114,7 +114,7 @@ func main() {
 		svr.Close()
 		return
 	}
-	prometheusSvr, err = monitor.NewPrometheus(cfg.PrometheusAddr)
+	prometheusSvr, err = monitor.NewPrometheus(cfg.PrometheusAddr, svr)
 	if err != nil {
 		golog.Error("main", "main", err.Error(), 0)
 		golog.GlobalSysLogger.Close()
