@@ -29,6 +29,7 @@ import (
 	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/proxy/server"
 	"github.com/flike/kingshard/web"
+	"github.com/flike/kingshard/monitor"
 )
 
 var configFile *string = flag.String("config", "/etc/ks.yaml", "kingshard config file")
@@ -97,6 +98,7 @@ func main() {
 
 	var svr *server.Server
 	var apiSvr *web.ApiServer
+	var prometheusSvr *monitor.Prometheus
 	svr, err = server.NewServer(cfg)
 	if err != nil {
 		golog.Error("main", "main", err.Error(), 0)
@@ -105,6 +107,14 @@ func main() {
 		return
 	}
 	apiSvr, err = web.NewApiServer(cfg, svr)
+	if err != nil {
+		golog.Error("main", "main", err.Error(), 0)
+		golog.GlobalSysLogger.Close()
+		golog.GlobalSqlLogger.Close()
+		svr.Close()
+		return
+	}
+	prometheusSvr, err = monitor.NewPrometheus(cfg.PrometheusAddr, svr)
 	if err != nil {
 		golog.Error("main", "main", err.Error(), 0)
 		golog.GlobalSysLogger.Close()
@@ -144,6 +154,7 @@ func main() {
 		}
 	}()
 	go apiSvr.Run()
+	go prometheusSvr.Run()
 	svr.Run()
 }
 
