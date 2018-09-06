@@ -849,7 +849,12 @@ func (s *Server) GetMonitorData() map[string]map[string]string{
 	for _, node := range s.nodes {
 		//get master monitor data
 		dbData := make(map[string]string)
-		dbData["idleConn"] 	= fmt.Sprintf("%d", node.Master.IdleConnCount())
+		idleConns,cacheConns,pushConnCount,popConnCount := node.Master.ConnCount()
+
+		dbData["idleConn"] 		= strconv.Itoa(idleConns)
+		dbData["cacheConns"] 	= strconv.Itoa(cacheConns)
+		dbData["pushConnCount"] = strconv.FormatInt(pushConnCount, 10)
+		dbData["popConnCount"] 	= strconv.FormatInt(popConnCount, 10)
 		dbData["maxConn"]	= fmt.Sprintf("%d", node.Cfg.MaxConnNum)
 		dbData["type"] 		= "master"
 
@@ -858,7 +863,12 @@ func (s *Server) GetMonitorData() map[string]map[string]string{
 		//get all slave monitor data
 		for _, slaveNode := range node.Slave {
 			slaveDbData := make(map[string]string)
-			slaveDbData["idleConn"] = fmt.Sprintf("%d", slaveNode.IdleConnCount())
+			idleConns,cacheConns,pushConnCount,popConnCount := slaveNode.ConnCount()
+			
+			slaveDbData["idleConn"] 		= strconv.Itoa(idleConns)
+			slaveDbData["cacheConns"] 		= strconv.Itoa(cacheConns)
+			slaveDbData["pushConnCount"] 	= strconv.FormatInt(pushConnCount, 10)
+			slaveDbData["popConnCount"] 	= strconv.FormatInt(popConnCount, 10)
 			slaveDbData["maxConn"]	= fmt.Sprintf("%d", node.Cfg.MaxConnNum)
 			slaveDbData["type"] 	= "slave"
 

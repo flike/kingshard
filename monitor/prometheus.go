@@ -28,6 +28,7 @@ import (
 type Prometheus struct {
 	addr string
 	svr  *server.Server
+	data map[string]string
 }
 
 //新建prometheus实例
@@ -35,6 +36,7 @@ func NewPrometheus(addr string, svr *server.Server) (*Prometheus, error) {
 	prometheus := new(Prometheus)
 	prometheus.addr = addr
 	prometheus.svr  = svr
+	prometheus.data = make(map[string]string)
 
 	golog.Info("prometheus", "Run", "Prometheus running", 0,
 		"address",
@@ -45,50 +47,37 @@ func NewPrometheus(addr string, svr *server.Server) (*Prometheus, error) {
 
 //启动prometheus的http监控
 func (p *Prometheus) Run() {
+	// 开始每秒钟获取一次数据
+	go func() {
+		for {
+			data := p.svr.GetMonitorData()
+		
+			for _, data := range data {
+				p.data["idleConn"] 		= data["idleConn"]
+				p.data["maxConn"]		= data["maxConn"]
+				p.data["cacheConns"]	= data["cacheConns"]
+				p.data["pushConnCount"] = data["pushConnCount"]
+				p.data["popConnCount"]  = data["popConnCount"]
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	//设置标签及注册
 	data := p.svr.GetMonitorData()
 
-	for addr, data := range data {
-		label := make(map[string]string)
+	label := make(map[string]string)
 
+	for addr, data := range data {
 		label["addr"] = addr
 		label["type"] = data["type"]
 
-		idleConn 	:= data["idleConn"]
-		maxConn 	:= data["maxConn"]
-
-		idleConnGauge := prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Name: "idleConn",
-				Help: "the db idle connection",
-				ConstLabels: label,
-			},
-		)
-		prometheus.MustRegister(idleConnGauge)
-
-		maxConnGauge := prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Name: "maxConn",
-				Help: "the max connection config",
-				ConstLabels: label,
-			},
-		)
-		prometheus.MustRegister(maxConnGauge)
-
-		go func() {
-			for {
-				idleConnValue, _ := strconv.ParseFloat(idleConn, 10)
-				idleConnGauge.Set(idleConnValue)
-				time.Sleep(5 * time.Second)
-			}
-		}()
-
-		go func() {
-			for {
-				maxConnValue, _ := strconv.ParseFloat(maxConn, 10)
-				maxConnGauge.Set(maxConnValue)
-				time.Sleep(5 * time.Second)
-			}
-		}()
+		p.addGauge("idleConn", "the db idle connection", label)
+		p.addGauge("cacheConns", "the db cache connection", label)
+		p.addGauge("pushConnCount", "the db pushConnCount", label)
+		p.addGauge("popConnCount", "the db popConnCount", label)
+		p.addGauge("maxConn", "the max connection config", label)
 	}
 
 	mux := http.NewServeMux()
@@ -99,4 +88,24 @@ func (p *Prometheus) Run() {
 	if err != nil {
 		golog.Error("prometheus", "Run", err.Error(), 0)
 	}
+}
+
+func (p *Prometheus) addGauge(name string, help string, label map[string]string) {
+	gauge := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: name,
+			Help: help,
+			ConstLabels: label,
+		},
+	)
+
+	prometheus.MustRegister(gauge)
+
+	go func() {
+		for {
+			floatValue, _ := strconv.ParseFloat(p.data[name], 10)
+			gauge.Set(floatValue)
+			time.Sleep(5 * time.Second)
+		}
+	}()
 }
