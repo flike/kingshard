@@ -68,7 +68,9 @@ func (n *Node) GetMasterConn() (*BackendConn, error) {
 	if db == nil {
 		return nil, errors.ErrNoMasterConn
 	}
-	if atomic.LoadInt32(&(db.state)) == Down {
+
+	// ManualDown, Unknown are also not acceptable.
+	if atomic.LoadInt32(&(db.state)) != Up {
 		return nil, errors.ErrMasterDown
 	}
 
@@ -86,13 +88,17 @@ func (n *Node) GetSlaveConn() (*BackendConn, error) {
 	if db == nil {
 		return nil, errors.ErrNoSlaveDB
 	}
-	if atomic.LoadInt32(&(db.state)) == Down {
+	if atomic.LoadInt32(&(db.state)) != Up {
 		return nil, errors.ErrSlaveDown
 	}
 
 	return db.GetConn()
 }
 
+// checkMaster
+// 1. assume Master == nil, after admin DownMaster, so skip check
+// 2. in normal condition, Master should never be not nil, even if db is down, so UpMaster should not called by checkMaster
+//
 func (n *Node) checkMaster() {
 	db := n.Master
 	if db == nil {
@@ -103,14 +109,6 @@ func (n *Node) checkMaster() {
 	if err := db.Ping(); err != nil {
 		golog.Error("Node", "checkMaster", "Ping", 0, "db.Addr", db.Addr(), "error", err.Error())
 	} else {
-		if atomic.LoadInt32(&(db.state)) == Down {
-			golog.Info("Node", "checkMaster", "Master up", 0, "db.Addr", db.Addr())
-			err := n.UpMaster(db.addr)
-			if err != nil {
-				golog.Error("Node", "checkMaster", "UpMaster", 0, "db.Addr", db.Addr(), "error", err.Error())
-				return
-			}
-		}
 		db.SetLastPing()
 		if atomic.LoadInt32(&(db.state)) != ManualDown {
 			atomic.StoreInt32(&(db.state), Up)
@@ -122,7 +120,8 @@ func (n *Node) checkMaster() {
 		golog.Info("Node", "checkMaster", "Master down", 0,
 			"db.Addr", db.Addr(),
 			"Master_down_time", int64(n.DownAfterNoAlive/time.Second))
-		n.DownMaster(db.addr, Down)
+		// n.DownMaster(db.addr, Down)
+		atomic.StoreInt32(&(db.state), Down)
 	}
 }
 
@@ -254,6 +253,7 @@ func (n *Node) UpDB(addr string) (*DB, error) {
 	return db, nil
 }
 
+// used for admin only
 func (n *Node) UpMaster(addr string) error {
 	db, err := n.UpDB(addr)
 	if err != nil {
@@ -264,6 +264,7 @@ func (n *Node) UpMaster(addr string) error {
 	return err
 }
 
+// used for admin only
 func (n *Node) UpSlave(addr string) error {
 	db, err := n.UpDB(addr)
 	if err != nil {
@@ -284,6 +285,7 @@ func (n *Node) UpSlave(addr string) error {
 	return err
 }
 
+// used for admin only
 func (n *Node) DownMaster(addr string, state int32) error {
 	db := n.Master
 	if db == nil || db.addr != addr {
@@ -291,10 +293,12 @@ func (n *Node) DownMaster(addr string, state int32) error {
 	}
 
 	db.Close()
+	n.Master = nil
 	atomic.StoreInt32(&(db.state), state)
 	return nil
 }
 
+// used for admin only
 func (n *Node) DownSlave(addr string, state int32) error {
 	n.RLock()
 	if n.Slave == nil {
