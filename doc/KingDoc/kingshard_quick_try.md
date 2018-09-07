@@ -82,23 +82,52 @@
 ```
 
     # server listen addr
-    addr : 127.0.0.1:9696
+    addr : 0.0.0.0:9696
+
+    # prometheus server listen addr
+    prometheus_addr : 0.0.0.0:7080
 
     # server user and password
-    user :  kingshard
-    password : kingshard
-	# the web api server
+    user_list:
+    -
+        user :  root
+        password : root
+    -
+        user :  kingshard
+        password : kingshard
+
+    # the web api server
     web_addr : 0.0.0.0:9797
     #HTTP Basic Auth
     web_user : admin
     web_password : admin
 
+    # if set log_path, the sql log will write into log_path/sql.log,the system log
+    # will write into log_path/sys.log
+    #log_path : /Users/flike/log
+
     # log level[debug|info|warn|error],default error
     log_level : debug
+
+    # if set log_sql(on|off) off,the sql log will not output
+    log_sql: on
+    
+    # only log the query that take more than slow_log_time ms
+    #slow_log_time : 100
+
+    # the path of blacklist sql file
+    # all these sqls in the file will been forbidden by kingshard
+    #blacklist_sql_file: /Users/flike/blacklist
+
     # only allow this ip list ip to connect kingshard
-    #allow_ips: 127.0.0.1
+    #allow_ips : 127.0.0.1,192.168.0.14
+
+    # the charset of kingshard, if you don't set this item
+    # the default charset of kingshard is utf8.
+    #proxy_charset: gbk
 
     # node is an agenda for real remote mysql server.
+
     nodes :
     -
         name : node1
@@ -138,8 +167,10 @@
         # 0 will no down
         down_after_noalive: 100
 
-    # schema defines which db can be used by client and this db's sql will be executed in which nodes
-    schema :
+    # schema defines sharding rules, the db is the sharding table database. 
+    schema_list :
+    -   
+        user: kingshard
         nodes: [node1,node2]
 		default: node1
         shard:

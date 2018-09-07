@@ -49,6 +49,9 @@ type DB struct {
 	cacheConns  chan *Conn
 	checkConn   *Conn
 	lastPing    int64
+
+	pushConnCount    int64
+	popConnCount     int64
 }
 
 func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB, error) {
@@ -84,20 +87,36 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 	for i := 0; i < db.maxConnNum; i++ {
 		if i < db.InitConnNum {
 			conn, err := db.newConn()
+
 			if err != nil {
 				db.Close()
 				return nil, err
 			}
-			conn.pushTimestamp = time.Now().Unix()
+
 			db.cacheConns <- conn
+			atomic.AddInt64(&db.pushConnCount, 1)
 		} else {
 			conn := new(Conn)
 			db.idleConns <- conn
+			atomic.AddInt64(&db.pushConnCount, 1)
 		}
 	}
 	db.SetLastPing()
 
 	return db, nil
+}
+
+func (db *DB) newCheckConn(conn *Conn) {
+	go func() {
+		select {
+		case <- conn.checkChannel:
+		case <- time.After(time.Second * 60 * 5):
+			conn := new(Conn)
+			db.idleConns <- conn
+			atomic.AddInt64(&db.pushConnCount, 1)
+			return
+		}
+	}()
 }
 
 func (db *DB) Addr() string {
@@ -117,10 +136,10 @@ func (db *DB) State() string {
 	return state
 }
 
-func (db *DB) IdleConnCount() int {
+func (db *DB) ConnCount() (int,int,int64,int64) {
 	db.RLock()
 	defer db.RUnlock()
-	return len(db.cacheConns)
+	return len(db.idleConns),len(db.cacheConns),db.pushConnCount,db.popConnCount
 }
 
 func (db *DB) Close() error {
@@ -170,14 +189,14 @@ func (db *DB) Ping() error {
 	if db.checkConn == nil {
 		db.checkConn, err = db.newConn()
 		if err != nil {
-			db.closeConn(db.checkConn)
+			db.checkConn.Close()
 			db.checkConn = nil
 			return err
 		}
 	}
 	err = db.checkConn.Ping()
 	if err != nil {
-		db.closeConn(db.checkConn)
+		db.checkConn.Close()
 		db.checkConn = nil
 		return err
 	}
@@ -191,6 +210,9 @@ func (db *DB) newConn() (*Conn, error) {
 		return nil, err
 	}
 
+	co.pushTimestamp = time.Now().Unix()
+	co.checkChannel = make(chan int64)
+
 	return co, nil
 }
 
@@ -201,6 +223,8 @@ func (db *DB) closeConn(co *Conn) error {
 		if conns != nil {
 			select {
 			case conns <- co:
+				co.checkChannel <- co.pushTimestamp
+				atomic.AddInt64(&db.pushConnCount, 1)
 				return nil
 			default:
 				return nil
@@ -263,6 +287,9 @@ func (db *DB) PopConn() (*Conn, error) {
 		return nil, err
 	}
 
+	atomic.AddInt64(&db.popConnCount, 1)
+	// add check conn
+	db.newCheckConn(co)
 	return co, nil
 }
 
@@ -290,7 +317,7 @@ func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
 	var err error
 	select {
 	case co = <-idleConns:
-		err = co.Connect(db.addr, db.user, db.password, db.db)
+		co, err := db.newConn()
 		if err != nil {
 			db.closeConn(co)
 			return nil, err
@@ -327,6 +354,8 @@ func (db *DB) PushConn(co *Conn, err error) {
 	co.pushTimestamp = time.Now().Unix()
 	select {
 	case conns <- co:
+		co.checkChannel <- co.pushTimestamp 
+		atomic.AddInt64(&db.pushConnCount, 1)
 		return
 	default:
 		db.closeConn(co)

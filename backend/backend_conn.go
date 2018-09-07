@@ -50,6 +50,7 @@ type Conn struct {
 	salt      []byte
 
 	pushTimestamp int64
+	checkChannel  chan int64
 	pkgErr        error
 }
 
@@ -349,6 +350,8 @@ func (c *Conn) Ping() error {
 	if _, err := c.readOK(); err != nil {
 		return err
 	}
+
+	c.pushTimestamp = time.Now().Unix()
 
 	return nil
 }
