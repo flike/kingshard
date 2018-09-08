@@ -21,7 +21,7 @@ cd prometheus-*
 
 [完整配置文档](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)
 
-kingshard暴露了9708端口作为prometheus的抓取地址，因此通过http://localhost:8080/metrics可以获取到相关监控项，端口可在配置文件进行变更。
+kingshard暴露了9708端口作为prometheus的抓取地址，因此通过`http://localhost:8080/metrics`可以获取到相关监控项，端口可在配置文件进行变更。
 
 ## 启动
 
