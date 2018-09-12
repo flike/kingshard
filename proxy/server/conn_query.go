@@ -181,9 +181,10 @@ func (c *ClientConn) getShardConns(fromSlave bool, plan *router.Plan) (map[strin
 			return nil, errors.ErrTransInMulti
 		}
 		//exec in multi node
-		if len(c.txConns) == 1 && c.txConns[nodes[0]] == nil {
-			return nil, errors.ErrTransInMulti
-		}
+		//bugfix
+		//if len(c.txConns) == 1 && c.txConns[nodes[0]] == nil {
+		//	return nil, errors.ErrTransInMulti
+		//}
 	}
 	conns := make(map[string]*backend.BackendConn)
 	var co *backend.BackendConn
