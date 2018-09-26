@@ -15,6 +15,7 @@
 package monitor
 
 import (
+	"sync"
 	"net/http"
 	"time"
 	"strconv"
@@ -28,7 +29,7 @@ import (
 type Prometheus struct {
 	addr string
 	svr  *server.Server
-	data map[string]string
+	data sync.Map
 }
 
 //新建prometheus实例
@@ -36,13 +37,12 @@ func NewPrometheus(addr string, svr *server.Server) (*Prometheus, error) {
 	prometheus := new(Prometheus)
 	prometheus.addr = addr
 	prometheus.svr  = svr
-	prometheus.data = make(map[string]string)
 
 	golog.Info("prometheus", "Run", "Prometheus running", 0,
 		"address",
 		addr)
 
-	return prometheus, nil
+	return prometheus, nil 
 }
 
 //启动prometheus的http监控
@@ -53,11 +53,11 @@ func (p *Prometheus) Run() {
 			data := p.svr.GetMonitorData()
 		
 			for _, data := range data {
-				p.data["idleConn"] 		= data["idleConn"]
-				p.data["maxConn"]		= data["maxConn"]
-				p.data["cacheConns"]	= data["cacheConns"]
-				p.data["pushConnCount"] = data["pushConnCount"]
-				p.data["popConnCount"]  = data["popConnCount"]
+				p.data.Store("idleConn", data["idleConn"])
+				p.data.Store("maxConn", data["maxConn"])
+				p.data.Store("cacheConns", data["cacheConns"])
+				p.data.Store("pushConnCount", data["pushConnCount"])
+				p.data.Store("popConnCount", data["popConnCount"])
 			}
 
 			time.Sleep(1 * time.Second)
@@ -103,8 +103,14 @@ func (p *Prometheus) addGauge(name string, help string, label map[string]string)
 
 	go func() {
 		for {
-			floatValue, _ := strconv.ParseFloat(p.data[name], 10)
-			gauge.Set(floatValue)
+			pValueInterface, _ 	:= p.data.Load(name)
+			pValueString, ok 	:= pValueInterface.(string)
+			
+			if ok {
+				floatValue, _ := strconv.ParseFloat(pValueString, 10)
+				gauge.Set(floatValue)
+			}
+
 			time.Sleep(5 * time.Second)
 		}
 	}()
