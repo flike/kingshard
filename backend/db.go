@@ -245,9 +245,6 @@ func (db *DB) tryReuse(co *Conn) error {
 			db.Close()
 			return err
 		}
-	
-		db.cacheConns <- co
-		atomic.AddInt64(&db.pushConnCount, 1)
 	}
 
 	//reuse Connection
