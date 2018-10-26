@@ -548,7 +548,10 @@ func makeList(start, end int) []int {
 
 //if value is 2016, and indexs is [2015,2016,2017]
 //the result is [2015,2016]
-func makeLeList(value int, indexs []int) []int {
+func makeLeList(value int, inds []int) []int {
+	indexs := make([]int, len(inds))
+	copy(indexs, inds)
+
 	sort.Ints(indexs)
 	for k, v := range indexs {
 		if v == value {
@@ -560,7 +563,10 @@ func makeLeList(value int, indexs []int) []int {
 
 //if value is 2016, and indexs is [2015,2016,2017,2018]
 //the result is [2016,2017,2018]
-func makeGeList(value int, indexs []int) []int {
+func makeGeList(value int, inds []int) []int {
+	indexs := make([]int, len(inds))
+	copy(indexs, inds)
+
 	sort.Ints(indexs)
 	for k, v := range indexs {
 		if v == value {
