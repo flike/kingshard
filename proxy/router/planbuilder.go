@@ -552,7 +552,7 @@ func makeLeList(value int, indexs []int) []int {
 	newIndexs := make([]int, len(indexs))
 	copy(newIndexs, indexs)
 	sort.Ints(newIndexs)
-	for k, v := range indexs {
+	for k, v := range newIndexs {
 		if v == value {
 			return indexs[:k+1]
 		}
@@ -566,7 +566,7 @@ func makeGeList(value int, indexs []int) []int {
 	newIndexs := make([]int, len(indexs))
 	copy(newIndexs, indexs)
 	sort.Ints(newIndexs)
-	for k, v := range indexs {
+	for k, v := range newIndexs {
 		if v == value {
 			return indexs[k:]
 		}
@@ -580,7 +580,7 @@ func makeLtList(value int, indexs []int) []int {
 	newIndexs := make([]int, len(indexs))
 	copy(newIndexs, indexs)
 	sort.Ints(newIndexs)
-	for k, v := range indexs {
+	for k, v := range newIndexs {
 		if v == value {
 			return indexs[:k]
 		}
@@ -594,7 +594,7 @@ func makeGtList(value int, indexs []int) []int {
 	newIndexs := make([]int, len(indexs))
 	copy(newIndexs, indexs)
 	sort.Ints(newIndexs)
-	for k, v := range indexs {
+	for k, v := range newIndexs {
 		if v == value {
 			return indexs[k+1:]
 		}
@@ -614,7 +614,7 @@ func makeBetweenList(start, end int, indexs []int) []int {
 	newIndexs := make([]int, len(indexs))
 	copy(newIndexs, indexs)
 	sort.Ints(newIndexs)
-	for k, v := range indexs {
+	for k, v := range newIndexs {
 		if v == start {
 			startIndex = k
 			SetStart = true
