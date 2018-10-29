@@ -554,7 +554,7 @@ func makeLeList(value int, indexs []int) []int {
 	sort.Ints(newIndexs)
 	for k, v := range newIndexs {
 		if v == value {
-			return indexs[:k+1]
+			return newIndexs[:k+1]
 		}
 	}
 	return nil
@@ -568,7 +568,7 @@ func makeGeList(value int, indexs []int) []int {
 	sort.Ints(newIndexs)
 	for k, v := range newIndexs {
 		if v == value {
-			return indexs[k:]
+			return newIndexs[k:]
 		}
 	}
 	return nil
@@ -582,7 +582,7 @@ func makeLtList(value int, indexs []int) []int {
 	sort.Ints(newIndexs)
 	for k, v := range newIndexs {
 		if v == value {
-			return indexs[:k]
+			return newIndexs[:k]
 		}
 	}
 	return nil
@@ -596,7 +596,7 @@ func makeGtList(value int, indexs []int) []int {
 	sort.Ints(newIndexs)
 	for k, v := range newIndexs {
 		if v == value {
-			return indexs[k+1:]
+			return newIndexs[k+1:]
 		}
 	}
 	return nil
@@ -622,7 +622,7 @@ func makeBetweenList(start, end int, indexs []int) []int {
 		if v == end {
 			endIndex = k
 			if SetStart {
-				return indexs[startIndex : endIndex+1]
+				return newIndexs[startIndex : endIndex+1]
 			}
 		}
 	}
