@@ -546,75 +546,65 @@ func makeList(start, end int) []int {
 	return list
 }
 
+//indexes is sequential
 //if value is 2016, and indexs is [2015,2016,2017]
 //the result is [2015,2016]
-func makeLeList(value int, indexs []int) []int {
-	newIndexs := make([]int, len(indexs))
-	copy(newIndexs, indexs)
-	sort.Ints(newIndexs)
-	for k, v := range newIndexs {
+func makeLeList(value int, indexes []int) []int {
+	for k, v := range indexes {
 		if v == value {
-			return newIndexs[:k+1]
+			return indexes[:k+1]
 		}
 	}
 	return nil
 }
 
+//indexes is sequential
 //if value is 2016, and indexs is [2015,2016,2017,2018]
 //the result is [2016,2017,2018]
-func makeGeList(value int, indexs []int) []int {
-	newIndexs := make([]int, len(indexs))
-	copy(newIndexs, indexs)
-	sort.Ints(newIndexs)
-	for k, v := range newIndexs {
+func makeGeList(value int, indexes []int) []int {
+	for k, v := range indexes {
 		if v == value {
-			return newIndexs[k:]
+			return indexes[k:]
 		}
 	}
 	return nil
 }
 
+//indexes is sequential
 //if value is 2016, and indexs is [2015,2016,2017,2018]
 //the result is [2015]
-func makeLtList(value int, indexs []int) []int {
-	newIndexs := make([]int, len(indexs))
-	copy(newIndexs, indexs)
-	sort.Ints(newIndexs)
-	for k, v := range newIndexs {
+func makeLtList(value int, indexes []int) []int {
+	for k, v := range indexes {
 		if v == value {
-			return newIndexs[:k]
+			return indexes[:k]
 		}
 	}
 	return nil
 }
 
+//indexes is sequential
 //if value is 2016, and indexs is [2015,2016,2017,2018]
 //the result is [2017,2018]
-func makeGtList(value int, indexs []int) []int {
-	newIndexs := make([]int, len(indexs))
-	copy(newIndexs, indexs)
-	sort.Ints(newIndexs)
-	for k, v := range newIndexs {
+func makeGtList(value int, indexes []int) []int {
+	for k, v := range indexes {
 		if v == value {
-			return newIndexs[k+1:]
+			return indexes[k+1:]
 		}
 	}
 	return nil
 }
 
+//indexes is sequential
 //if start is 2016, end is 2017. indexs is [2015,2016,2017,2018]
 //the result is [2016,2017]
-func makeBetweenList(start, end int, indexs []int) []int {
+func makeBetweenList(start, end int, indexes []int) []int {
 	var startIndex, endIndex int
 	var SetStart bool
 	if end < start {
 		start, end = end, start
 	}
 
-	newIndexs := make([]int, len(indexs))
-	copy(newIndexs, indexs)
-	sort.Ints(newIndexs)
-	for k, v := range newIndexs {
+	for k, v := range indexes {
 		if v == start {
 			startIndex = k
 			SetStart = true
@@ -622,7 +612,7 @@ func makeBetweenList(start, end int, indexs []int) []int {
 		if v == end {
 			endIndex = k
 			if SetStart {
-				return newIndexs[startIndex : endIndex+1]
+				return indexes[startIndex : endIndex+1]
 			}
 		}
 	}

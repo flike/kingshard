@@ -160,6 +160,33 @@ schema_list :
 		panic(err)
 	}
 
+	//check subtableindexs
+	indexes1 := r.Rules["kingshard"]["test1"].SubTableIndexs
+	expect1 := makeList(0, 12)
+	if isListEqual(indexes1, expect1) == false {
+		panic(fmt.Sprintf("list not equal,indexs1:%v,expect:%v", indexes1, expect1))
+	}
+
+	indexes2 := r.Rules["kingshard"]["test2"].SubTableIndexs
+	expect2 := makeList(0, 12)
+	if isListEqual(indexes2, expect2) == false {
+		panic(fmt.Sprintf("list not equal,indexs2:%v,expect:%v", indexes2, expect2))
+	}
+
+	indexes3 := r.Rules["kingshard"]["test_shard_month"].SubTableIndexs
+	//201512-201603,201604-201608
+	expect3 := []int{201512, 201601, 201602, 201603, 201604, 201605, 201606, 201607, 201608}
+	if isListEqual(indexes3, expect3) == false {
+		panic(fmt.Sprintf("list not equal,indexs3:%v,expect:%v", indexes3, expect3))
+	}
+
+	indexes4 := r.Rules["kingshard"]["test_shard_year"].SubTableIndexs
+	//2012-2015,2016-2018
+	expect4 := []int{2012, 2013, 2014, 2015, 2016, 2017, 2018}
+	if isListEqual(indexes4, expect4) == false {
+		panic(fmt.Sprintf("list not equal,indexs2:%v,expect:%v", indexes4, expect4))
+	}
+
 	return r
 }
 
@@ -239,7 +266,63 @@ schema_list:
 
 }
 
-func newTestDBRule() *Router {
+func newTestDBRule(s string) *Router {
+	cfg, err := config.ParseConfigData([]byte(s))
+	if err != nil {
+		println(err.Error())
+		panic(err)
+	}
+
+	var r *Router
+
+	r, err = NewRouter(&cfg.SchemaList[0])
+	if err != nil {
+		println(err.Error())
+		panic(err)
+	}
+
+	return r
+}
+
+func TestSubTableIndexsOrder(t *testing.T) {
+	var s = `
+schema_list :
+-
+  nodes: [node1,node2,node3,node4,node5,node6,node7,node8,node9,node10]
+  default: node1
+  shard:
+    -
+      db: kingshard
+      table: test1
+      key: id
+      nodes: [node1,node2,node3]
+      locations: [1,2,3]
+      type: hash
+
+    -
+      db: kingshard
+      table: test_shard_day
+      key: date
+      type: date_day
+      nodes: [node2, node3]
+      date_range: [20151201-20151205,20160212-20160215]
+`
+	r := newTestDBRule(s)
+
+	indexes1 := r.Rules["kingshard"]["test1"].SubTableIndexs
+	expect1 := []int{0, 1, 2, 3, 4, 5}
+	if isListEqual(indexes1, expect1) == false {
+		t.Fatalf("list not equal,indexs:%v,expect:%v", indexes1, expect1)
+	}
+
+	indexes2 := r.Rules["kingshard"]["test_shard_day"].SubTableIndexs
+	expect2 := []int{20151201, 20151202, 20151203, 20151204, 20151205, 20160212, 20160213, 20160214, 20160215}
+	if isListEqual(indexes2, expect2) == false {
+		t.Fatalf("list not equal,indexs:%v,expect:%v", indexes2, expect2)
+	}
+}
+
+func TestBadUpdateExpr(t *testing.T) {
 	var s = `
 schema_list :
 -
@@ -263,28 +346,9 @@ schema_list :
       locations: [8,8,8]
       table_row_limit: 100
 `
-
-	cfg, err := config.ParseConfigData([]byte(s))
-	if err != nil {
-		println(err.Error())
-		panic(err)
-	}
-
-	var r *Router
-
-	r, err = NewRouter(&cfg.SchemaList[0])
-	if err != nil {
-		println(err.Error())
-		panic(err)
-	}
-
-	return r
-}
-
-func TestBadUpdateExpr(t *testing.T) {
 	var sql string
 	var db string
-	r := newTestDBRule()
+	r := newTestDBRule(s)
 	db = "kingshard"
 	sql = "insert into test1 (id) values (5) on duplicate key update  id = 10"
 

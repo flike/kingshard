@@ -43,7 +43,7 @@ type Rule struct {
 
 	Type           string
 	Nodes          []string
-	SubTableIndexs []int       //SubTableIndexs store all the index of sharding sub-table
+	SubTableIndexs []int       //SubTableIndexs store all the index of sharding sub-table,sequential
 	TableToNode    map[int]int //key is table index, and value is node index
 	Shard          Shard
 }
