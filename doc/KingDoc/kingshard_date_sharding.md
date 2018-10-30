@@ -138,7 +138,7 @@ schema_list :
 - `test_shard_year_2015, test_shard_year_2016`两个子表落在node1上，`test_shard_year_2017，test_shard_year_2018`两个子表落在node2上。
 - 如果你一个node上只包含一张子表，你可以这样配置`date_range[2015,2017-2018]`。
 
-注意：子表的命名格式必须是:shard_table_YYYY,shard_table是分表名，后面接具体的年。
+注意：子表的命名格式必须是:shard_table_YYYY,shard_table是分表名，后面接具体的年。**传入范围必须是有序递增的,不能是[2016,2013-2014]**
 
 #### 3.1.2 功能演示
 在node1上创建两张子表`test_shard_year_2015, test_shard_year_2016`，在node2上创建两种子表`test_shard_year_2017，test_shard_year_2018`。建表SQL如下
@@ -234,7 +234,7 @@ mysql> select * from test_shard_year where id = 1457410310;
 - `test_shard_month_201512, test_shard_month_201601, test_shard_month_201602`两个子表落在node1上，`test_shard_month_201609，test_shard_month_201610`两个子表落在node2上。
 - 如果你一个node上只包含一张子表，你可以这样配置`date_range[201501,201609-201610]`。
 
-注意：子表的命名格式必须是:`shard_table_YYYYMM,shard_table`是分表名，后面接具体的年和月。
+注意：子表的命名格式必须是:`shard_table_YYYYMM,shard_table`是分表名，后面接具体的年和月。**传入范围必须是有序递增的,不能是[201609-201610,201501]**
 
 功能演示参考按年分表的操作。
 
@@ -257,6 +257,6 @@ mysql> select * from test_shard_year where id = 1457410310;
 - `test_shard_day_20151222, test_shard_day_20151223, test_shard_day_20151224`两个子表落在node1上，`test_shard_day_20160901，test_shard_day_20160902`两个子表落在node2上。
 - 如果你一个node上只包含一张子表，你可以这样配置`date_range[20150101,20160901-20161010]`。
 
-注意：子表的命名格式必须是:`shard_table_YYYYMMDD,shard_table`是分表名，后面接具体的年,月和日。
+注意：子表的命名格式必须是:`shard_table_YYYYMMDD,shard_table`是分表名，后面接具体的年,月和日。**传入范围必须是有序递增的,不能是[20160901-20161010,20150101]**
 
 功能演示参考按年分表的操作。
