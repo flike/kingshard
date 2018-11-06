@@ -223,7 +223,6 @@ func (db *DB) closeConn(co *Conn) error {
 		if conns != nil {
 			select {
 			case conns <- co:
-				co.checkChannel <- co.pushTimestamp
 				atomic.AddInt64(&db.pushConnCount, 1)
 				return nil
 			default:
@@ -236,6 +235,18 @@ func (db *DB) closeConn(co *Conn) error {
 
 func (db *DB) tryReuse(co *Conn) error {
 	var err error
+
+	err = co.Ping()
+	if err != nil {
+		db.closeConn(co)
+		co, err = db.newConn()
+	
+		if err != nil {
+			db.Close()
+			return err
+		}
+	}
+
 	//reuse Connection
 	if co.IsInTransaction() {
 		//we can not reuse a connection in transaction status

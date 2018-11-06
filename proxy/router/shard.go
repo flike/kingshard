@@ -102,13 +102,13 @@ func NumValue(value interface{}) int64 {
 		return int64(val)
 	case string:
 		if v, err := strconv.ParseInt(val, 10, 64); err != nil {
-			panic(NewKeyError("invalid num format %s", v))
+			panic(NewKeyError("invalid num format %v", v))
 		} else {
 			return v
 		}
 	case []byte:
 		if v, err := strconv.ParseInt(hack.String(val), 10, 64); err != nil {
-			panic(NewKeyError("invalid num format %s", v))
+			panic(NewKeyError("invalid num format %v", v))
 		} else {
 			return v
 		}
@@ -177,7 +177,7 @@ func (s *DateYearShard) FindForKey(key interface{}) (int, error) {
 		return tm.Year(), nil
 	case string:
 		if v, err := strconv.Atoi(val[:4]); err != nil {
-			panic(NewKeyError("invalid num format %s", v))
+			panic(NewKeyError("invalid num format %v", v))
 		} else {
 			return v, nil
 		}

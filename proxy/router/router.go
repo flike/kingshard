@@ -43,7 +43,7 @@ type Rule struct {
 
 	Type           string
 	Nodes          []string
-	SubTableIndexs []int       //SubTableIndexs store all the index of sharding sub-table
+	SubTableIndexs []int       //SubTableIndexs store all the index of sharding sub-table,sequential
 	TableToNode    map[int]int //key is table index, and value is node index
 	Shard          Shard
 }
@@ -192,6 +192,10 @@ func parseRule(cfg *config.ShardConfig) (*Rule, error) {
 			if err != nil {
 				return nil, err
 			}
+			currIndexLen := len(r.SubTableIndexs)
+			if currIndexLen > 0 && r.SubTableIndexs[currIndexLen-1] >= dayNumbers[0] {
+				return nil, errors.ErrDateIllegal
+			}
 			for _, v := range dayNumbers {
 				r.SubTableIndexs = append(r.SubTableIndexs, v)
 				r.TableToNode[v] = i
@@ -206,6 +210,10 @@ func parseRule(cfg *config.ShardConfig) (*Rule, error) {
 			if err != nil {
 				return nil, err
 			}
+			currIndexLen := len(r.SubTableIndexs)
+			if currIndexLen > 0 && r.SubTableIndexs[currIndexLen-1] >= monthNumbers[0] {
+				return nil, errors.ErrDateIllegal
+			}
 			for _, v := range monthNumbers {
 				r.SubTableIndexs = append(r.SubTableIndexs, v)
 				r.TableToNode[v] = i
@@ -219,6 +227,10 @@ func parseRule(cfg *config.ShardConfig) (*Rule, error) {
 			yearNumbers, err := ParseYearRange(cfg.DateRange[i])
 			if err != nil {
 				return nil, err
+			}
+			currIndexLen := len(r.SubTableIndexs)
+			if currIndexLen > 0 && r.SubTableIndexs[currIndexLen-1] >= yearNumbers[0] {
+				return nil, errors.ErrDateIllegal
 			}
 			for _, v := range yearNumbers {
 				r.TableToNode[v] = i

@@ -26,10 +26,9 @@ import (
 
 	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/core/golog"
-	"github.com/flike/kingshard/core/hack"
+	"github.com/flike/kingshard/monitor"
 	"github.com/flike/kingshard/proxy/server"
 	"github.com/flike/kingshard/web"
-	"github.com/flike/kingshard/monitor"
 )
 
 var configFile *string = flag.String("config", "/etc/ks.yaml", "kingshard config file")
@@ -40,6 +39,11 @@ const (
 	sqlLogName = "sql.log"
 	sysLogName = "sys.log"
 	MaxLogSize = 1024 * 1024 * 1024
+)
+
+var (
+	BuildDate    string
+	BuildVersion string
 )
 
 const banner string = `
@@ -55,8 +59,8 @@ func main() {
 	fmt.Print(banner)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
-	fmt.Printf("Git commit:%s\n", hack.Version)
-	fmt.Printf("Build time:%s\n", hack.Compile)
+	fmt.Printf("Git commit:%s\n", BuildVersion)
+	fmt.Printf("Build time:%s\n", BuildDate)
 	if *version {
 		return
 	}
