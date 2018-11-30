@@ -189,15 +189,19 @@ func (db *DB) Ping() error {
 	if db.checkConn == nil {
 		db.checkConn, err = db.newConn()
 		if err != nil {
-			db.checkConn.Close()
-			db.checkConn = nil
+			if db.checkConn != nil {
+				db.checkConn.Close()
+				db.checkConn = nil
+			}
 			return err
 		}
 	}
 	err = db.checkConn.Ping()
 	if err != nil {
-		db.checkConn.Close()
-		db.checkConn = nil
+		if db.checkConn != nil{
+			db.checkConn.Close()
+			db.checkConn = nil
+		}
 		return err
 	}
 	return nil
