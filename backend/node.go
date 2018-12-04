@@ -252,6 +252,8 @@ func (n *Node) UpMaster(addr string) error {
 	db, err := n.UpDB(addr)
 	if err != nil {
 		golog.Error("Node", "UpMaster", err.Error(), 0)
+		// 报错时，db返回nil，不能继续往下赋值，否则导致后续逻辑空指针引用
+		return err
 	}
 	n.Master = db
 	return err
@@ -261,6 +263,8 @@ func (n *Node) UpSlave(addr string) error {
 	db, err := n.UpDB(addr)
 	if err != nil {
 		golog.Error("Node", "UpSlave", err.Error(), 0)
+		// 报错时，db返回nil，不能继续往下赋值，否则导致后续逻辑空指针引用
+		return err
 	}
 
 	n.Lock()
