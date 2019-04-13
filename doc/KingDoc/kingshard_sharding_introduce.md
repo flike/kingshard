@@ -46,8 +46,8 @@ kingshard采用（shardKey%子表个数）的方式得到子表下标。优点�
             nodes: [node1, node2]
             #sharding类型
             type: hash
-            #子表个数分布，表示[test_shard_hash_0000, test_shard_hash_0001, test_shard_hash_0002, test_shard_hash_003]在node1上。
-            #[test_shard_hash_0004, test_shard_hash_0005, test_shard_hash_0006, test_shard_hash_007]在node2上
+            #子表个数分布，表示[test_shard_hash_0000, test_shard_hash_0001, test_shard_hash_0002, test_shard_hash_0003]在node1上。
+            #[test_shard_hash_0004, test_shard_hash_0005, test_shard_hash_0006, test_shard_hash_0007]在node2上
             locations: [4,4]
 
         -   
@@ -61,8 +61,8 @@ kingshard采用（shardKey%子表个数）的方式得到子表下标。优点�
             type: range
             #子表分布的节点名字
             nodes: [node1, node2]
-            #子表个数分布，表示[test_shard_range_0000, test_shard_range_0001, test_shard_range_0002, test_shard_range_003]在node1上。
-            #[test_shard_range_0004, test_shard_range_0005, test_shard_range_0006, test_shard_range_007]在node2上
+            #子表个数分布，表示[test_shard_range_0000, test_shard_range_0001, test_shard_range_0002, test_shard_range_0003]在node1上。
+            #[test_shard_range_0004, test_shard_range_0005, test_shard_range_0006, test_shard_range_0007]在node2上
             locations: [4,4]
             #每张子表的记录数。[0,10000)在test_shard_range_0000上，[10000,20000)在test_shard_range_0001上。....
             table_row_limit: 10000
