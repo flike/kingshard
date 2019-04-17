@@ -217,7 +217,7 @@
 
 ### 创建分表
 
-创建test_shard_hash分表(_0000~_0007), _0001~_0003在node1(mysqld2)上创建, _0004~_0007在node2(mysqld3)上创建。
+创建test_shard_hash分表(_0000~_0007), _0000~_0003在node1(mysqld2)上创建, _0004~_0007在node2(mysqld3)上创建。
 
     for i in `seq 0 3`;do /usr/bin/mysql -h 127.0.0.1 -P 3307 -u root -proot kingshard -e "CREATE TABLE IF NOT EXISTS test_shard_hash_000"${i}" ( id BIGINT(64) UNSIGNED  NOT NULL, str VARCHAR(256), f DOUBLE, e enum('test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7', 'test8', 'test9', 'test10'), u tinyint unsigned, i tinyint, ni tinyint, PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=utf8;";done
     for i in `seq 4 7`;do /usr/bin/mysql -h 127.0.0.1 -P 3308 -u root -proot kingshard -e "CREATE TABLE IF NOT EXISTS test_shard_hash_000"${i}" ( id BIGINT(64) UNSIGNED  NOT NULL, str VARCHAR(256), f DOUBLE, e enum('test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7', 'test8', 'test9', 'test10'), u tinyint unsigned, i tinyint, ni tinyint, PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=utf8;";done
