@@ -9,7 +9,7 @@
 然而kingshard较好地实现了这种典型的需求。简单来说，kingshard的分表方案采用两级映射的方式：
 
 	1.kingshard将该表分成512张子表，例如：test_0000,test_0001,...
-	test_511。
+	test_0511。
 	2.将shardKey通过hash或range方式定位到其要操作的记录在哪张子表上。
 	3.子表落在哪个node上通过配置文件设置。
 
