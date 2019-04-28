@@ -454,7 +454,7 @@ func (c *ClientConn) handleShowColumns(sql string, tokens []string,
 			i+2 < tokensLen {
 			if strings.ToLower(tokens[i+1]) == mysql.TK_STR_FROM {
 				// tableName := strings.Trim(tokens[i+2], "`")
-				DBName, tableName := sqlparser.GetDBTable(tokens[i+1])
+				DBName, tableName := sqlparser.GetDBTable(tokens[i+2])
 				if DBName != "" {
 					ruleDB = DBName
 				} else {
