@@ -454,7 +454,6 @@ func (c *ClientConn) handleShowColumns(sql string, tokens []string,
 			i+2 < tokensLen {
 			if strings.ToLower(tokens[i+1]) == mysql.TK_STR_FROM {
 				// tableName := strings.Trim(tokens[i+2], "`")
-				// Fixd bug , show full columns from `db.table`
 				DBName, tableName := sqlparser.GetDBTable(tokens[i+1])
 				if DBName != "" {
 					ruleDB = DBName
