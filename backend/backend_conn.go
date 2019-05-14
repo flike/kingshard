@@ -111,13 +111,18 @@ func (c *Conn) ReConnect() error {
 		return err
 	}
 
-	//we must always use autocommit
-	if !c.IsAutoCommit() {
-		if _, err := c.exec("set autocommit = 1"); err != nil {
-			c.conn.Close()
-
-			return err
-		}
+	// we must always use autocommit
+	// since there is a bug in MySQL,
+	//
+	// When the global 'autocommit' variable is 0, and client connects to server,
+	// the 'SERVER_STATUS_AUTOCOMMIT' bit is always set,
+	// even when it should not at this situation.
+	// This wrong status can affect how client handles transaction status.
+	// Please visit https://bugs.mysql.com/bug.php?id=87813 for more detail.
+	//
+	// Until the official fixes this bug, we set `autocommit=1` unconditionally.
+	if err := c.SetAutoCommit(1); err != nil {
+		return err
 	}
 
 	return nil
