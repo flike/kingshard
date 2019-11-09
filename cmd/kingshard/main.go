@@ -66,12 +66,14 @@ func main() {
 	}
 	if len(*configFile) == 0 {
 		fmt.Println("must use a config file")
+		os.Exit(1)
 		return
 	}
 
 	cfg, err := config.ParseConfigFile(*configFile)
 	if err != nil {
 		fmt.Printf("parse config file error:%v\n", err.Error())
+		os.Exit(1)
 		return
 	}
 
@@ -81,6 +83,7 @@ func main() {
 		sysFile, err := golog.NewRotatingFileHandler(sysFilePath, MaxLogSize, 1)
 		if err != nil {
 			fmt.Printf("new log file error:%v\n", err.Error())
+			os.Exit(1)
 			return
 		}
 		golog.GlobalSysLogger = golog.New(sysFile, golog.Lfile|golog.Ltime|golog.Llevel)
@@ -89,6 +92,7 @@ func main() {
 		sqlFile, err := golog.NewRotatingFileHandler(sqlFilePath, MaxLogSize, 1)
 		if err != nil {
 			fmt.Printf("new log file error:%v\n", err.Error())
+			os.Exit(1)
 			return
 		}
 		golog.GlobalSqlLogger = golog.New(sqlFile, golog.Lfile|golog.Ltime|golog.Llevel)
@@ -108,6 +112,7 @@ func main() {
 		golog.Error("main", "main", err.Error(), 0)
 		golog.GlobalSysLogger.Close()
 		golog.GlobalSqlLogger.Close()
+		os.Exit(1)
 		return
 	}
 	apiSvr, err = web.NewApiServer(cfg, svr)
@@ -116,6 +121,7 @@ func main() {
 		golog.GlobalSysLogger.Close()
 		golog.GlobalSqlLogger.Close()
 		svr.Close()
+		os.Exit(1)
 		return
 	}
 	prometheusSvr, err = monitor.NewPrometheus(cfg.PrometheusAddr, svr)
@@ -124,6 +130,7 @@ func main() {
 		golog.GlobalSysLogger.Close()
 		golog.GlobalSqlLogger.Close()
 		svr.Close()
+		os.Exit(1)
 		return
 	}
 
