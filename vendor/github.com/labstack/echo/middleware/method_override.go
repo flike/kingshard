@@ -1,6 +1,10 @@
 package middleware
 
-import "github.com/labstack/echo"
+import (
+	"net/http"
+
+	"github.com/labstack/echo"
+)
 
 type (
 	// MethodOverrideConfig defines the config for MethodOverride middleware.
@@ -20,7 +24,7 @@ type (
 var (
 	// DefaultMethodOverrideConfig is the default MethodOverride middleware config.
 	DefaultMethodOverrideConfig = MethodOverrideConfig{
-		Skipper: defaultSkipper,
+		Skipper: DefaultSkipper,
 		Getter:  MethodFromHeader(echo.HeaderXHTTPMethodOverride),
 	}
 )
@@ -52,10 +56,10 @@ func MethodOverrideWithConfig(config MethodOverrideConfig) echo.MiddlewareFunc {
 			}
 
 			req := c.Request()
-			if req.Method() == echo.POST {
+			if req.Method == http.MethodPost {
 				m := config.Getter(c)
 				if m != "" {
-					req.SetMethod(m)
+					req.Method = m
 				}
 			}
 			return next(c)
@@ -67,7 +71,7 @@ func MethodOverrideWithConfig(config MethodOverrideConfig) echo.MiddlewareFunc {
 // the request header.
 func MethodFromHeader(header string) MethodOverrideGetter {
 	return func(c echo.Context) string {
-		return c.Request().Header().Get(header)
+		return c.Request().Header.Get(header)
 	}
 }
 

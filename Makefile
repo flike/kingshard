@@ -5,14 +5,12 @@ all: build
 
 build: kingshard
 goyacc:
-	go build -o ./bin/goyacc ./vendor/golang.org/x/tools/cmd/goyacc
-kingshard: goyacc
-	./bin/goyacc -o ./sqlparser/sql.go ./sqlparser/sql.y
+	go get -u golang.org/x/tools/cmd/goyacc
+	${GOPATH}/bin/goyacc -o ./sqlparser/sql.go ./sqlparser/sql.y
 	gofmt -w ./sqlparser/sql.go
-	go build -ldflags "-X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=$(BUILD_DATE)\"" -o ./bin/kingshard ./cmd/kingshard
+kingshard:
+	go build -mod=vendor -ldflags "-X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=$(BUILD_DATE)\"" -o ./bin/kingshard ./cmd/kingshard
 clean:
 	@rm -rf bin
-	@rm -f ./sqlparser/y.output ./sqlparser/sql.go
-
 test:
 	go test ./go/... -race

@@ -3,6 +3,11 @@ package color
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"os"
+
+	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
 )
 
 type (
@@ -118,13 +123,29 @@ func outer(n string) inner {
 
 type (
 	Color struct {
+		output   io.Writer
 		disabled bool
 	}
 )
 
 // New creates a Color instance.
-func New() *Color {
-	return &Color{}
+func New() (c *Color) {
+	c = new(Color)
+	c.SetOutput(colorable.NewColorableStdout())
+	return
+}
+
+// Output returns the output.
+func (c *Color) Output() io.Writer {
+	return c.output
+}
+
+// SetOutput sets the output.
+func (c *Color) SetOutput(w io.Writer) {
+	c.output = w
+	if w, ok := w.(*os.File); !ok || !isatty.IsTerminal(w.Fd()) {
+		c.disabled = true
+	}
 }
 
 // Disable disables the colors and styles.
@@ -135,6 +156,21 @@ func (c *Color) Disable() {
 // Enable enables the colors and styles.
 func (c *Color) Enable() {
 	c.disabled = false
+}
+
+// Print is analogous to `fmt.Print` with termial detection.
+func (c *Color) Print(args ...interface{}) {
+	fmt.Fprint(c.output, args...)
+}
+
+// Println is analogous to `fmt.Println` with termial detection.
+func (c *Color) Println(args ...interface{}) {
+	fmt.Fprintln(c.output, args...)
+}
+
+// Printf is analogous to `fmt.Printf` with termial detection.
+func (c *Color) Printf(format string, args ...interface{}) {
+	fmt.Fprintf(c.output, format, args...)
 }
 
 func (c *Color) Black(msg interface{}, styles ...string) string {
@@ -237,12 +273,37 @@ func (c *Color) Strikeout(msg interface{}, styles ...string) string {
 	return strikeout(msg, styles, c)
 }
 
+// Output returns the output.
+func Output() io.Writer {
+	return global.output
+}
+
+// SetOutput sets the output.
+func SetOutput(w io.Writer) {
+	global.SetOutput(w)
+}
+
 func Disable() {
 	global.Disable()
 }
 
 func Enable() {
 	global.Enable()
+}
+
+// Print is analogous to `fmt.Print` with termial detection.
+func Print(args ...interface{}) {
+	global.Print(args...)
+}
+
+// Println is analogous to `fmt.Println` with termial detection.
+func Println(args ...interface{}) {
+	global.Println(args...)
+}
+
+// Printf is analogous to `fmt.Printf` with termial detection.
+func Printf(format string, args ...interface{}) {
+	global.Printf(format, args...)
 }
 
 func Black(msg interface{}, styles ...string) string {

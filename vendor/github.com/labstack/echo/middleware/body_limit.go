@@ -17,22 +17,22 @@ type (
 
 		// Maximum allowed size for a request body, it can be specified
 		// as `4x` or `4xB`, where x is one of the multiple from K, M, G, T or P.
-		Limit string `json:"limit"`
+		Limit string `yaml:"limit"`
 		limit int64
 	}
 
 	limitedReader struct {
 		BodyLimitConfig
-		reader  io.Reader
+		reader  io.ReadCloser
 		read    int64
 		context echo.Context
 	}
 )
 
 var (
-	// DefaultBodyLimitConfig is the default Gzip middleware config.
+	// DefaultBodyLimitConfig is the default BodyLimit middleware config.
 	DefaultBodyLimitConfig = BodyLimitConfig{
-		Skipper: defaultSkipper,
+		Skipper: DefaultSkipper,
 	}
 )
 
@@ -60,7 +60,7 @@ func BodyLimitWithConfig(config BodyLimitConfig) echo.MiddlewareFunc {
 
 	limit, err := bytes.Parse(config.Limit)
 	if err != nil {
-		panic(fmt.Errorf("invalid body-limit=%s", config.Limit))
+		panic(fmt.Errorf("echo: invalid body-limit=%s", config.Limit))
 	}
 	config.limit = limit
 	pool := limitedReaderPool(config)
@@ -74,15 +74,15 @@ func BodyLimitWithConfig(config BodyLimitConfig) echo.MiddlewareFunc {
 			req := c.Request()
 
 			// Based on content length
-			if req.ContentLength() > config.limit {
+			if req.ContentLength > config.limit {
 				return echo.ErrStatusRequestEntityTooLarge
 			}
 
 			// Based on content read
 			r := pool.Get().(*limitedReader)
-			r.Reset(req.Body(), c)
+			r.Reset(req.Body, c)
 			defer pool.Put(r)
-			req.SetBody(r)
+			req.Body = r
 
 			return next(c)
 		}
@@ -98,9 +98,14 @@ func (r *limitedReader) Read(b []byte) (n int, err error) {
 	return
 }
 
-func (r *limitedReader) Reset(reader io.Reader, context echo.Context) {
+func (r *limitedReader) Close() error {
+	return r.reader.Close()
+}
+
+func (r *limitedReader) Reset(reader io.ReadCloser, context echo.Context) {
 	r.reader = reader
 	r.context = context
+	r.read = 0
 }
 
 func limitedReaderPool(c BodyLimitConfig) sync.Pool {
