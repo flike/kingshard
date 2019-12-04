@@ -22,7 +22,7 @@ kingshard是一个由Go开发高性能MySQL Proxy项目，kingshard在满足基�
 - 支持last_insert_id功能。
 - 支持热加载配置文件，动态修改kingshard配置项（具体参考管理端命令）。
 - 支持以Web API调用的方式管理kingshard。
-- 支持多用户模式，不同用户之间的表是权限隔离的，互补感知。
+- 支持多用户模式，不同用户之间的表是权限隔离的，互不感知。
 
 ### 2. sharding功能
 
