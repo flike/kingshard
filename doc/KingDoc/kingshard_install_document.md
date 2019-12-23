@@ -1,6 +1,6 @@
 ## 安装kingshard
 ```
-	1. 安装Go语言环境（Go版本1.6以上），具体步骤请Google。
+	1. 安装Go语言环境（请使用最新版），具体步骤请Google。
 	2. git clone https://github.com/flike/kingshard.git $GOPATH/src/github.com/flike/kingshard
 	3. cd src/github.com/flike/kingshard
 	4. source ./dev.sh

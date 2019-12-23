@@ -133,7 +133,7 @@ schema_list :
 
 ### (2). 安装和启动kingshard
 
-1. 安装Go语言环境（Go版本1.3以上），具体步骤请Google。
+1. 安装Go语言环境（请使用最新版），具体步骤请Google。
 2. git clone https://github.com/flike/kingshard.git src/github.com/flike/kingshard
 3. cd src/github.com/flike/kingshard
 4. source ./dev.sh
