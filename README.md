@@ -31,8 +31,8 @@ kingshard is a high-performance proxy for MySQL powered by Go. Just like other m
 ## Install
 ```
   1. Install Go
-  2. git clone https://github.com/flike/kingshard.git src/github.com/flike/kingshard
-  3. cd src/github.com/flike/kingshard
+  2. git clone https://github.com/flike/kingshard.git $GOPATH/src/github.com/flike/kingshard
+  3. cd $GOPATH/src/github.com/flike/kingshard
   4. source ./dev.sh
   5. make
   6. set the config file (etc/ks.yaml)
