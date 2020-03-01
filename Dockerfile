@@ -8,8 +8,8 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositorie
     && apk update \
     && apk add tzdata \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
-RUN mkdir -p /etc/kingshard
+    && echo "Asia/Shanghai" > /etc/timezone \
+    && mkdir -p /etc/kingshard
 
 COPY --from=builder /go/src/app/bin/kingshard /usr/local/bin/
 COPY --from=builder /go/src/app/etc/ks.yaml /etc/kingshard/
