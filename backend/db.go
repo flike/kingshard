@@ -50,8 +50,8 @@ type DB struct {
 	checkConn   *Conn
 	lastPing    int64
 
-	pushConnCount    int64
-	popConnCount     int64
+	pushConnCount int64
+	popConnCount  int64
 }
 
 func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB, error) {
@@ -109,8 +109,8 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 func (db *DB) newCheckConn(conn *Conn) {
 	go func() {
 		select {
-		case <- conn.checkChannel:
-		case <- time.After(time.Second * 60 * 5):
+		case <-conn.checkChannel:
+		case <-time.After(time.Second * 60 * 5):
 			conn := new(Conn)
 			db.idleConns <- conn
 			atomic.AddInt64(&db.pushConnCount, 1)
@@ -136,10 +136,10 @@ func (db *DB) State() string {
 	return state
 }
 
-func (db *DB) ConnCount() (int,int,int64,int64) {
+func (db *DB) ConnCount() (int, int, int64, int64) {
 	db.RLock()
 	defer db.RUnlock()
-	return len(db.idleConns),len(db.cacheConns),db.pushConnCount,db.popConnCount
+	return len(db.idleConns), len(db.cacheConns), db.pushConnCount, db.popConnCount
 }
 
 func (db *DB) Close() error {
@@ -198,7 +198,7 @@ func (db *DB) Ping() error {
 	}
 	err = db.checkConn.Ping()
 	if err != nil {
-		if db.checkConn != nil{
+		if db.checkConn != nil {
 			db.checkConn.Close()
 			db.checkConn = nil
 		}
@@ -240,16 +240,16 @@ func (db *DB) closeConn(co *Conn) error {
 func (db *DB) tryReuse(co *Conn) error {
 	var err error
 
-	err = co.Ping()
-	if err != nil {
-		db.closeConn(co)
-		co, err = db.newConn()
-	
-		if err != nil {
-			db.Close()
-			return err
-		}
-	}
+	//err = co.Ping()
+	//if err != nil {
+	//	db.closeConn(co)
+	//	co, err = db.newConn()
+	//
+	//	if err != nil {
+	//		db.Close()
+	//		return err
+	//	}
+	//}
 
 	//reuse Connection
 	if co.IsInTransaction() {
@@ -337,6 +337,13 @@ func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
 			db.closeConn(co)
 			return nil, err
 		}
+
+		err = co.Ping()
+		if err != nil {
+			db.closeConn(co)
+			return nil, errors.ErrBadConn
+		}
+
 		return co, nil
 	case co = <-cacheConns:
 		if co == nil {
@@ -369,7 +376,7 @@ func (db *DB) PushConn(co *Conn, err error) {
 	co.pushTimestamp = time.Now().Unix()
 	select {
 	case conns <- co:
-		co.checkChannel <- co.pushTimestamp 
+		co.checkChannel <- co.pushTimestamp
 		atomic.AddInt64(&db.pushConnCount, 1)
 		return
 	default:
