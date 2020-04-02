@@ -50,7 +50,6 @@ type Conn struct {
 	salt      []byte
 
 	pushTimestamp int64
-	checkChannel  chan int64
 	pkgErr        error
 }
 
