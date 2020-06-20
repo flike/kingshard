@@ -232,7 +232,7 @@ func (c *ClientConn) readHandshakeResponse() error {
 			"auth", auth,
 			"client_user", c.user,
 			"config_set_user", c.user,
-			"passworld", c.proxy.users[c.user])
+			"password", c.proxy.users[c.user])
 		return mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.user, c.c.RemoteAddr().String(), "Yes")
 	}
 
@@ -244,7 +244,7 @@ func (c *ClientConn) readHandshakeResponse() error {
 			"checkAuth", checkAuth,
 			"client_user", c.user,
 			"config_set_user", c.user,
-			"passworld", c.proxy.users[c.user])
+			"password", c.proxy.users[c.user])
 		return mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.user, c.c.RemoteAddr().String(), "Yes")
 	}
 
