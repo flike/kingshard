@@ -50,8 +50,8 @@ type DB struct {
 	checkConn   *Conn
 	lastPing    int64
 
-	pushConnCount    int64
-	popConnCount     int64
+	pushConnCount int64
+	popConnCount  int64
 }
 
 func Open(addr string, user string, password string, dbName string, maxConnNum int) (*DB, error) {
@@ -106,19 +106,6 @@ func Open(addr string, user string, password string, dbName string, maxConnNum i
 	return db, nil
 }
 
-func (db *DB) newCheckConn(conn *Conn) {
-	go func() {
-		select {
-		case <- conn.checkChannel:
-		case <- time.After(time.Second * 60 * 5):
-			conn := new(Conn)
-			db.idleConns <- conn
-			atomic.AddInt64(&db.pushConnCount, 1)
-			return
-		}
-	}()
-}
-
 func (db *DB) Addr() string {
 	return db.addr
 }
@@ -136,10 +123,10 @@ func (db *DB) State() string {
 	return state
 }
 
-func (db *DB) ConnCount() (int,int,int64,int64) {
+func (db *DB) ConnCount() (int, int, int64, int64) {
 	db.RLock()
 	defer db.RUnlock()
-	return len(db.idleConns),len(db.cacheConns),db.pushConnCount,db.popConnCount
+	return len(db.idleConns), len(db.cacheConns), db.pushConnCount, db.popConnCount
 }
 
 func (db *DB) Close() error {
@@ -198,7 +185,7 @@ func (db *DB) Ping() error {
 	}
 	err = db.checkConn.Ping()
 	if err != nil {
-		if db.checkConn != nil{
+		if db.checkConn != nil {
 			db.checkConn.Close()
 			db.checkConn = nil
 		}
@@ -215,42 +202,59 @@ func (db *DB) newConn() (*Conn, error) {
 	}
 
 	co.pushTimestamp = time.Now().Unix()
-	co.checkChannel = make(chan int64)
 
 	return co, nil
 }
 
+func (db *DB) addIdleConn() {
+	conn := new(Conn)
+	select {
+	case db.idleConns <- conn:
+	default:
+		break
+	}
+}
+
 func (db *DB) closeConn(co *Conn) error {
+	atomic.AddInt64(&db.pushConnCount, 1)
+
 	if co != nil {
 		co.Close()
 		conns := db.getIdleConns()
 		if conns != nil {
 			select {
 			case conns <- co:
-				atomic.AddInt64(&db.pushConnCount, 1)
 				return nil
 			default:
 				return nil
 			}
 		}
+	} else {
+		db.addIdleConn()
+	}
+	return nil
+}
+
+func (db *DB) closeConnNotAdd(co *Conn) error {
+	if co != nil {
+		co.Close()
+		conns := db.getIdleConns()
+		if conns != nil {
+			select {
+			case conns <- co:
+				return nil
+			default:
+				return nil
+			}
+		}
+	} else {
+		db.addIdleConn()
 	}
 	return nil
 }
 
 func (db *DB) tryReuse(co *Conn) error {
 	var err error
-
-	err = co.Ping()
-	if err != nil {
-		db.closeConn(co)
-		co, err = db.newConn()
-	
-		if err != nil {
-			db.Close()
-			return err
-		}
-	}
-
 	//reuse Connection
 	if co.IsInTransaction() {
 		//we can not reuse a connection in transaction status
@@ -302,9 +306,6 @@ func (db *DB) PopConn() (*Conn, error) {
 		return nil, err
 	}
 
-	atomic.AddInt64(&db.popConnCount, 1)
-	// add check conn
-	db.newCheckConn(co)
 	return co, nil
 }
 
@@ -313,6 +314,7 @@ func (db *DB) GetConnFromCache(cacheConns chan *Conn) *Conn {
 	var err error
 	for 0 < len(cacheConns) {
 		co = <-cacheConns
+		atomic.AddInt64(&db.popConnCount, 1)
 		if co != nil && PingPeroid < time.Now().Unix()-co.pushTimestamp {
 			err = co.Ping()
 			if err != nil {
@@ -332,13 +334,20 @@ func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
 	var err error
 	select {
 	case co = <-idleConns:
+		atomic.AddInt64(&db.popConnCount, 1)
 		co, err := db.newConn()
 		if err != nil {
 			db.closeConn(co)
 			return nil, err
 		}
+		err = co.Ping()
+		if err != nil {
+			db.closeConn(co)
+			return nil, errors.ErrBadConn
+		}
 		return co, nil
 	case co = <-cacheConns:
+		atomic.AddInt64(&db.popConnCount, 1)
 		if co == nil {
 			return nil, errors.ErrConnIsNil
 		}
@@ -354,7 +363,9 @@ func (db *DB) GetConnFromIdle(cacheConns, idleConns chan *Conn) (*Conn, error) {
 }
 
 func (db *DB) PushConn(co *Conn, err error) {
+	atomic.AddInt64(&db.pushConnCount, 1)
 	if co == nil {
+		db.addIdleConn()
 		return
 	}
 	conns := db.getCacheConns()
@@ -363,17 +374,15 @@ func (db *DB) PushConn(co *Conn, err error) {
 		return
 	}
 	if err != nil {
-		db.closeConn(co)
+		db.closeConnNotAdd(co)
 		return
 	}
 	co.pushTimestamp = time.Now().Unix()
 	select {
 	case conns <- co:
-		co.checkChannel <- co.pushTimestamp 
-		atomic.AddInt64(&db.pushConnCount, 1)
 		return
 	default:
-		db.closeConn(co)
+		db.closeConnNotAdd(co)
 		return
 	}
 }

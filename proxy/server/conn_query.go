@@ -307,12 +307,10 @@ func (c *ClientConn) closeConn(conn *backend.BackendConn, rollback bool) {
 	if c.isInTransaction() {
 		return
 	}
-
+	defer conn.Close()
 	if rollback {
 		conn.Rollback()
 	}
-
-	conn.Close()
 }
 
 func (c *ClientConn) closeShardConns(conns map[string]*backend.BackendConn, rollback bool) {

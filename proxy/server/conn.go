@@ -265,6 +265,14 @@ func (c *ClientConn) readHandshakeResponse() error {
 	return nil
 }
 
+func (c *ClientConn) clean() {
+	if c.txConns != nil && len(c.txConns) > 0 {
+		for _, co := range c.txConns {
+			co.Close()
+		}
+	}
+}
+
 func (c *ClientConn) Run() {
 	defer func() {
 		r := recover()
@@ -280,7 +288,7 @@ func (c *ClientConn) Run() {
 
 		c.Close()
 	}()
-
+	defer c.clean()
 	for {
 		data, err := c.readPacket()
 
