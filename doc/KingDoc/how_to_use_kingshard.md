@@ -139,7 +139,7 @@ schema_list :
 4. source ./dev.sh
 5. make
 6. 设置配置文件
-7. 运行kingshard。./bin/kingshard -config=etc/ks.yaml
+7. 运行kingshard ./bin/kingshard -config=etc/ks.yaml
 
 **注意：kingshard会响应SIGINT,SIGTERM,SIGQUIT这三个信号，平滑退出。在部署kingshard机器上应避免产生这三个信号，以免造成kingshard非正常退出！后台运行kingshard建议使用supervisor工具**
 
