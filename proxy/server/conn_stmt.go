@@ -45,6 +45,7 @@ type Stmt struct {
 	columns int
 
 	args []interface{}
+	paramTypes []byte
 
 	s sqlparser.Statement
 
@@ -204,7 +205,6 @@ func (c *ClientConn) handleStmtExecute(data []byte) error {
 	pos += 4
 
 	var nullBitmaps []byte
-	var paramTypes []byte
 	var paramValues []byte
 
 	paramNum := s.params
@@ -224,13 +224,13 @@ func (c *ClientConn) handleStmtExecute(data []byte) error {
 				return mysql.ErrMalformPacket
 			}
 
-			paramTypes = data[pos : pos+(paramNum<<1)]
+			s.paramTypes = data[pos : pos+(paramNum<<1)]
 			pos += (paramNum << 1)
 
-			paramValues = data[pos:]
 		}
+		paramValues = data[pos:]
 
-		if err := c.bindStmtArgs(s, nullBitmaps, paramTypes, paramValues); err != nil {
+		if err := c.bindStmtArgs(s, nullBitmaps, s.paramTypes, paramValues); err != nil {
 			return err
 		}
 	}
