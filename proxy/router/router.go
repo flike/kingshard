@@ -21,6 +21,7 @@ import (
 	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
+	"github.com/flike/kingshard/core/hack"
 	"github.com/flike/kingshard/sqlparser"
 )
 
@@ -537,7 +538,10 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 		node.Distinct,
 	)
 
-	var prefix string
+	var (
+		prefix     string
+		asColNames map[string]string
+	)
 	//rewrite select expr
 	for _, expr := range node.SelectExprs {
 		switch v := expr.(type) {
@@ -568,6 +572,11 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 				}
 				//if expr has as
 				if v.As != nil {
+					if asColNames == nil {
+						asColNames = make(map[string]string)
+					}
+					asColNames[hack.String(v.As)] = hack.String(colName.Name)
+
 					buf.Fprintf(" as %s", v.As)
 				}
 			} else {
@@ -582,6 +591,14 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	if len(node.GroupBy) != 0 {
 		prefix = ","
 		for _, n := range node.GroupBy {
+			// use real column name replace as name
+			if colName, ok := n.(*sqlparser.ColName); ok {
+				if v, ok := asColNames[hack.String(colName.Name)]; ok {
+					buf.Fprintf("%s%s", prefix, v)
+					continue
+				}
+			}
+
 			buf.Fprintf("%s%v", prefix, n)
 		}
 	}
