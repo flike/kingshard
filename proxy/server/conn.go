@@ -383,6 +383,7 @@ func (c *ClientConn) writeOK(r *mysql.Result) error {
 	if c.capability&mysql.CLIENT_PROTOCOL_41 > 0 {
 		data = append(data, byte(r.Status), byte(r.Status>>8))
 		data = append(data, 0, 0)
+		data = append(data, r.Info...)
 	}
 
 	return c.writePacket(data)
