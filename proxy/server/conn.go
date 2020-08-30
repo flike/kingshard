@@ -257,7 +257,7 @@ func (c *ClientConn) readHandshakeResponse() error {
 		}
 
 		db = string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
-		pos += len(c.db) + 1
+		pos += len(db) + 1
 
 	}
 	c.db = db
