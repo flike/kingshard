@@ -30,6 +30,7 @@ import (
 type ExecuteDB struct {
 	ExecNode *backend.Node
 	IsSlave  bool
+	db       string
 	sql      string
 }
 
@@ -210,6 +211,17 @@ func (c *ClientConn) setExecuteNode(tokens []string, tokensLen int, executeDB *E
 	}
 
 	if executeDB.ExecNode == nil {
+		if c.db != "" && executeDB.db == "" {
+			executeDB.db = c.db
+		}
+		if executeDB.db != "" {
+			// get default db nodes from rules
+			rule := c.schema.rule.Rules[executeDB.db][""]
+			if rule != nil && len(rule.Nodes) > 0 {
+				executeDB.ExecNode = c.proxy.GetNode(rule.Nodes[0])
+				return nil
+			}
+		}
 		defaultRule := c.schema.rule.DefaultRule
 		if len(defaultRule.Nodes) == 0 {
 			return errors.ErrNoDefaultNode
@@ -239,6 +251,7 @@ func (c *ClientConn) getSelectExecDB(sql string, tokens []string, tokensLen int)
 					//if the token[i+1] like this:kingshard.test_shard_hash
 					if DBName != "" {
 						ruleDB = DBName
+						executeDB.db = DBName
 					} else {
 						ruleDB = c.db
 					}
@@ -288,6 +301,7 @@ func (c *ClientConn) getDeleteExecDB(sql string, tokens []string, tokensLen int)
 					//if the token[i+1] like this:kingshard.test_shard_hash
 					if DBName != "" {
 						ruleDB = DBName
+						executeDB.db = DBName
 					} else {
 						ruleDB = c.db
 					}
@@ -326,6 +340,7 @@ func (c *ClientConn) getInsertOrReplaceExecDB(sql string, tokens []string, token
 					//if the token[i+1] like this:kingshard.test_shard_hash
 					if DBName != "" {
 						ruleDB = DBName
+						executeDB.db = DBName
 					} else {
 						ruleDB = c.db
 					}
@@ -363,6 +378,7 @@ func (c *ClientConn) getUpdateExecDB(sql string, tokens []string, tokensLen int)
 				//if the token[i+1] like this:kingshard.test_shard_hash
 				if DBName != "" {
 					ruleDB = DBName
+					executeDB.db = DBName
 				} else {
 					ruleDB = c.db
 				}
@@ -457,6 +473,7 @@ func (c *ClientConn) handleShowColumns(sql string, tokens []string,
 				//get the ruleDB
 				if i+4 < tokensLen && strings.ToLower(tokens[i+1]) == mysql.TK_STR_FROM {
 					ruleDB = strings.Trim(tokens[i+4], "`")
+					executeDB.db = ruleDB
 				} else {
 					ruleDB = c.db
 				}
@@ -494,6 +511,7 @@ func (c *ClientConn) getTruncateExecDB(sql string, tokens []string, tokensLen in
 		//if the token[i+1] like this:kingshard.test_shard_hash
 		if DBName != "" {
 			ruleDB = DBName
+			executeDB.db = DBName
 		} else {
 			ruleDB = c.db
 		}
