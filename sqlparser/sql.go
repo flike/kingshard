@@ -2147,7 +2147,7 @@ yydefault:
 		yyDollar = yyS[yypt-1 : yypt+1]
 //line ./sqlparser/sql.y:1138
 		{
-			yyVAL.bytes = bytes.ToLower(yyDollar[1].bytes)
+			yyVAL.bytes = yyDollar[1].bytes
 		}
 	case 216:
 		yyDollar = yyS[yypt-0 : yypt+1]
