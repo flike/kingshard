@@ -644,6 +644,24 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	//rewrite where
 	oldright, err := plan.rewriteWhereIn(tableIndex)
 
+	//rewrite order
+	var restoreOrder map[*sqlparser.ColName][]byte
+	for _, v := range node.OrderBy {
+		colName, ok := v.Expr.(*sqlparser.ColName)
+		if !ok {
+			continue
+		}
+
+		if string(colName.Qualifier) == plan.Rule.Table {
+			if restoreOrder == nil {
+				restoreOrder = make(map[*sqlparser.ColName][]byte)
+			}
+			restoreOrder[colName] = colName.Qualifier
+
+			colName.Qualifier = []byte(fmt.Sprintf("%s_%04d", colName.Qualifier, tableIndex))
+		}
+	}
+
 	buf.Fprintf("%v%v%v%v%v%s",
 		node.Where,
 		node.GroupBy,
@@ -655,6 +673,12 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	//restore old right
 	if oldright != nil {
 		plan.InRightToReplace.Right = oldright
+	}
+	// restore order qualifier
+	if restoreOrder != nil {
+		for colName, qualifier := range restoreOrder {
+			colName.Qualifier = qualifier
+		}
 	}
 	return buf.String()
 }
