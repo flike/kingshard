@@ -325,7 +325,8 @@ func (plan *Plan) checkValuesType(vals sqlparser.Values) (sqlparser.Values, erro
 		case sqlparser.ValTuple:
 			result := plan.getValueType(tuple[0])
 			if result != VALUE_NODE {
-				return nil, errors.ErrInsertTooComplex
+				// tuple[0]==null ErrInsertTooComplex
+				// return nil, errors.ErrInsertTooComplex
 			}
 		default:
 			//panic(sqlparser.NewParserError("insert is too complex"))
