@@ -475,6 +475,7 @@ func (*BinaryExpr) IExpr()     {}
 func (*UnaryExpr) IExpr()      {}
 func (*FuncExpr) IExpr()       {}
 func (*CaseExpr) IExpr()       {}
+func (*DefaultExpr) IExpr()    {}
 
 // BoolExpr represents a boolean expression.
 type BoolExpr interface {
@@ -600,17 +601,18 @@ type ValExpr interface {
 	Expr
 }
 
-func (StrVal) IValExpr()      {}
-func (NumVal) IValExpr()      {}
-func (ValArg) IValExpr()      {}
-func (*NullVal) IValExpr()    {}
-func (*ColName) IValExpr()    {}
-func (ValTuple) IValExpr()    {}
-func (*Subquery) IValExpr()   {}
-func (*BinaryExpr) IValExpr() {}
-func (*UnaryExpr) IValExpr()  {}
-func (*FuncExpr) IValExpr()   {}
-func (*CaseExpr) IValExpr()   {}
+func (StrVal) IValExpr()       {}
+func (NumVal) IValExpr()       {}
+func (ValArg) IValExpr()       {}
+func (*NullVal) IValExpr()     {}
+func (*ColName) IValExpr()     {}
+func (ValTuple) IValExpr()     {}
+func (*Subquery) IValExpr()    {}
+func (*BinaryExpr) IValExpr()  {}
+func (*UnaryExpr) IValExpr()   {}
+func (*FuncExpr) IValExpr()    {}
+func (*CaseExpr) IValExpr()    {}
+func (*DefaultExpr) IValExpr() {}
 
 // StrVal represents a string value.
 type StrVal []byte
@@ -772,6 +774,18 @@ func (node *CaseExpr) Format(buf *TrackedBuffer) {
 		buf.Fprintf("else %v ", node.Else)
 	}
 	buf.Fprintf("end")
+}
+
+// DefaultExpr represents a DEFAULT expression.
+type DefaultExpr struct {
+	Name *ColName
+}
+
+func (node *DefaultExpr) Format(buf *TrackedBuffer) {
+	buf.Fprintf("default")
+	if node.Name != nil {
+		buf.Fprintf("(%v)", node.Name)
+	}
 }
 
 // When represents a WHEN sub-expression.
