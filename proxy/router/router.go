@@ -644,6 +644,18 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	//rewrite where
 	oldright, err := plan.rewriteWhereIn(tableIndex)
 
+	// restore qualifier
+	restoreQualifier := make(map[*sqlparser.ColName][]byte, 0)
+
+	//rewrite order
+	for _, v := range node.OrderBy {
+		resetQualifier(v.Expr, restoreQualifier, plan.Rule.Table, tableIndex)
+	}
+	// rewrite where qualifier
+	if node.Where != nil {
+		rewriteWhereQualifier(node.Where.Expr, restoreQualifier, plan.Rule.Table, tableIndex)
+	}
+
 	buf.Fprintf("%v%v%v%v%v%s",
 		node.Where,
 		node.GroupBy,
@@ -656,7 +668,42 @@ func (r *Router) rewriteSelectSql(plan *Plan, node *sqlparser.Select, tableIndex
 	if oldright != nil {
 		plan.InRightToReplace.Right = oldright
 	}
+	//restore qualifier
+	for colName, qualifier := range restoreQualifier {
+		colName.Qualifier = qualifier
+	}
 	return buf.String()
+}
+
+func resetQualifier(ve sqlparser.ValExpr, rq map[*sqlparser.ColName][]byte, ruleTable string, tableIndex int) {
+	colName, ok := ve.(*sqlparser.ColName)
+	if !ok {
+		return
+	}
+	if string(colName.Qualifier) == ruleTable {
+		rq[colName] = colName.Qualifier
+		colName.Qualifier = []byte(fmt.Sprintf("%s_%04d", colName.Qualifier, tableIndex))
+	}
+}
+
+func rewriteWhereQualifier(expr sqlparser.BoolExpr, rq map[*sqlparser.ColName][]byte, ruleTable string, tableIndex int) {
+	switch expr.(type) {
+	case *sqlparser.AndExpr:
+		rewriteWhereQualifier(expr.(*sqlparser.AndExpr).Left, rq, ruleTable, tableIndex)
+		rewriteWhereQualifier(expr.(*sqlparser.AndExpr).Right, rq, ruleTable, tableIndex)
+	case *sqlparser.ComparisonExpr:
+		resetQualifier(expr.(*sqlparser.ComparisonExpr).Left, rq, ruleTable, tableIndex)
+		resetQualifier(expr.(*sqlparser.ComparisonExpr).Right, rq, ruleTable, tableIndex)
+	case *sqlparser.NotExpr:
+		rewriteWhereQualifier(expr.(*sqlparser.NotExpr).Expr, rq, ruleTable, tableIndex)
+	case *sqlparser.ParenBoolExpr:
+		rewriteWhereQualifier(expr.(*sqlparser.ParenBoolExpr).Expr, rq, ruleTable, tableIndex)
+	case *sqlparser.OrExpr:
+		rewriteWhereQualifier(expr.(*sqlparser.OrExpr).Left, rq, ruleTable, tableIndex)
+		rewriteWhereQualifier(expr.(*sqlparser.OrExpr).Right, rq, ruleTable, tableIndex)
+	default:
+		return
+	}
 }
 
 func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
