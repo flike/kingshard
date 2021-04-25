@@ -278,9 +278,11 @@ func (n *Node) UpSlave(addr string) error {
 			return nil
 		}
 	}
-	n.Slave = append(n.Slave, db)
+	if db != nil {
+	    n.Slave = append(n.Slave, db)
+	}
+	
 	n.Unlock()
-
 	return err
 }
 
