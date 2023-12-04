@@ -230,8 +230,10 @@ func (c *ClientConn) handleStmtExecute(data []byte) error {
 			pos += (paramNum << 1)
 
 			//paramValues = data[pos:]
+		} else {
+			//  new_params_bind_flag 为 false，客户端在发送 COM_STMT_EXECUTE 命令时不需要再次发送 parameter_types
+			pos++
 		}
-		//  new_params_bind_flag 为 false，客户端在发送 COM_STMT_EXECUTE 命令时不需要再次发送 parameter_types
 		paramValues = data[pos:]
 
 		if err := c.bindStmtArgs(s, nullBitmaps, paramTypes, paramValues); err != nil {
