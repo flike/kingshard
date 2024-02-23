@@ -25,6 +25,7 @@ import (
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/proxy/router"
 	"github.com/flike/kingshard/sqlparser"
+	"strconv"
 )
 
 type ExecuteDB struct {
@@ -469,13 +470,16 @@ func (c *ClientConn) handleShowColumns(sql string, tokens []string,
 				}
 				showRouter := c.schema.rule
 				showRule := showRouter.GetRule(ruleDB, tableName)
+				// tbl name format: tbl_name_xxxx
+				tblPostfixLength := showRule.TableNamePostfixLength
+				tblPostfixLengthStr := strconv.Itoa(tblPostfixLength)
 				//this SHOW is sharding SQL
 				if showRule.Type != router.DefaultRuleType {
 					if 0 < len(showRule.SubTableIndexs) {
 						tableIndex := showRule.SubTableIndexs[0]
 						nodeIndex := showRule.TableToNode[tableIndex]
 						nodeName := showRule.Nodes[nodeIndex]
-						tokens[i+2] = fmt.Sprintf("%s_%04d", tableName, tableIndex)
+						tokens[i+2] = fmt.Sprintf("%s_%0" + tblPostfixLengthStr + "d", tableName, tableIndex)
 						executeDB.sql = strings.Join(tokens, " ")
 						executeDB.ExecNode = c.schema.nodes[nodeName]
 						return nil
