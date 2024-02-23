@@ -21,8 +21,10 @@ import (
 	"os/signal"
 	"path"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/flike/kingshard/config"
 	"github.com/flike/kingshard/core/golog"
@@ -73,6 +75,24 @@ func main() {
 	if err != nil {
 		fmt.Printf("parse config file error:%v\n", err.Error())
 		return
+	}
+
+	if len(cfg.FreeOsMemory) > 0 {
+		go func() {
+			ts, err := time.ParseDuration(cfg.FreeOsMemory)
+			if err != nil {
+				fmt.Printf("paser free_os_memory fail:%s\n", err)
+				return
+			}
+
+			tk := time.NewTicker(ts)
+			for {
+				select {
+				case <-tk.C:
+					debug.FreeOSMemory()
+				}
+			}
+		}()
 	}
 
 	//when the log file size greater than 1GB, kingshard will generate a new file
