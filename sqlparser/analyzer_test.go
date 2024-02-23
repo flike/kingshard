@@ -41,6 +41,9 @@ func TestGetDBName(t *testing.T) {
 		"insert into a values(1)",
 		"update a set c=1",
 		"delete from a where c=d",
+		"insert into a(b, c) values (default, 2)",
+		"insert into a values (default, 2)",
+		"insert into a(b, c) values (1, default(c))",
 	}
 	for _, stmt := range wantNo {
 		result, err := GetDBName(stmt)
