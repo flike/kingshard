@@ -653,14 +653,20 @@ func (c *Conn) handleOKPacket(data []byte) (*mysql.Result, error) {
 
 		//todo:strict_mode, check warnings as error
 		//Warnings := binary.LittleEndian.Uint16(data[pos:])
-		//pos += 2
+		pos += 2
 	} else if c.capability&mysql.CLIENT_TRANSACTIONS > 0 {
 		r.Status = binary.LittleEndian.Uint16(data[pos:])
 		c.status = r.Status
 		pos += 2
 	}
 
-	//info
+	//info https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
+	if c.capability&mysql.CLIENT_SESSION_TRACK > 0 {
+		r.Info, _, n, _ = mysql.LengthEnodedString(data[pos:])
+	} else {
+		r.Info = data[pos:]
+	}
+
 	return r, nil
 }
 

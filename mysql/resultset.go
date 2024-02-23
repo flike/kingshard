@@ -268,6 +268,8 @@ type Result struct {
 	AffectedRows uint64
 
 	*Resultset
+
+	Info []byte
 }
 
 type Resultset struct {
