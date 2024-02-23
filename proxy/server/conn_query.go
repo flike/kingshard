@@ -113,6 +113,21 @@ func (c *ClientConn) handleQuery(sql string) (err error) {
 	return nil
 }
 
+func (c *ClientConn) getExecuteNode() (*backend.Node, error) {
+	if c.db != "" {
+		rule := c.schema.rule.Rules[c.db][""]
+		if rule != nil && len(rule.Nodes) > 0 {
+			return c.proxy.GetNode(rule.Nodes[0]), nil
+		}
+	}
+	// fallback to default
+	defaultRule := c.schema.rule.DefaultRule
+	if len(defaultRule.Nodes) == 0 {
+		return nil, errors.ErrNoDefaultNode
+	}
+	return c.proxy.GetNode(defaultRule.Nodes[0]), nil
+}
+
 func (c *ClientConn) getBackendConn(n *backend.Node, fromSlave bool) (co *backend.BackendConn, err error) {
 	if !c.isInTransaction() {
 		if fromSlave {
