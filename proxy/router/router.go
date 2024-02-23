@@ -725,7 +725,7 @@ func (r *Router) generateSelectSql(plan *Plan, stmt sqlparser.Statement) error {
 		for i := 0; i < tableCount; i++ {
 			tableIndex := plan.RouteTableIndexs[i]
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
-			nodeName := r.Nodes[nodeIndex]
+			nodeName := plan.Rule.Nodes[nodeIndex]
 			selectSql := r.rewriteSelectSql(plan, node, tableIndex)
 			if _, ok := sqls[nodeName]; ok == false {
 				sqls[nodeName] = make([]string, 0, tableCount)
@@ -757,7 +757,7 @@ func (r *Router) generateInsertSql(plan *Plan, stmt sqlparser.Statement) error {
 			buf := sqlparser.NewTrackedBuffer(nil)
 			tableIndex := plan.RouteTableIndexs[i]
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
-			nodeName := r.Nodes[nodeIndex]
+			nodeName := plan.Rule.Nodes[nodeIndex]
 
 			buf.Fprintf("insert %v%s into %v", node.Comments, node.Ignore, node.Table)
 			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
@@ -808,7 +808,7 @@ func (r *Router) generateUpdateSql(plan *Plan, stmt sqlparser.Statement) error {
 			)
 			tableIndex := plan.RouteTableIndexs[i]
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
-			nodeName := r.Nodes[nodeIndex]
+			nodeName := plan.Rule.Nodes[nodeIndex]
 			if _, ok := sqls[nodeName]; ok == false {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}
@@ -850,7 +850,7 @@ func (r *Router) generateDeleteSql(plan *Plan, stmt sqlparser.Statement) error {
 			)
 			tableIndex := plan.RouteTableIndexs[i]
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
-			nodeName := r.Nodes[nodeIndex]
+			nodeName := plan.Rule.Nodes[nodeIndex]
 			if _, ok := sqls[nodeName]; ok == false {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}
@@ -881,7 +881,7 @@ func (r *Router) generateReplaceSql(plan *Plan, stmt sqlparser.Statement) error 
 		for i := 0; i < tableCount; i++ {
 			tableIndex := plan.RouteTableIndexs[i]
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
-			nodeName := r.Nodes[nodeIndex]
+			nodeName := plan.Rule.Nodes[nodeIndex]
 
 			buf := sqlparser.NewTrackedBuffer(nil)
 			buf.Fprintf("replace %vinto %v",
@@ -931,7 +931,7 @@ func (r *Router) generateTruncateSql(plan *Plan, stmt sqlparser.Statement) error
 			fmt.Fprintf(buf, "_%04d", plan.RouteTableIndexs[i])
 			tableIndex := plan.RouteTableIndexs[i]
 			nodeIndex := plan.Rule.TableToNode[tableIndex]
-			nodeName := r.Nodes[nodeIndex]
+			nodeName := plan.Rule.Nodes[nodeIndex]
 			if _, ok := sqls[nodeName]; ok == false {
 				sqls[nodeName] = make([]string, 0, tableCount)
 			}
