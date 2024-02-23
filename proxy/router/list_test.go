@@ -116,7 +116,7 @@ func TestListSet(t *testing.T) {
 
 	l1 = []int{1, 2, 2, 1, 5, 3, 5, 2}
 	l2 = cleanList(l1)
-	sort.Sort(sort.IntSlice(l2))
+	sort.Ints(l2)
 	testCheckList(t, l2, 1, 2, 3, 5)
 }
 
