@@ -91,7 +91,7 @@ var (
 %left <empty> AND
 %right <empty> NOT
 %left <empty> BETWEEN CASE WHEN THEN ELSE
-//REGEXP 
+//REGEXP
 %left <empty> '=' '<' '>' LE GE NE NULL_SAFE_EQUAL IS LIKE IN
 %left <empty> '|'
 %left <empty> '&'
@@ -108,7 +108,7 @@ var (
 %token <empty> BEGIN START TRANSACTION COMMIT ROLLBACK
 
 // Charset Tokens
-%token <empty> NAMES 
+%token <empty> NAMES
 
 // Replace
 %token <empty> REPLACE
@@ -124,7 +124,7 @@ var (
 %token <empty> CREATE ALTER DROP RENAME
 %token <empty> TABLE INDEX VIEW TO IGNORE IF UNIQUE USING
 
-// truncate 
+// truncate
 %token <empty> TRUNCATE
 
 %start any_command
@@ -136,7 +136,7 @@ var (
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> distinct_opt
-%type <str> ignore_opt
+%type <str> ignore_opt default_opt
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
 %type <bytes> as_lower_opt as_opt
@@ -280,18 +280,14 @@ set_statement:
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
   }
-| SET comment_opt NAMES DEFAULT
-   {
-     $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal("default")}}}
-   }
-| SET comment_opt NAMES value_expression 
+| SET comment_opt NAMES value_expression
   {
     $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: $4}}}
   }
 | SET comment_opt NAMES value_expression COLLATE value_expression
   {
     $$ = &Set{
-	       Comments: Comments($2), 
+	       Comments: Comments($2),
 	       Exprs: UpdateExprs{
 	            &UpdateExpr{
 	               Name: &ColName{Name:[]byte("names")}, Expr: $4,
@@ -852,6 +848,20 @@ value_expression:
   {
     $$ = $1
   }
+| DEFAULT default_opt
+  {
+    $$ = &DefaultExpr{Name: &ColName{Name:[]byte($2)}}
+  }
+
+default_opt:
+  {
+    $$ = ""
+  }
+| '(' sql_id ')'
+  {
+    $$ = string($2)
+  }
+
 
 keyword_as_func:
   IF
