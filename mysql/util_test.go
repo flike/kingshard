@@ -46,3 +46,25 @@ func TestCalcPassword(t *testing.T) {
 	hex_scramble := hex.EncodeToString(scramble)
 	t.Logf("scramble: %s equal %s, pass: %v", "fbc71db5ac3d7b51048d1a1d88c1677f34bcca11", hex_scramble, "fbc71db5ac3d7b51048d1a1d88c1677f34bcca11" == hex_scramble)
 }
+
+func TestCalcPasswordEmptyPassword(t *testing.T) {
+	if got := CalcPassword([]byte("seed"), []byte("")); got != nil {
+		t.Fatalf("CalcPassword with empty password should return nil, got %v", got)
+	}
+}
+
+func TestRandomBufASCII(t *testing.T) {
+	const size = 20
+	buf, err := RandomBuf(size)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(buf) != size {
+		t.Fatalf("expected length %d, got %d", size, len(buf))
+	}
+	for i, b := range buf {
+		if b < 30 || b >= 127 {
+			t.Fatalf("byte %d out of ASCII range [30,127): %d", i, b)
+		}
+	}
+}

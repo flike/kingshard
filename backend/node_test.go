@@ -25,15 +25,11 @@ func TestParse(t *testing.T) {
 	nodeConfig := config.NodeConfig{
 		Name:             "node1",
 		DownAfterNoAlive: 100,
-		IdleConns:        16,
+		MaxConnNum:       16,
 		User:             "hello",
 		Password:         "world",
 		Master:           "127.0.0.1:3307",
-		Slave: []string{
-			"192.168.1.12:3306@2",
-			"192.168.1.13:3306@4",
-			"192.168.1.14:3306@8",
-		},
+		Slave:            "192.168.1.12:3306@2,192.168.1.13:3306@4,192.168.1.14:3306@8",
 	}
 	node.Cfg = nodeConfig
 	err := node.ParseMaster(nodeConfig.Master)
@@ -51,4 +47,22 @@ func TestParse(t *testing.T) {
 	t.Logf("%v\n", node.SlaveWeights)
 	t.Logf("%v\n", node.Master)
 	t.Logf("%v\n", node.Slave)
+}
+
+func TestParseMasterEmpty(t *testing.T) {
+	node := &Node{Cfg: config.NodeConfig{Name: "node_empty_master"}}
+	if err := node.ParseMaster(""); err == nil {
+		t.Fatal("expected error for empty master address")
+	}
+}
+
+func TestParseSlaveEmpty(t *testing.T) {
+	node := &Node{Cfg: config.NodeConfig{Name: "node_empty_slave"}}
+	if err := node.ParseSlave(""); err != nil {
+		t.Fatal(err)
+	}
+	if len(node.Slave) != 0 || len(node.SlaveWeights) != 0 || len(node.RoundRobinQ) != 0 {
+		t.Fatalf("expected empty slave state, got Slave=%v SlaveWeights=%v RoundRobinQ=%v",
+			node.Slave, node.SlaveWeights, node.RoundRobinQ)
+	}
 }
