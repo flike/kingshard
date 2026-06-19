@@ -25,9 +25,10 @@ var configFileName string
 
 //整个config文件对应的结构
 type Config struct {
-	Addr     		string       	`yaml:"addr"`
-	PrometheusAddr 	string		 	`yaml:"prometheus_addr"`
-	UserList 		[]UserConfig 	`yaml:"user_list"`
+	FreeOsMemory   string       `yaml:"free_os_memory"`
+	Addr           string       `yaml:"addr"`
+	PrometheusAddr string       `yaml:"prometheus_addr"`
+	UserList       []UserConfig `yaml:"user_list"`
 
 	WebAddr     string `yaml:"web_addr"`
 	WebUser     string `yaml:"web_user"`
