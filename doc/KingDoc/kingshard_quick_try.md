@@ -35,7 +35,7 @@
     pid-file   = /var/lib/mysql2/hostname.pid2
     datadir    = /var/lib/mysql2
     #language   = /usr/share/mysql/english
-    user       = unix_user1
+    user       = mysql
 
     [mysqld3]
     socket     = /var/lib/mysql3/mysql.sock3
@@ -43,7 +43,7 @@
     pid-file   = /var/lib/mysql3/hostname.pid3
     datadir    = /var/lib/mysql3
     #language   = /usr/share/mysql/swedish
-    user       = unix_user2
+    user       = mysql
 
 
 ### 启动多个实例   
