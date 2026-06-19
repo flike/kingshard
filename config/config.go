@@ -82,6 +82,7 @@ type ShardConfig struct {
 	Type          string   `yaml:"type"`
 	TableRowLimit int      `yaml:"table_row_limit"`
 	DateRange     []string `yaml:"date_range"`
+	TableNamePostfixLength int `yaml:"table_name_postfix_length"`
 }
 
 func ParseConfigData(data []byte) (*Config, error) {
@@ -89,6 +90,9 @@ func ParseConfigData(data []byte) (*Config, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
+
+	setDefaultTblNamePostfixLength(&cfg)
+
 	return &cfg, nil
 }
 
@@ -112,6 +116,17 @@ func WriteConfigFile(cfg *Config) error {
 	err = ioutil.WriteFile(configFileName, data, 0755)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// set the default tbl_name postfix to 4, tbl_name_xxxx
+func setDefaultTblNamePostfixLength(cfg *Config) error {
+	for i := 0; i < len(cfg.Schema.ShardRule); i++ {
+		if cfg.Schema.ShardRule[i].TableNamePostfixLength == 0 {
+			cfg.Schema.ShardRule[i].TableNamePostfixLength = 4
+		}
 	}
 
 	return nil
