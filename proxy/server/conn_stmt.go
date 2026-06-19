@@ -62,7 +62,7 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 
 	s := new(Stmt)
 
-	sql = strings.TrimRight(sql, ";")
+	sql = strings.TrimRight(strings.TrimRight(sql, " "), ";")
 
 	var err error
 	s.s, err = sqlparser.Parse(sql)
