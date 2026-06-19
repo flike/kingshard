@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
@@ -72,9 +71,10 @@ func (c *ClientConn) handleStmtPrepare(sql string) error {
 
 	s.sql = sql
 
-	defaultRule := c.schema.rule.DefaultRule
-
-	n := c.proxy.GetNode(defaultRule.Nodes[0])
+	n, err := c.getExecuteNode()
+	if err != nil {
+		return err
+	}
 
 	co, err := c.getBackendConn(n, false)
 	defer c.closeConn(co, false)
@@ -258,14 +258,13 @@ func (c *ClientConn) handleStmtExecute(data []byte) error {
 }
 
 func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
-	defaultRule := c.schema.rule.DefaultRule
-	if len(defaultRule.Nodes) == 0 {
-		return errors.ErrNoDefaultNode
+	n, err := c.getExecuteNode()
+	if err != nil {
+		return err
 	}
-	defaultNode := c.proxy.GetNode(defaultRule.Nodes[0])
 
 	//choose connection in slave DB first
-	conn, err := c.getBackendConn(defaultNode, true)
+	conn, err := c.getBackendConn(n, true)
 	defer c.closeConn(conn, false)
 	if err != nil {
 		return err
@@ -295,14 +294,13 @@ func (c *ClientConn) handlePrepareSelect(stmt *sqlparser.Select, sql string, arg
 }
 
 func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
-	defaultRule := c.schema.rule.DefaultRule
-	if len(defaultRule.Nodes) == 0 {
-		return errors.ErrNoDefaultNode
+	n, err := c.getExecuteNode()
+	if err != nil {
+		return err
 	}
-	defaultNode := c.proxy.GetNode(defaultRule.Nodes[0])
 
 	//execute in Master DB
-	conn, err := c.getBackendConn(defaultNode, false)
+	conn, err := c.getBackendConn(n, false)
 	defer c.closeConn(conn, false)
 	if err != nil {
 		return err

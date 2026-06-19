@@ -28,7 +28,7 @@ log_level : debug
 
 # if set log_sql(on|off) off,the sql log will not output
 log_sql: on
- 
+
 # only log the query that take more than slow_log_time ms
 #slow_log_time : 100
 
@@ -46,38 +46,38 @@ log_sql: on
 
 # node is an agenda for real remote mysql server.
 nodes :
-- 
-    name : node1 
+-
+    name : node1
 
     # default max conns for mysql server
     max_conns_limit : 32
 
     # all mysql in a node must have the same user and password
-    user :  root 
+    user :  root
     password : root
 
-    # master represents a real mysql master server 
+    # master represents a real mysql master server
     master : 127.0.0.1:3306
 
-    # slave represents a real mysql salve server,and the number after '@' is 
+    # slave represents a real mysql salve server,and the number after '@' is
     # read load weight of this slave.
     #slave : 192.168.59.101:3307@2,192.168.59.101:3307@3
     down_after_noalive : 32
-- 
-    name : node2 
+-
+    name : node2
 
     # default max conns for mysql server
     max_conns_limit : 32
 
     # all mysql in a node must have the same user and password
-    user :  root 
+    user :  root
     password : root
 
-    # master represents a real mysql master server 
+    # master represents a real mysql master server
     master : 127.0.0.1:3309
 
-    # slave represents a real mysql salve server 
-    slave : 
+    # slave represents a real mysql salve server
+    slave :
 
     # down mysql after N seconds noalive
     # 0 will no down
@@ -91,28 +91,28 @@ schema_list :
     default: node1
     shard:
     -
-
+        db : node2_db
+        nodes: [node2]
 -
     user: kingshard
     nodes: [node1,node2]
-    default: node1      
+    default: node1
     shard:
-    -   
+    -
         db : kingshard
         table: test_shard_hash
         key: id
         nodes: [node1, node2]
         type: hash
         locations: [4,4]
-
-    - 
+    -
         db : hidb
         table: test_hash
         key: id
         nodes: [node1, node2]
         type: hash
         locations: [4,4]
-    -   
+    -
         db : kingshard
         table: test_shard_range
         key: id
