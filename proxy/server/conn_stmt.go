@@ -44,7 +44,8 @@ type Stmt struct {
 	params  int
 	columns int
 
-	args []interface{}
+	paramTypes []byte
+	args       []interface{}
 
 	s sqlparser.Statement
 
@@ -218,6 +219,7 @@ func (c *ClientConn) handleStmtExecute(data []byte) error {
 		pos += nullBitmapLen
 
 		//new param bound flag
+		// https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_com_stmt_execute.html
 		if data[pos] == 1 {
 			pos++
 			if len(data) < (pos + (paramNum << 1)) {
@@ -227,8 +229,12 @@ func (c *ClientConn) handleStmtExecute(data []byte) error {
 			paramTypes = data[pos : pos+(paramNum<<1)]
 			pos += (paramNum << 1)
 
-			paramValues = data[pos:]
+			//paramValues = data[pos:]
+		} else {
+			//  new_params_bind_flag 为 false，客户端在发送 COM_STMT_EXECUTE 命令时不需要再次发送 parameter_types
+			pos++
 		}
+		paramValues = data[pos:]
 
 		if err := c.bindStmtArgs(s, nullBitmaps, paramTypes, paramValues); err != nil {
 			return err
@@ -332,6 +338,10 @@ func (c *ClientConn) handlePrepareExec(stmt sqlparser.Statement, sql string, arg
 }
 
 func (c *ClientConn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte) error {
+	if len(paramTypes) > 0 {
+		// 缓存paramTypes，供后续使用
+		s.paramTypes = paramTypes
+	}
 	args := s.args
 
 	pos := 0
